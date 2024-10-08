@@ -1,8 +1,6 @@
 [package]
-name = "veri-asm"
+name = "riscv_asm"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-capstone = "0.12.0"
-elf = "0.7.4"
