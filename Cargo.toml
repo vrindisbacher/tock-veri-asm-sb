@@ -1,0 +1,7 @@
+[package]
+name = "veri-asm"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+yaxpeax-arm = "0.3.0"
