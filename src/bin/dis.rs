@@ -61,7 +61,9 @@ fn unasm_arm() {
             .section_data(&header)
             .expect("Couldn't get section data");
         let arm_cs = arm_mclass_capstone();
-        let section_name = header_names.get(header.sh_name as usize).expect("Could not find header name");
+        let section_name = header_names
+            .get(header.sh_name as usize)
+            .expect("Could not find header name");
         unasm(arm_cs, data, section_name);
     }
 }
@@ -80,7 +82,9 @@ fn unasm_riscv() {
             .section_data(&header)
             .expect("Couldn't get section data");
         let riscv_cs = riscv_capstone();
-        let section_name = header_names.get(header.sh_name as usize).expect("Could not find header name");
+        let section_name = header_names
+            .get(header.sh_name as usize)
+            .expect("Could not find header name");
         unasm(riscv_cs, data, section_name);
     }
 }
