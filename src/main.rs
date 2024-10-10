@@ -9,7 +9,7 @@ use elf::{endian::AnyEndian, ElfBytes};
 fn unasm(cs: Capstone, buf: &[u8], section_name: &str) {
     let insns = cs.disasm_all(buf, 0x0).expect("Failed to disassemble");
     if insns.len() > 0 {
-        println!("\nDisassembly for section {}:\n", section_name);
+        println!("\nAssembly for section {}:\n", section_name);
     }
     for i in insns.as_ref() {
         match cs.insn_name(i.id()) {
