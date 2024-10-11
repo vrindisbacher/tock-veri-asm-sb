@@ -15,3 +15,7 @@ name = "armv7m"
 [dependencies]
 capstone = "0.12.0"
 elf = "0.7.4"
+flux-rs = { git  = "https://github.com/flux-rs/flux.git" }
+
+[package.metadata.flux]
+enabled = true
