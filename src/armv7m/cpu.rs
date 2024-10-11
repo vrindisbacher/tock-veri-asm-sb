@@ -29,25 +29,64 @@ pub enum Value {
 }
 
 #[derive(Debug)]
+#[flux_rs::refined_by(
+    r0: int, 
+    r1: int,
+    r2: int, 
+    r3: int,
+    r4: int,
+    r5: int,
+    r6: int,
+    r7: int,
+    r8: int,
+    r9: int,
+    r10: int, 
+    r11: int,
+    r12: int,
+    r13: int,
+    r14: int,
+    r15: int,
+    psr: int,
+    primask: int,
+    basepri: int,
+    faultmask: int,
+    control: int,
+)]
 pub struct Armv7m {
+    #[field(u32[r0])]
     r0: u32,
+    #[field(u32[r1])]
     r1: u32,
+    #[field(u32[r2])]
     r2: u32,
+    #[field(u32[r3])]
     r3: u32,
+    #[field(u32[r4])]
     r4: u32,
+    #[field(u32[r5])]
     r5: u32,
+    #[field(u32[r6])]
     r6: u32,
+    #[field(u32[r7])]
     r7: u32,
+    #[field(u32[r8])]
     r8: u32,
+    #[field(u32[r9])]
     r9: u32,
+    #[field(u32[r10])]
     r10: u32,
+    #[field(u32[r11])]
     r11: u32,
+    #[field(u32[r12])]
     r12: u32,
     // r13 is the stack pointer
+    #[field(u32[r13])]
     r13: u32,
     // r14 is the link register
+    #[field(u32[r14])]
     r14: u32,
     // r15 is the program counter
+    #[field(u32[r15])]
     r15: u32,
     //
     // Special Registers below
@@ -55,16 +94,21 @@ pub struct Armv7m {
     // PSR has 3 sub registers:
     //
     // APSR, IPSR, EPSR
+    #[field(u32[psr])]
     psr: u32,
     // Mask registers
     //
     // primask is 1 bit - the rest being reserved
+    #[field(u32[primask])]
     primask: u32,
     // basepri is 8 bit - the rest being reserved
+    #[field(u32[basepri])]
     basepri: u32,
     // faultmask is 1 bit - the rest being reserved
+    #[field(u32[faultmask])]
     faultmask: u32,
     // Control register (2 bit or 3 bit) depending on the specific processor
+    #[field(u32[control])]
     control: u32,
 }
 
@@ -246,7 +290,7 @@ impl Armv7m {
     }
 
     // Bx
-    pub fn bx(&mut self, register: GeneralPurposeRegister)  {
+    pub fn bx(&mut self, register: GeneralPurposeRegister) {
         // VTOCK TODO: DO nothing but maybe we should make sure that this is the link register
     }
 }
