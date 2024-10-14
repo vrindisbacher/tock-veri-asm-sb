@@ -20,12 +20,15 @@ pub enum GeneralPurposeRegister {
 
 pub enum SpecialRegister {
     Control,
-    ISPR,
+    IPSR,
 }
 
 pub enum Value {
     Register(GeneralPurposeRegister),
     Value(u32),
+}
+
+pub struct Mem {
 }
 
 #[derive(Debug)]
@@ -189,6 +192,11 @@ impl Armv7m {
         }
     }
 
+    fn move_pc(&mut self) {
+        // Moves the PC (i.e. r15 to the next instruction (i.e. 4 bytes down)
+        self.r15 += 4;
+    }
+
     // VTOCK TODO: Check flag updates here
 
     // Mov
@@ -197,6 +205,8 @@ impl Armv7m {
         // This does not cause a flag update
         let val = self.value_into_u32(value);
         self.update_reg_with_u32(register, val);
+
+        self.move_pc();
     }
 
     // Movs
@@ -205,6 +215,13 @@ impl Armv7m {
         let val = self.value_into_u32(value);
         self.update_reg_with_u32(register, val);
         // TODO: Flag updates
+        self.move_pc();
+    }
+
+    // MVN
+    pub fn mvn(&mut self, register: GeneralPurposeRegister, value: Value) {
+        self.move_pc();
+        todo!()
     }
 
     // Msr
@@ -213,21 +230,25 @@ impl Armv7m {
         match register {
             SpecialRegister::Control => self.control = val,
             // note this is a bunch of bits under the PSR register so we need to do fancy stuff
-            SpecialRegister::ISPR => todo!(),
+            SpecialRegister::IPSR => todo!(),
         }
         // TODO: There are a bunch of flag updates here
+        self.move_pc();
     }
 
     // Isb
     pub fn isb(&mut self) {
         // do nothing
+        self.move_pc();
     }
+
     // // Load a word
     // Ldr(InstrRegister, Value),
     pub fn ldr(&mut self, register: GeneralPurposeRegister, value: Value) {
         let val = self.value_into_u32(value);
         self.update_reg_with_u32(register, val);
         // TODO: There are a bunch of flag updates here
+        self.move_pc();
     }
 
     // Mrs
@@ -237,9 +258,10 @@ impl Armv7m {
         let val = match value {
             SpecialRegister::Control => self.control,
             // note this is a bunch of bits under the PSR register so we need to do fancy stuff
-            SpecialRegister::ISPR => todo!(),
+            SpecialRegister::IPSR => todo!(),
         };
         self.update_reg_with_u32(register, val);
+        self.move_pc();
     }
 
     // And
@@ -256,6 +278,7 @@ impl Armv7m {
                 self.update_reg_with_u32(register, reg_val & val);
             }
         }
+        self.move_pc();
     }
 
     // Sub
@@ -264,6 +287,7 @@ impl Armv7m {
         let val = self.value_into_u32(value);
         let register_val = self.get_value_from_reg(&register);
         self.update_reg_with_u32(register, register_val - val);
+        self.move_pc();
     }
 
     // Logical Shift Right With a Flag Update
@@ -273,6 +297,7 @@ impl Armv7m {
         let val1 = self.value_into_u32(value1);
         self.update_reg_with_u32(register, val >> val1);
         // TODO: There are a bunch of flag updates here
+        self.move_pc();
     }
 
     // Lsl(InstrRegister, Value, Value),
@@ -281,16 +306,19 @@ impl Armv7m {
         let val = self.value_into_u32(value);
         let val1 = self.value_into_u32(value1);
         self.update_reg_with_u32(register, val << val1);
+        self.move_pc();
     }
 
     // Str
     pub fn str(&mut self, register: GeneralPurposeRegister, value_vec: Vec<Value>) {
         // NOTE: This is a pain - need to update Value to be another instruction
+        self.move_pc();
         todo!()
     }
 
     // Bx
     pub fn bx(&mut self, register: GeneralPurposeRegister) {
         // VTOCK TODO: DO nothing but maybe we should make sure that this is the link register
+        self.move_pc();
     }
 }
