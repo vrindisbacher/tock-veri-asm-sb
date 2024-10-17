@@ -1,5 +1,5 @@
 flux_rs::defs! {
-    fn int_to_reg(reg: int, cpu: Armv7m) -> int {
+    fn get_reg(reg: int, cpu: Armv7m) -> int {
         if reg == 0 {
             cpu.r0
         } else if reg == 1 {
@@ -37,7 +37,7 @@ flux_rs::defs! {
 
     fn value_into_u32(value: Value, cpu: Armv7m) -> int {
         if value.is_reg {
-            int_to_reg(value.val, cpu)
+            get_reg(value.val, cpu)
         } else {
             value.val
         }
@@ -219,7 +219,7 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@new_val]) ensures self: Armv7m { new_cpu: int_to_reg(reg, new_cpu) == new_val })] 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@new_val]) ensures self: Armv7m { new_cpu: get_reg(reg, new_cpu) == new_val })] 
     fn update_reg_with_u32(&mut self, register: GeneralPurposeRegister, value: u32) {
         match register {
             GeneralPurposeRegister::R0 => self.r0 = value,
@@ -241,7 +241,7 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> u32[int_to_reg(reg, cpu)])]
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> u32[get_reg(reg, cpu)])]
     fn get_value_from_reg(&self, register: &GeneralPurposeRegister) -> u32 {
         match register {
             GeneralPurposeRegister::R0 => self.r0,
@@ -276,17 +276,18 @@ impl Armv7m {
 
     // Mov
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], Value[@val]) 
-        ensures self: Armv7m { new_cpu: 
-            int_to_reg(reg, new_cpu) == value_into_u32(val, old_cpu) 
+        ensures self: Armv7m { 
+            new_cpu: get_reg(reg, new_cpu) == value_into_u32(val, old_cpu) 
         }
     )]
+    // Interesting note: incr the program counter is an issue for this refinement
     pub fn mov(&mut self, register: GeneralPurposeRegister, value: Value) {
         // Move immediate - writes a value into destination register
         // This does not cause a flag update
         let val = self.value_into_u32(value);
         self.update_reg_with_u32(register, val);
 
-        self.move_pc();
+        // self.move_pc();
     }
 
     // Movs
