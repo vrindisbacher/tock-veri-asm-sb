@@ -2,7 +2,6 @@ pub mod armv7m;
 
 use armv7m::cpu::{Armv7m, GeneralPurposeRegister, SpecialRegister, Value};
 
-
 //
 // Here is disassembly of the armv7m program. Note that the .w specifies "wide"
 // for the 32 bit version of the instruction
@@ -36,14 +35,13 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
         Value::Register(GeneralPurposeRegister::R0),
     );
     armv7m.isb();
-    
+
     // r14 is the link register
     armv7m.mvn(GeneralPurposeRegister::R14, Value::Value(6));
 
     armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
     armv7m.and(GeneralPurposeRegister::R0, Value::Value(0xFF), None);
     armv7m.sub(GeneralPurposeRegister::R0, Value::Value(16));
-    
 
     armv7m.lsrs(
         GeneralPurposeRegister::R2,
@@ -92,4 +90,9 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     );
 
     armv7m.bx(GeneralPurposeRegister::R14);
+}
+
+#[flux_rs::sig(fn (arm: &strg Armv7m[@cpu]) ensures arm: Armv7m { v: v.r0 == 0 })]
+fn simple_mov(armv7m: &mut Armv7m) {
+    armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
 }
