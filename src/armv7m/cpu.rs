@@ -1,3 +1,5 @@
+use super::{instr::{GeneralPurposeRegister, SpecialRegister, Value}, mem::Memory};
+
 flux_rs::defs! {
     fn get_reg(reg: int, cpu: Armv7m) -> int {
         if reg == 0 {
@@ -27,11 +29,11 @@ flux_rs::defs! {
         } else if reg == 12 {
             cpu.r12
         } else if reg == 13 {
-            cpu.r13
+            cpu.sp
         } else if reg == 14 { 
-            cpu.r14
+            cpu.lr
         } else {
-            cpu.r15
+            cpu.pc
         }
     }
 
@@ -45,59 +47,38 @@ flux_rs::defs! {
 }
 
 
-#[flux_rs::refined_by(n: int)]
-pub enum GeneralPurposeRegister {
-    #[variant(GeneralPurposeRegister[0])]
-    R0,
-    #[variant(GeneralPurposeRegister[1])]
-    R1,
-    #[variant(GeneralPurposeRegister[2])]
-    R2,
-    #[variant(GeneralPurposeRegister[3])]
-    R3,
-    #[variant(GeneralPurposeRegister[4])]
-    R4,
-    #[variant(GeneralPurposeRegister[5])]
-    R5,
-    #[variant(GeneralPurposeRegister[6])]
-    R6,
-    #[variant(GeneralPurposeRegister[7])]
-    R7,
-    #[variant(GeneralPurposeRegister[8])]
-    R8,
-    #[variant(GeneralPurposeRegister[9])]
-    R9,
-    #[variant(GeneralPurposeRegister[10])]
-    R10,
-    #[variant(GeneralPurposeRegister[11])]
-    R11,
-    #[variant(GeneralPurposeRegister[12])]
-    R12,
-    #[variant(GeneralPurposeRegister[13])]
-    R13,
-    // Link Register
-    #[variant(GeneralPurposeRegister[14])]
-    R14,
-    #[variant(GeneralPurposeRegister[15])]
-    R15,
-}
-
-pub enum SpecialRegister {
-    Control,
-    IPSR,
-}
-
-#[flux_rs::refined_by(is_reg: bool, val: int)]
-pub enum Value {
-    #[variant({GeneralPurposeRegister[@n]} -> Value[true, n])]
-    Register(GeneralPurposeRegister),
-    #[variant({u32[@n]} -> Value[false, n])]
-    Value(u32),
-}
-
-pub struct Mem {
-}
-
+// The following is a struct that represents the CPU of the ARMv7m processor architecture
+//
+// There are thirteen general-purpose 32-bit registers, R0-R12, and an additional three 32-bit registers that have special
+// names and usage models.
+//
+//
+// Permissions are:
+//      Read or write R0-R12, SP, and LR
+//      Read the PC
+//
+// There are also special registers. These are:
+//
+//      APSR register: Program status is reported in the 32-bit Application Program Status Register
+//      (APSR). The flags in this register are:
+//
+//      - N, bit[31] Negative condition flag. Set to bit[31] of the result of the instruction. If the result is regarded as
+//      a two's complement signed integer, then N == 1 if the result is negative and N == 0 if it is positive
+//      or zero.
+//
+//      - Z, bit[30] Zero condition flag. Set to 1 if the result of the instruction is zero, and to 0 otherwise. A result of
+//      zero often indicates an equal result from a comparison.
+//
+//      - C, bit[29] Carry condition flag. Set to 1 if the instruction results in a carry condition, for example an
+//      unsigned overflow on an addition.
+//
+//      - V, bit[28] Overflow condition flag. Set to 1 if the instruction results in an overflow condition, for example
+//      a signed overflow on an addition.
+//
+//      - Q, bit[27] Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of
+//      the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to
+//      indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
+//
 #[derive(Debug)]
 #[flux_rs::refined_by(
     r0: int, 
@@ -113,14 +94,18 @@ pub struct Mem {
     r10: int, 
     r11: int,
     r12: int,
-    r13: int,
-    r14: int,
-    r15: int,
-    psr: int,
-    primask: int,
-    basepri: int,
-    faultmask: int,
-    control: int,
+    sp: int,
+    lr: int,
+    pc: int,
+    apsr: int,
+    // Memory Layout
+    code: int,
+    sram: int,
+    periph: int,
+    ram: int,
+    device: int,
+    ppb: int,
+    vendor_sys: int
 )]
 pub struct Armv7m {
     #[field(u32[r0])]
@@ -149,68 +134,21 @@ pub struct Armv7m {
     r11: u32,
     #[field(u32[r12])]
     r12: u32,
-    // r13 is the stack pointer
-    #[field(u32[r13])]
-    r13: u32,
-    // r14 is the link register
-    #[field(u32[r14])]
-    r14: u32,
-    // r15 is the program counter
-    #[field(u32[r15])]
-    r15: u32,
-    //
-    // Special Registers below
-    //
-    // PSR has 3 sub registers:
-    //
-    // APSR, IPSR, EPSR
-    #[field(u32[psr])]
-    psr: u32,
-    // Mask registers
-    //
-    // primask is 1 bit - the rest being reserved
-    #[field(u32[primask])]
-    primask: u32,
-    // basepri is 8 bit - the rest being reserved
-    #[field(u32[basepri])]
-    basepri: u32,
-    // faultmask is 1 bit - the rest being reserved
-    #[field(u32[faultmask])]
-    faultmask: u32,
-    // Control register (2 bit or 3 bit) depending on the specific processor
-    #[field(u32[control])]
-    control: u32,
+    #[field(u32[sp])]
+    sp: u32,
+    #[field(u32[lr])]
+    lr: u32,
+    #[field(u32[pc])]
+    pc: u32,
+    #[field(u32[apsr])]
+    apsr: u32,
+    #[field(Memory[
+        code, sram, periph, ram, device, ppb, vendor_sys
+    ])]
+    mem: Memory,
 }
 
 impl Armv7m {
-    pub fn new() -> Self {
-        Armv7m {
-            r0: 0,
-            r1: 0,
-            r2: 0,
-            r3: 0,
-            r4: 0,
-            r5: 0,
-            r6: 0,
-            r7: 0,
-            r8: 0,
-            r9: 0,
-            r10: 0,
-            r11: 0,
-            r12: 0,
-            r13: 0,
-            // Link register is special - defaults to this value
-            r14: 0,
-            r15: 0,
-            psr: 0,
-            primask: 0,
-            basepri: 0,
-            faultmask: 0,
-            control: 0,
-        }
-    }
-
-
     #[flux_rs::sig(fn (&Armv7m[@cpu], Value[@val]) -> u32[value_into_u32(val, cpu)])]
     fn value_into_u32(&self, value: Value) -> u32 {
         match value {
@@ -235,9 +173,6 @@ impl Armv7m {
             GeneralPurposeRegister::R10 => self.r10 = value,
             GeneralPurposeRegister::R11 => self.r11 = value,
             GeneralPurposeRegister::R12 => self.r12 = value,
-            GeneralPurposeRegister::R13 => self.r13 = value,
-            GeneralPurposeRegister::R14 => self.r14 = value,
-            GeneralPurposeRegister::R15 => self.r15 = value,
         }
     }
 
@@ -257,19 +192,16 @@ impl Armv7m {
             GeneralPurposeRegister::R10 => self.r10,
             GeneralPurposeRegister::R11 => self.r11,
             GeneralPurposeRegister::R12 => self.r12,
-            GeneralPurposeRegister::R13 => self.r13,
-            GeneralPurposeRegister::R14 => self.r14,
-            GeneralPurposeRegister::R15 => self.r15,
         }
     }
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
-            ensures self: Armv7m { new_cpu: new_cpu.r15 == old_cpu.r15 + 4 } 
+            ensures self: Armv7m { new_cpu: new_cpu.pc == old_cpu.pc + 4 } 
     )]
     fn move_pc(&mut self) {
         // Moves the PC (i.e. r15 to the next instruction (i.e. 4 bytes down)
-        self.r15 += 4;
+        self.pc += 4;
     }
 
     // VTOCK TODO: Check flag updates here
@@ -310,14 +242,15 @@ impl Armv7m {
     // Msr
     #[flux_rs::trusted]
     pub fn msr(&mut self, register: SpecialRegister, value: Value) {
-        let val = self.value_into_u32(value);
-        match register {
-            SpecialRegister::Control => self.control = val,
-            // note this is a bunch of bits under the PSR register so we need to do fancy stuff
-            SpecialRegister::IPSR => todo!(),
-        }
+        todo!()
+        // let val = self.value_into_u32(value);
+        // match register {
+        //     SpecialRegister::Control => // self.control = val,
+        //     // note this is a bunch of bits under the PSR register so we need to do fancy stuff
+        //     SpecialRegister::IPSR => todo!(),
+        // }
         // TODO: There are a bunch of flag updates here
-        self.move_pc();
+        // self.move_pc();
     }
 
     // Isb
@@ -342,13 +275,14 @@ impl Armv7m {
     pub fn mrs(&mut self, register: GeneralPurposeRegister, value: SpecialRegister) {
         // Move to register from special register - for moving values from
         // special registers to general purpose registers
-        let val = match value {
-            SpecialRegister::Control => self.control,
-            // note this is a bunch of bits under the PSR register so we need to do fancy stuff
-            SpecialRegister::IPSR => todo!(),
-        };
-        self.update_reg_with_u32(register, val);
-        self.move_pc();
+        // let val = match value {
+        //     SpecialRegister::Control => todo!() // self.control,
+        //     // note this is a bunch of bits under the PSR register so we need to do fancy stuff
+        //     SpecialRegister::IPSR => todo!(),
+        // };
+        // self.update_reg_with_u32(register, val);
+        // self.move_pc();
+        todo!()
     }
 
     // And

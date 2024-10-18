@@ -1,6 +1,7 @@
 pub mod armv7m;
+mod internals;
 
-use armv7m::cpu::{Armv7m, GeneralPurposeRegister, SpecialRegister, Value};
+use armv7m::{cpu::Armv7m, instr::{GeneralPurposeRegister, SpecialRegister, Value}};
 
 //
 // Here is disassembly of the armv7m program. Note that the .w specifies "wide"
@@ -37,7 +38,8 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.isb();
 
     // r14 is the link register
-    armv7m.mvn(GeneralPurposeRegister::R14, Value::Value(6));
+    // TODO: use special register for LR
+    // armv7m.mvn(GeneralPurposeRegister::R14, Value::Value(6));
 
     armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
     armv7m.and(GeneralPurposeRegister::R0, Value::Value(0xFF), None);
@@ -89,10 +91,6 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
         ],
     );
 
-    armv7m.bx(GeneralPurposeRegister::R14);
-}
-
-#[flux_rs::sig(fn (arm: &strg Armv7m[@cpu]) ensures arm: Armv7m { v: v.r0 == 0 })]
-fn simple_mov(armv7m: &mut Armv7m) {
-    armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
+    // TODO: use special register for lr
+    // armv7m.bx(GeneralPurposeRegister::R14);
 }
