@@ -9,9 +9,6 @@ name = "veriasm"
 [[bin]]
 name = "dis"
 
-[[bin]]
-name = "armv7m"
-
 [dependencies]
 capstone = "0.12.0"
 elf = "0.7.4"

@@ -3,3 +3,5 @@
 //
 // Based on https://developer.arm.com/documentation/ddi0403/ee/?lang=en
 pub mod cpu;
+pub mod instr;
+pub (crate)mod mem;
