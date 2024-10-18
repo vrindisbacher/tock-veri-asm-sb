@@ -37,23 +37,75 @@ use crate::internals::rvec::RVec;
 // - Device Memory: Causes side effects
 // - Strongly Ordered Memory: An access to memory marked as Strongly Ordered acts as a memory barrier to all other explicit accesses from that processor, until the point at which the access is complete (that is, has changed the state of the target location or data has been returned). In addition, an access to memory marked as Strongly Ordered must complete before the end of a memory barrier
 
+flux_rs::defs! {
+    fn contains_inclusive(start: int, end: int, value: int) -> bool {
+        value >= start && value <= end
+    }
+
+    fn addr_to_region(addr: int) -> int {
+        if contains_inclusive(CODE_START, CODE_END, addr) {
+            0
+        } else if contains_inclusive(SRAM_START, SRAM_END, addr) {
+            1
+        } else if contains_inclusive(PERIPH_START, PERIPH_END, addr) {
+            2
+        } else if contains_inclusive(RAM_START, RAM_END, addr) {
+            3
+        } else if contains_inclusive(DEVICE_START, DEVICE_END, addr) {
+            4
+        } else if contains_inclusive(PPB_START, PPB_END, addr) {
+            5
+        } else {
+            6
+        }
+    }
+
+    fn addr_to_mem(addr: int, mem: Memory) -> int {
+        if  addr_to_region(addr) == 0 {
+            mem.code
+        } else if addr_to_region(addr) == 1{
+            mem.sram
+        } else if addr_to_region(addr) == 2 {
+            mem.periph
+        } else if addr_to_region(addr) == 3 {
+            mem.ram
+        } else if addr_to_region(addr) == 4 {
+            mem.device
+        } else if addr_to_region(addr) == 5 {
+            mem.ppb
+        } else {
+            mem.vendor_sys
+        }
+    }
+
+
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[flux_rs::refined_by(region: int)]
 pub enum MemoryRegion {
     // Normal
+    #[variant(MemoryRegion[0])]
     Code,
     // Normal
+    #[variant( MemoryRegion[1] )]
     SRAM,
     // Device
+    #[variant( MemoryRegion[2] )]
     Peripheral,
     // NOTE: Blurring over WBWA vs. WT cache here
     // Normal
+    #[variant( MemoryRegion[3] )]
     RAM,
     // NOTE: Glossing over shareable vs. nonshareable as we only care about single processor
     // Device
+    #[variant( MemoryRegion[4] )]
     Device,
     // Strongly Ordered
+    #[variant( MemoryRegion[5] )]
     PPB,
     // Device
+    #[variant( MemoryRegion[6] )]
     VendorSys,
 }
 
@@ -106,6 +158,7 @@ const VENDOR_SYSTEM_START: u32 = 0xE010_0000;
 const VENDOR_SYSTEM_END: u32 = 0xFFFF_FFFF;
 
 impl Memory {
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@addr]) -> MemoryRegion[addr_to_region(addr)])]
     fn get_region(&self, address: u32) -> MemoryRegion {
         match address {
             CODE_START..=CODE_END => MemoryRegion::Code,
@@ -118,30 +171,36 @@ impl Memory {
         }
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.code && idx >= CODE_START)]
     fn read_code(&self, address: u32) -> u8 {
         *self.code.get(address as usize)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.sram && idx >= SRAM_START)]
     fn read_sram(&self, address: u32) -> u8 {
         let idx = (address - SRAM_START) as usize;
         *self.sram.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.periph && idx >= PERIPH_START)]
     fn read_peripherals(&self, address: u32) -> u8 {
         let idx = (address - PERIPH_START) as usize;
         *self.peripherals.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.ram && idx >= RAM_START)]
     fn read_ram(&self, address: u32) -> u8 {
         let idx = (address - RAM_START) as usize;
         *self.ram.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.device && idx >= DEVICE_START)]
     fn read_device(&self, address: u32) -> u8 {
         let idx = (address - DEVICE_START) as usize;
-        *self.ram.get(idx)
+        *self.device.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.ppb && idx >= PPB_START)]
     fn read_ppb(&self, address: u32) -> u8 {
         // Accesses to PPB are always little endian and word access only (see B3.1.1 in manual)
         // TODO: See section B3.2.2 for the specific registers here
@@ -149,11 +208,13 @@ impl Memory {
         *self.ppb.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < mem.vendor_sys && idx >= VENDOR_SYSTEM_START)]
     fn read_vendor_sys(&self, address: u32) -> u8 {
         let idx = (address - VENDOR_SYSTEM_START) as usize;
         *self.vendor_sys.get(idx)
     }
 
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@idx]) -> u8 requires idx < addr_to_mem(idx, mem))]
     pub fn read(&self, address: u32) -> u8 {
         assert!(address <= std::u32::MAX);
         match self.get_region(address) {
@@ -169,37 +230,44 @@ impl Memory {
         }
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.sram && idx >= SRAM_START)]
     fn write_sram(&mut self, address: u32, value: u8) {
         let idx = (address - SRAM_START) as usize;
         self.sram[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.periph && idx >= PERIPH_START)]
     fn write_peripherals(&mut self, address: u32, value: u8) {
         let idx = (address - PERIPH_START) as usize;
-        self.sram[idx] = value;
+        self.peripherals[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.ram && idx >= RAM_START)]
     fn write_ram(&mut self, address: u32, value: u8) {
         let idx = (address - RAM_START) as usize;
-        self.sram[idx] = value;
+        self.ram[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.device && idx >= DEVICE_START)]
     fn write_device(&mut self, address: u32, value: u8) {
         let idx = (address - DEVICE_START) as usize;
-        self.sram[idx] = value;
+        self.device[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.ppb && idx >= PPB_START)]
     fn write_ppb(&mut self, address: u32, value: u8) {
         // Accesses to PPB are always little endian and word access only (see B3.1.1 in manual)
         let idx = (address - PPB_START) as usize;
         self.ppb[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < mem.vendor_sys && idx >= VENDOR_SYSTEM_START)]
     fn write_vendor_sys(&mut self, address: u32, value: u8) {
-        let idx = (address - PPB_START) as usize;
+        let idx = (address - VENDOR_SYSTEM_START) as usize;
         self.vendor_sys[idx] = value;
     }
 
+    #[flux_rs::sig(fn (&mut Memory[@mem], u32[@idx], u8[@val]) requires idx < addr_to_mem(idx, mem))]
     pub fn write(&mut self, address: u32, value: u8) {
         assert!(address <= std::u32::MAX);
         let region = self.get_region(address);
