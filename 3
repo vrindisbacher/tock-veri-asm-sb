@@ -1,0 +1,46 @@
+// The following file implements memory layout for the ARMv7m architecture.
+//
+// NOTE: For now, just going to map the PPB - a 1 mb region reserved by the architecture. In the
+// future, maybe we can expand this.
+//
+// Memory types:
+//
+// - Normal Memory: Can be read or write and is idempotent (see p. A3-80 in the manual)
+// - Device Memory: Causes side effects
+// - Strongly Ordered Memory: An access to memory marked as Strongly Ordered acts as a memory barrier to all other explicit accesses from that processor, until the point at which the access is complete (that is, has changed the state of the target location or data has been returned). In addition, an access to memory marked as Strongly Ordered must complete before the end of a memory barrier
+//
+// See here for PPB docs: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/System-Control-Space--SCS-?lang=en
+
+use std::ops::RangeInclusive;
+
+const PPB_RANGE: RangeInclusive<u32> = 0xE000_0000..=0xE00F_FFFF;
+
+/* System Ctronol and ID Registers */
+const INTERRUPT_AND_AUXILIARY_CONTROL_REGS_RANGE: RangeInclusive<u32> = 0xE000E000..=0xE000E00F;
+const SYS_CONTROL_BLOCK_RANGE: RangeInclusive<u32> = 0xE000ED00..=0xE000ED8F;
+const DEBUG_REG_RANGE: RangeInclusive<u32> = 0xE000EDF0..=0xE000EEFF;
+const SW_TRIGGER_INTERRUPT_REG_RANGE: RangeInclusive<u32> = 0xE000EF00..=0xE000EF8F;
+const IMPLEMENTATION_RESERVED_RANGE: RangeInclusive<u32> = 0xE000EF90..=0xE000EFCF;
+const MICROCONTROLLER_ID_SPACE_RANGE: RangeInclusive<u32> = 0xE000EFD0..=0xE000EFFF;
+
+/* SYS TICK (System Timer) */
+const SYS_TICK_RANGE: RangeInclusive<u32> = 0xE000E010..=0xE000E0FF;
+/* NVIC */
+const NVIC_RANGE: RangeInclusive<u32> = 0xE000E100..=0xE000ECFF;
+/* MPU */
+const MPU_RANGE: RangeInclusive<u32> = 0xE000ED90..=0xE000EDEF;
+
+#[derive(Debug)]
+pub struct SysControlSpace {}
+
+#[derive(Debug)]
+pub struct Ppb {
+    system_control_space: SysControlSpace,
+}
+
+#[derive(Debug)]
+pub struct Memory {
+    ppb: Ppb,
+}
+
+impl Memory {}
