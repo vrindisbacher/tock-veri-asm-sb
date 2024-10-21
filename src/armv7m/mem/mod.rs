@@ -16,30 +16,10 @@ mod sys_control;
 mod sys_tick;
 mod mpu;
 
-use std::ops::RangeInclusive;
 use mpu::Mpu;
-
 use sys_control::SysControlSpace;
-use crate::armv7m::mem::sys_tick::SysTick;
-use crate::armv7m::mem::nvic::Nvic;
-
-/* Broad PPB Range */
-const PPB_RANGE: RangeInclusive<u32> = 0xE000_0000..=0xE00F_FFFF;
-
-/* System Control and ID Registers */
-const INTERRUPT_AND_AUXILIARY_CONTROL_REGS_RANGE: RangeInclusive<u32> = 0xE000E000..=0xE000E00F;
-const SYS_CONTROL_BLOCK_RANGE: RangeInclusive<u32> = 0xE000ED00..=0xE000ED8F;
-const DEBUG_REG_RANGE: RangeInclusive<u32> = 0xE000EDF0..=0xE000EEFF;
-const SW_TRIGGER_INTERRUPT_REG_RANGE: RangeInclusive<u32> = 0xE000EF00..=0xE000EF8F;
-const IMPLEMENTATION_RESERVED_RANGE: RangeInclusive<u32> = 0xE000EF90..=0xE000EFCF;
-const MICROCONTROLLER_ID_SPACE_RANGE: RangeInclusive<u32> = 0xE000EFD0..=0xE000EFFF;
-
-/* SYS TICK (System Timer) */
-const SYS_TICK_RANGE: RangeInclusive<u32> = 0xE000E010..=0xE000E0FF;
-/* NVIC */
-const NVIC_RANGE: RangeInclusive<u32> = 0xE000E100..=0xE000ECFF;
-/* MPU */
-const MPU_RANGE: RangeInclusive<u32> = 0xE000ED90..=0xE000EDEF;
+use sys_tick::SysTick;
+use nvic::Nvic;
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
@@ -574,6 +554,40 @@ pub struct Ppb {
     mpu: Mpu,
 }
 
+impl Ppb {
+    pub fn read(&self, address: u32) -> u32 {
+        match address {
+            0xE000E000..=0xE000E00F
+            | 0xE000ED00..=0xE000ED8F
+            | 0xE000EDF0..=0xE000EEFF	
+            | 0xE000EF00..=0xE000EF8F	
+            | 0xE000EF90..=0xE000EFCF
+            | 0xE000EFD0..=0xE000EFFF 
+            => self.system_control_space.read(address),
+            0xE000E010..=0xE000E0FF => self.sys_tick.read(address),
+            0xE000E100..=0xE000ECFF	 => self.nvic.read(address),
+            0xE000ED90..=0xE000EDEF	=> self.mpu.read(address),
+            _ => panic!("Read of invalid addr (only system control, sys tick, nvic, and mpun are defined)")
+        }
+    }
+
+    pub fn write(&mut self, address: u32, value: u32) {
+        match address {
+            0xE000E000..=0xE000E00F
+            | 0xE000ED00..=0xE000ED8F
+            | 0xE000EDF0..=0xE000EEFF	
+            | 0xE000EF00..=0xE000EF8F	
+            | 0xE000EF90..=0xE000EFCF
+            | 0xE000EFD0..=0xE000EFFF 
+            => self.system_control_space.write(address, value),
+            0xE000E010..=0xE000E0FF => self.sys_tick.write(address, value),
+            0xE000E100..=0xE000ECFF	 => self.nvic.write(address, value),
+            0xE000ED90..=0xE000EDEF	=> self.mpu.write(address, value),
+            _ => panic!("Write to invalid addr (only system control, sys tick, nvic, and mpun are defined)")
+        }
+    }
+}
+
 #[derive(Debug)]
 #[flux_rs::refined_by(
     /* System Control Space Start */
@@ -1095,4 +1109,19 @@ pub struct Memory {
     ppb: Ppb,
 }
 
-impl Memory {}
+impl Memory {
+
+    pub fn read(&self, address: u32) -> u32 {
+        match address {
+            0xE000_0000..=0xE00F_FFFF => self.ppb.read(address),
+            _ => panic!("Read of unknown memory address (only ppb is defined)")
+        }
+    }
+
+    pub fn write(&mut self, address: u32, value: u32) {
+        match address {
+            0xE000_0000..=0xE00F_FFFF => self.ppb.write(address, value),
+            _ => panic!("Write to unknown memory address (only ppb is defined)")
+        }
+    }
+}
