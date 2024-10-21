@@ -10,6 +10,69 @@
 // - Strongly Ordered Memory: An access to memory marked as Strongly Ordered acts as a memory barrier to all other explicit accesses from that processor, until the point at which the access is complete (that is, has changed the state of the target location or data has been returned). In addition, an access to memory marked as Strongly Ordered must complete before the end of a memory barrier
 //
 // See here for PPB docs: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/System-Control-Space--SCS-?lang=en
+//
+// System control and ID registers	
+// 0xE000E000-0xE000E00F	Includes the Interrupt Controller Type and Auxiliary Control registers
+// 0xE000ED00-0xE000ED8F	System control block
+// 0xE000EDF0-0xE000EEFF	Debug registers in the SCS
+// 0xE000EF00-0xE000EF8F	Includes the SW Trigger Interrupt Register
+// 0xE000EF90-0xE000EFCF	implementation defined
+// 0xE000EFD0-0xE000EFFF	Microcontroller-specific ID space
+//
+//
+// SysTick	0xE000E010-0xE000E0FF	System Timer, see The system timer, SysTick
+// NVIC	0xE000E100-0xE000ECFF	External interrupt controller, see Nested Vectored Interrupt Controller, NVIC
+// MPU	0xE000ED90-0xE000EDEF	Memory Protection Unit, see Protected Memory System Architecture, PMSAv7
+
+const PPB_START: u32 = 0xE000_0000;
+const PPB_END: u32 = 0xE00F_FFFF;
+
+const INTERRUPT_AUXILIARY_CONTROL_REGISTER_START: u32 = 0xE000_E000;
+const  INTERRUPT_AUXILIARY_CONTROL_REGISTER_END: u32 = 0xE000_E00F;
+
+const SYSTEM_CONTROL_BLOCK_START: u32 = 0xE000_ED00;
+const SYSTEM_CONTROL_BLOCK_END: u32 = 0xE000_ED8F;
+
+const SW_TRIGGER_INTERRUPT_REG_START: u32 = 0xE000EF00;
+const SW_TRIGGER_INTERRUPT_REG_END: u32 = 0xE000EF8F;
+
+const SYS_TICK_START: u32 = 0xE000E010;
+const SYS_TICK_END: u32 = 0xE000E0FF;
+
+const NVIC_START: u32 =	0xE000E100;
+const NVIC_END: u32 = 0xE000ECFF;
+
+const MPU_START: u32 = 0xE000ED90;
+const MPU_END: u32 = 0xE000EDEF;
+
+flux_rs::defs! {
+    fn in_ppb(address: int) -> bool {
+        address >= PPB_START && address <= PPB_END
+    }
+
+    fn in_system_control(address: int) -> bool {
+        (address >= INTERRUPT_AUXILIARY_CONTROL_REGISTER_START && address <= INTERRUPT_AUXILIARY_CONTROL_REGISTER_END)
+        ||
+        (address >= SYSTEM_CONTROL_BLOCK_START && address <= SYSTEM_CONTROL_BLOCK_END)
+        ||
+        (address >= SW_TRIGGER_INTERRUPT_REG_START && address <= SW_TRIGGER_INTERRUPT_REG_END)
+    }
+
+    fn in_systick(address: int) -> bool {
+        (address >= SYS_TICK_START && address <= SYS_TICK_END)
+    }
+
+    fn in_mpu(address: int) -> bool {
+        (address >= MPU_START && address <= MPU_END)
+    }
+
+    fn in_nvic(address: int) -> bool {
+        (address >= NVIC_START && address <= NVIC_END)
+    }
+    
+    // want two functions here - read right bits + write right bits
+}
+
 
 mod nvic;
 mod sys_control;
@@ -555,34 +618,43 @@ pub struct Ppb {
 }
 
 impl Ppb {
+    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 
+        requires 
+        in_system_control(addr) || in_systick(addr) || in_nvic(addr) || in_mpu(addr) 
+    )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
-            0xE000E000..=0xE000E00F
-            | 0xE000ED00..=0xE000ED8F
-            | 0xE000EDF0..=0xE000EEFF	
-            | 0xE000EF00..=0xE000EF8F	
-            | 0xE000EF90..=0xE000EFCF
-            | 0xE000EFD0..=0xE000EFFF 
+            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
+            | SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END
+            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END
             => self.system_control_space.read(address),
-            0xE000E010..=0xE000E0FF => self.sys_tick.read(address),
-            0xE000E100..=0xE000ECFF	 => self.nvic.read(address),
-            0xE000ED90..=0xE000EDEF	=> self.mpu.read(address),
+            SYS_TICK_START..=SYS_TICK_END => self.sys_tick.read(address),
+            NVIC_START..=NVIC_END => self.nvic.read(address),
+            MPU_START..=MPU_END => self.mpu.read(address),
+            // NOTE: Not supporting some of these for now
+            0xE000EDF0..=0xE000EEFF => panic!("Read of debug reg (not implemented)"),
+            0xE000EF90..=0xE000EFCF => panic!("Read of Implementation defined regs"),
+            0xE000EFD0..=0xE000EFFF => panic!("Read of mc specific space"),
             _ => panic!("Read of invalid addr (only system control, sys tick, nvic, and mpun are defined)")
         }
     }
 
+    #[flux_rs::sig(fn (&mut Memory, u32[@addr], u32[@value]) -> u32 
+        requires 
+        in_system_control(addr) || in_systick(addr) || in_nvic(addr) || in_mpu(addr) 
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
-            0xE000E000..=0xE000E00F
-            | 0xE000ED00..=0xE000ED8F
-            | 0xE000EDF0..=0xE000EEFF	
-            | 0xE000EF00..=0xE000EF8F	
-            | 0xE000EF90..=0xE000EFCF
-            | 0xE000EFD0..=0xE000EFFF 
-            => self.system_control_space.write(address, value),
-            0xE000E010..=0xE000E0FF => self.sys_tick.write(address, value),
-            0xE000E100..=0xE000ECFF	 => self.nvic.write(address, value),
-            0xE000ED90..=0xE000EDEF	=> self.mpu.write(address, value),
+            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
+            | SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END
+            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.system_control_space.write(address, value),
+            SYS_TICK_START..=SYS_TICK_END =>  self.sys_tick.write(address, value),
+            NVIC_START..=NVIC_END => self.nvic.write(address, value),
+            MPU_START..=MPU_END => self.mpu.write(address, value),
+            // NOTE: Not supporting some of these for now
+            0xE000EF90..=0xE000EFCF => panic!("Write to Implementation defined regs"),
+            0xE000EFD0..=0xE000EFFF => panic!("Write to mc specific space"),
+            0xE000EDF0..=0xE000EEFF =>  panic!("Write to debug regs (not implemented)"),
             _ => panic!("Write to invalid addr (only system control, sys tick, nvic, and mpun are defined)")
         }
     }
@@ -1111,6 +1183,7 @@ pub struct Memory {
 
 impl Memory {
 
+    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 requires in_ppb(addr) )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
             0xE000_0000..=0xE00F_FFFF => self.ppb.read(address),
@@ -1118,6 +1191,7 @@ impl Memory {
         }
     }
 
+    #[flux_rs::sig(fn (&mut Memory, u32[@addr]) requires in_ppb(addr))]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
             0xE000_0000..=0xE00F_FFFF => self.ppb.write(address, value),

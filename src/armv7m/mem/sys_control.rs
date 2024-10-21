@@ -358,7 +358,7 @@ impl SysControlIDReg {
             0xE000E00C	=> panic!("Write to reserved reg"),
             0xE000EF04  => panic!("Write to reserved reg"),
             0xE000EF90..=0xE000EFCC	 => panic!("Write to implementation defined reg"),
-            0xE000EDF0..=0xE000EEFC	 => panic!("Write to debug reg"),
+            0xE000EDF0..=0xE000EEFC	 => panic!("Write to debug reg (not implemented)"),
             _ => panic!("Write to invalid addr")
         };
         *reg = value;
