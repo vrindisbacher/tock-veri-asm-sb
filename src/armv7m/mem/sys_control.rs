@@ -1,3 +1,49 @@
+// Range
+use super::SYSTEM_CONTROL_BLOCK_START;
+use super::SYSTEM_CONTROL_BLOCK_END;
+use super::SW_TRIGGER_INTERRUPT_REG_START;
+use super::SW_TRIGGER_INTERRUPT_REG_END;
+use super::INTERRUPT_AUXILIARY_CONTROL_REGISTER_START;
+use super::INTERRUPT_AUXILIARY_CONTROL_REGISTER_END;
+
+
+
+// System Control Block Addresses
+const CPUID_ADDR: u32 =	 0xE000ED00;	
+const ICSR_ADDR: u32 =	 0xE000ED04;	
+const VTOR_ADDR: u32 =	 0xE000ED08;	
+const AIRCR_ADDR: u32 =	 0xE000ED0C;	
+const SCR_ADDR: u32 =	 0xE000ED10;	
+const CCR_ADDR: u32 =	 0xE000ED14;	
+const SHPR1_ADDR: u32 =	 0xE000ED18;	
+const SHPR2_ADDR: u32 =	 0xE000ED1C;	
+const SHPR3_ADDR: u32 =	 0xE000ED20;	
+const SHCSR_ADDR: u32 =	 0xE000ED24;	
+const CFSR_ADDR: u32 =	 0xE000ED28;	
+const HFSR_ADDR: u32 =	 0xE000ED2C;	
+const DFSR_ADDR: u32 =	 0xE000ED30;	
+const MMFAR_ADDR: u32 =	 0xE000ED34;	
+const BFAR_ADDR: u32 =	 0xE000ED38;	
+const AFSR_ADDR: u32 =	 0xE000ED3C;	
+const CPACR_ADDR: u32 =	 0xE000ED88;	
+
+// ID Reg
+const ICTR_ADDR: u32 =	 0xE000E004;	
+const ACTLR_ADDR: u32 =	 0xE000E008;	
+const STIR_ADDR: u32 =	 0xE000EF00;	
+const PID4_ADDR: u32 =	 0xE000EFD0;	
+const PID5_ADDR: u32 =	 0xE000EFD4;	
+const PID6_ADDR: u32 =	 0xE000EFD8;	
+const PID7_ADDR: u32 =	 0xE000EFDC;	
+const PID0_ADDR: u32 =	 0xE000EFE0;	
+const PID1_ADDR: u32 =	 0xE000EFE4;	
+const PID2_ADDR: u32 =	 0xE000EFE8;	
+const PID3_ADDR: u32 =	 0xE000EFEC;	
+const CID0_ADDR: u32 =	 0xE000EFF0;	
+const CID1_ADDR: u32 =	 0xE000EFF4;	
+const CID2_ADDR: u32 =	 0xE000EFF8;	
+const CID3_ADDR: u32 =	 0xE000EFFC;	
+
 // System Control Block (see table 10.5)
 //
 // Columns are:
@@ -111,23 +157,23 @@ impl SysControlBlock {
         // 0xE000ED3C	AFSR	RW	unknown	Auxiliary Fault Status Register, AFSR, implementation defined.
         // 0xE000ED88	CPACR	RW	unknown	Coprocessor Access Control Register, CPACR.
         match address {
-            0xE000ED00 => self.cpuid,
-            0xE000ED04	=> self.icsr,
-            0xE000ED08 => self.vtor,
-            0xE000ED0C => self.aircr,
-            0xE000ED10 => self.scr,
-            0xE000ED14 => self.ccr,
-            0xE000ED18 => self.shpr1,
-            0xE000ED1C => self.shpr2,
-            0xE000ED20 => self.shpr3,
-            0xE000ED24 => self.shcsr,
-            0xE000ED28 => self.cfsr,
-            0xE000ED2C => self.hfsr,
-            0xE000ED30 => self.dfsr,
-            0xE000ED34 => self.mmfar,
-            0xE000ED38 => self.bfar,
-            0xE000ED3C => self.afsr,
-            0xE000ED88 => self.cpacr,
+            CPUID_ADDR => self.cpuid,
+            ICSR_ADDR => self.icsr,
+            VTOR_ADDR => self.vtor,
+            AIRCR_ADDR => self.aircr,
+            SCR_ADDR => self.scr,
+            CCR_ADDR => self.ccr,
+            SHPR1_ADDR => self.shpr1,
+            SHPR2_ADDR => self.shpr2,
+            SHPR3_ADDR => self.shpr3,
+            SHCSR_ADDR => self.shcsr,
+            CFSR_ADDR => self.cfsr,
+            HFSR_ADDR => self.hfsr,
+            DFSR_ADDR => self.dfsr,
+            MMFAR_ADDR => self.mmfar,
+            BFAR_ADDR => self.bfar,
+            AFSR_ADDR => self.afsr,
+            CPACR_ADDR => self.cpacr,
             // Reserved fields etc.
             // 0xE000ED40 - 0xE000ED7C	-	-	-	Reserved for CPUID registers, see The CPUID Scheme.
             // 0xE000ED80 - 0xE000ED84	-	-	-	Reserved.
@@ -158,23 +204,23 @@ impl SysControlBlock {
         // 0xE000ED3C	AFSR	RW	unknown	Auxiliary Fault Status Register, AFSR, implementation defined.
         // 0xE000ED88	CPACR	RW	unknown	Coprocessor Access Control Register, CPACR.
         let reg = match address {
-            0xE000ED00 => panic!("Write to read only reg"),
-            0xE000ED04	=> &mut self.icsr,
-            0xE000ED08 => &mut self.vtor,
-            0xE000ED0C => &mut self.aircr,
-            0xE000ED10 => &mut self.scr,
-            0xE000ED14 => &mut self.ccr,
-            0xE000ED18 => &mut self.shpr1,
-            0xE000ED1C => &mut self.shpr2,
-            0xE000ED20 => &mut self.shpr3,
-            0xE000ED24 => &mut self.shcsr,
-            0xE000ED28 => &mut self.cfsr,
-            0xE000ED2C => &mut self.hfsr,
-            0xE000ED30 => &mut self.dfsr,
-            0xE000ED34 => &mut self.mmfar,
-            0xE000ED38 => &mut self.bfar,
-            0xE000ED3C => &mut self.afsr,
-            0xE000ED88 => &mut self.cpacr,
+            CPUID_ADDR => panic!("Write to read only reg"),
+            ICSR_ADDR => &mut self.icsr,
+            VTOR_ADDR => &mut self.vtor,
+            AIRCR_ADDR => &mut self.aircr,
+            SCR_ADDR => &mut self.scr,
+            CCR_ADDR => &mut self.ccr,
+            SHPR1_ADDR => &mut self.shpr1,
+            SHPR2_ADDR => &mut self.shpr2,
+            SHPR3_ADDR => &mut self.shpr3,
+            SHCSR_ADDR => &mut self.shcsr,
+            CFSR_ADDR => &mut self.cfsr,
+            HFSR_ADDR => &mut self.hfsr,
+            DFSR_ADDR => &mut self.dfsr,
+            MMFAR_ADDR => &mut self.mmfar,
+            BFAR_ADDR => &mut self.bfar,
+            AFSR_ADDR => &mut self.afsr,
+            CPACR_ADDR => &mut self.cpacr,
             // Reserved fields etc.
             // 0xE000ED40 - 0xE000ED7C	-	-	-	Reserved for CPUID registers, see The CPUID Scheme.
             // 0xE000ED80 - 0xE000ED84	-	-	-	Reserved.
@@ -285,21 +331,21 @@ impl SysControlIDReg {
         // 0xE000EFF8	CID2	RO
         // 0xE000EFFC	CID3	RO
         match address {
-            0xE000E004	=> self.ictr,
-            0xE000E008	=> self.actlr,
-            0xE000EF00	=> panic!("Read of write only register"),
-            0xE000EFD0	=> self.pid4,
-            0xE000EFD4	=> self.pid5,
-            0xE000EFD8	=> self.pid6,
-            0xE000EFDC	=> self.pid7,
-            0xE000EFE0	=> self.pid0,
-            0xE000EFE4	=> self.pid1,
-            0xE000EFE8	=> self.pid2,
-            0xE000EFEC	=> self.pid3,
-            0xE000EFF0	=> self.cid0,
-            0xE000EFF4	=> self.cid1,
-            0xE000EFF8	=> self.cid2,
-            0xE000EFFC	=> self.cid3,
+            ICTR_ADDR => self.ictr,
+            ACTLR_ADDR => self.actlr,
+            STIR_ADDR =>  panic!("Read of write only register"),
+            PID4_ADDR => self.pid4,
+            PID5_ADDR => self.pid5,
+            PID6_ADDR => self.pid6,
+            PID7_ADDR => self.pid7,
+            PID0_ADDR => self.pid0,
+            PID1_ADDR => self.pid1,
+            PID2_ADDR => self.pid2,
+            PID3_ADDR => self.pid3,
+            CID0_ADDR => self.cid0,
+            CID1_ADDR => self.cid1,
+            CID2_ADDR => self.cid2,
+            CID3_ADDR => self.cid3,
             // Reserved regs etc.
             // 0xE000E000	-	RW	0x00000000	Master Control register, Reserved
             // 0xE000E00C	-	-	-	Reserved
@@ -333,21 +379,21 @@ impl SysControlIDReg {
         // 0xE000EFF8	CID2	RO
         // 0xE000EFFC	CID3	RO
         let reg = match address {
-            0xE000E004	=> panic!("Attempted write to read only reg"),
-            0xE000E008	=> &mut self.actlr,
-            0xE000EF00	=> &mut self.stir,
-            0xE000EFD0	=> panic!("Attempted write to read only reg"),
-            0xE000EFD4	=> panic!("Attempted write to read only reg"),
-            0xE000EFD8	=> panic!("Attempted write to read only reg"),
-            0xE000EFDC	=> panic!("Attempted write to read only reg"),
-            0xE000EFE0	=> panic!("Attempted write to read only reg"),
-            0xE000EFE4	=> panic!("Attempted write to read only reg"),
-            0xE000EFE8	=> panic!("Attempted write to read only reg"),
-            0xE000EFEC	=> panic!("Attempted write to read only reg"),
-            0xE000EFF0	=> panic!("Attempted write to read only reg"),
-            0xE000EFF4	=> panic!("Attempted write to read only reg"),
-            0xE000EFF8	=> panic!("Attempted write to read only reg"),
-            0xE000EFFC	=> panic!("Attempted write to read only reg"),
+            ICTR_ADDR => panic!("Attempted write to read only reg"),
+            ACTLR_ADDR => &mut self.actlr,
+            STIR_ADDR => &mut self.stir,
+            PID4_ADDR => panic!("Attempted write to read only reg"),
+            PID5_ADDR => panic!("Attempted write to read only reg"),
+            PID6_ADDR => panic!("Attempted write to read only reg"),
+            PID7_ADDR => panic!("Attempted write to read only reg"),
+            PID0_ADDR => panic!("Attempted write to read only reg"),
+            PID1_ADDR => panic!("Attempted write to read only reg"),
+            PID2_ADDR => panic!("Attempted write to read only reg"),
+            PID3_ADDR => panic!("Attempted write to read only reg"),
+            CID0_ADDR => panic!("Attempted write to read only reg"),
+            CID1_ADDR => panic!("Attempted write to read only reg"),
+            CID2_ADDR => panic!("Attempted write to read only reg"),
+            CID3_ADDR => panic!("Attempted write to read only reg"),
             // Reserved regs etc.
             // 0xE000E000	-	RW	0x00000000	Master Control register, Reserved
             // 0xE000E00C	-	-	-	Reserved
@@ -447,18 +493,26 @@ pub struct SysControlSpace {
 
 impl SysControlSpace {
     
+    #[flux_rs::sig(fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32
+        requires in_system_control(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
-            0xE000E000..=0xE000E00F => self.sys_control_id_regs.read(address),
-             0xE000ED00..=0xE000ED8F => self.sys_control_block.read(address),
+            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END 
+            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.sys_control_id_regs.read(address),
+             SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END => self.sys_control_block.read(address),
             _ => panic!("Read of invalid addr")
         }
     }
-
+    
+    #[flux_rs::sig(fn (&mut SysControlSpace[@sys_control], u32[@addr], u32[@value]) 
+        requires in_system_control(addr)
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
-            0xE000E000..=0xE000E00F => self.sys_control_id_regs.write(address, value),
-             0xE000ED00..=0xE000ED8F => self.sys_control_block.write(address, value),
+            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END 
+            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.sys_control_id_regs.write(address, value),
+             SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END => self.sys_control_block.write(address, value),
             _ => panic!("Write to invalid addr")
         }
     }

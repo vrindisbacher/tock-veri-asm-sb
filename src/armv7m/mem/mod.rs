@@ -45,40 +45,13 @@ const NVIC_END: u32 = 0xE000ECFF;
 const MPU_START: u32 = 0xE000ED90;
 const MPU_END: u32 = 0xE000EDEF;
 
-flux_rs::defs! {
-    fn in_ppb(address: int) -> bool {
-        address >= PPB_START && address <= PPB_END
-    }
-
-    fn in_system_control(address: int) -> bool {
-        (address >= INTERRUPT_AUXILIARY_CONTROL_REGISTER_START && address <= INTERRUPT_AUXILIARY_CONTROL_REGISTER_END)
-        ||
-        (address >= SYSTEM_CONTROL_BLOCK_START && address <= SYSTEM_CONTROL_BLOCK_END)
-        ||
-        (address >= SW_TRIGGER_INTERRUPT_REG_START && address <= SW_TRIGGER_INTERRUPT_REG_END)
-    }
-
-    fn in_systick(address: int) -> bool {
-        (address >= SYS_TICK_START && address <= SYS_TICK_END)
-    }
-
-    fn in_mpu(address: int) -> bool {
-        (address >= MPU_START && address <= MPU_END)
-    }
-
-    fn in_nvic(address: int) -> bool {
-        (address >= NVIC_START && address <= NVIC_END)
-    }
-    
-    // want two functions here - read right bits + write right bits
-}
-
-
+mod flux_defs;
 mod nvic;
 mod sys_control;
 mod sys_tick;
 mod mpu;
 
+use flux_defs::*;
 use mpu::Mpu;
 use sys_control::SysControlSpace;
 use sys_tick::SysTick;
@@ -618,10 +591,7 @@ pub struct Ppb {
 }
 
 impl Ppb {
-    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 
-        requires 
-        in_system_control(addr) || in_systick(addr) || in_nvic(addr) || in_mpu(addr) 
-    )]
+    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 requires in_ppb(addr))]
     pub fn read(&self, address: u32) -> u32 {
         match address {
             INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
@@ -639,10 +609,7 @@ impl Ppb {
         }
     }
 
-    #[flux_rs::sig(fn (&mut Memory, u32[@addr], u32[@value]) -> u32 
-        requires 
-        in_system_control(addr) || in_systick(addr) || in_nvic(addr) || in_mpu(addr) 
-    )]
+    #[flux_rs::sig(fn (&mut Memory, u32[@addr], u32[@value]) requires in_ppb(addr))]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
             INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END

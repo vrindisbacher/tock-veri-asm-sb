@@ -1,4 +1,17 @@
+const MPU_TYPE_ADDR: u32 = 0xE000ED90;
+const MPU_CTRL_ADDR: u32 = 0xE000ED94;
+const MPU_RNR_ADDR: u32 = 0xE000ED98;
+const MPU_RBAR_ADDR: u32 = 0xE000ED9C;
+const MPU_RASR_ADDR: u32 = 0xE000EDA0;
+const MPU_RBAR_A1_ADDR: u32 = 0xE000EDA4;
+const MPU_RASR_A1_ADDR: u32 = 0xE000EDA8;
+const MPU_RBAR_A2_ADDR: u32 = 0xE000EDAC;
+const MPU_RASR_A2_ADDR: u32 = 0xE000EDB0;
+const MPU_RBAR_A3_ADDR: u32 = 0xE000EDB4;
+const MPU_RASR_A3_ADDR: u32 = 0xE000EDB8;
+
 // MPU: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Protected-Memory-System-Architecture--PMSAv7/Register-support-for-PMSAv7-in-the-SCS?lang=en
+//
 //
 // Here are some unimplemented blocks:
 // 0xE000EDBC - 0xE000EDEC
@@ -93,17 +106,17 @@ impl Mpu {
         // 0xE000EDB8	MPU_RASR_A3	RW	-
         // Alias 3 of MPU_RASR, see MPU alias register support
         match address {
-            0xE000ED90 => self.mpu_type,
-            0xE000ED94 => self.mpu_ctrl,
-            0xE000ED98 => self.mpu_rnr,
-            0xE000ED9C => self.mpu_rbar,
-            0xE000EDA0 => self.mpu_rasr,
-            0xE000EDA4 => self.mpu_rbar_a1,
-            0xE000EDA8 => self.mpu_rasr_a1,
-            0xE000EDAC => self.mpu_rbar_a2,
-            0xE000EDB0 => self.mpu_rasr_a2,
-            0xE000EDB4 => self.mpu_rbar_a3,
-            0xE000EDB8 => self.mpu_rasr_a3,
+            MPU_TYPE_ADDR => self.mpu_type,
+            MPU_CTRL_ADDR => self.mpu_ctrl,
+            MPU_RNR_ADDR => self.mpu_rnr,
+            MPU_RBAR_ADDR => self.mpu_rbar,
+            MPU_RASR_ADDR => self.mpu_rasr,
+            MPU_RBAR_A1_ADDR => self.mpu_rbar_a1,
+            MPU_RASR_A1_ADDR => self.mpu_rasr_a1,
+            MPU_RBAR_A2_ADDR => self.mpu_rbar_a2,
+            MPU_RASR_A2_ADDR => self.mpu_rasr_a2,
+            MPU_RBAR_A3_ADDR => self.mpu_rbar_a3,
+            MPU_RASR_A3_ADDR => self.mpu_rasr_a3,
             // Reserved
             // 0xE000EDBC - 0xE000EDEC
             // -	...	-	Reserved.
@@ -136,17 +149,17 @@ impl Mpu {
         // 0xE000EDB8	MPU_RASR_A3	RW	-
         // Alias 3 of MPU_RASR, see MPU alias register support
         let reg = match address {
-            0xE000ED90 => panic!("Write to read only address"),
-            0xE000ED94 => &mut self.mpu_ctrl,
-            0xE000ED98 => &mut self.mpu_rnr,
-            0xE000ED9C => &mut self.mpu_rbar,
-            0xE000EDA0 => &mut self.mpu_rasr,
-            0xE000EDA4 => &mut self.mpu_rbar_a1,
-            0xE000EDA8 => &mut self.mpu_rasr_a1,
-            0xE000EDAC => &mut self.mpu_rbar_a2,
-            0xE000EDB0 => &mut self.mpu_rasr_a2,
-            0xE000EDB4 => &mut self.mpu_rbar_a3,
-            0xE000EDB8 => &mut self.mpu_rasr_a3,
+            MPU_TYPE_ADDR => panic!("Write to read only address"),
+            MPU_CTRL_ADDR => &mut self.mpu_ctrl,
+            MPU_RNR_ADDR => &mut self.mpu_rnr,
+            MPU_RBAR_ADDR => &mut self.mpu_rbar,
+            MPU_RASR_ADDR => &mut self.mpu_rasr,
+            MPU_RBAR_A1_ADDR => &mut self.mpu_rbar_a1,
+            MPU_RASR_A1_ADDR => &mut self.mpu_rasr_a1,
+            MPU_RBAR_A2_ADDR => &mut self.mpu_rbar_a2,
+            MPU_RASR_A2_ADDR => &mut self.mpu_rasr_a2,
+            MPU_RBAR_A3_ADDR => &mut self.mpu_rbar_a3,
+            MPU_RASR_A3_ADDR => &mut self.mpu_rasr_a3,
             // Reserved
             0xE000EDBC..=0xE000EDEC => panic!("Write to reserved addr"),
             _ => panic!("Write to invalid addr"),

@@ -1,3 +1,8 @@
+const SYST_CSR_ADDR: u32 = 0xE000E010;
+const SYST_RVR_ADDR: u32 = 0xE000E014;
+const SYST_CVR_ADDR: u32 = 0xE000E018;
+const SYST_CALIB_ADDR: u32 = 0xE000E01C;
+
 // Sys Tick: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/The-system-timer--SysTick/System-timer-register-support-in-the-SCS?lang=en
 //
 // Here are some unimplemented blocks:
@@ -37,10 +42,10 @@ impl SysTick {
         // 0xE000E018	SYST_CVR	RW	unknown	SysTick Current Value Register, SYST_CVR
         // 0xE000E01C	SYST_CALIB	RO	IMP DEF	SysTick Calibration value Register, SYST_CALIB
         match address {
-            0xE000E010 => self.syst_csr,
-            0xE000E014 => self.syst_rvr,
-            0xE000E018 => self.syst_cvr,
-            0xE000E01C => self.syst_calib,
+            SYST_CSR_ADDR => self.syst_csr,
+            SYST_RVR_ADDR => self.syst_rvr,
+            SYST_CVR_ADDR => self.syst_cvr,
+            SYST_CALIB_ADDR => self.syst_calib,
             // RESERVED
             // 0xE000E020- 0xE000E0FC	-	-	-	Reserved
             0xE000E020..=0xE000E0FC => panic!("Read of Reserved addr"),
@@ -54,10 +59,10 @@ impl SysTick {
         // 0xE000E018	SYST_CVR	RW	unknown	SysTick Current Value Register, SYST_CVR
         // 0xE000E01C	SYST_CALIB	RO	IMP DEF	SysTick Calibration value Register, SYST_CALIB
         let reg = match address {
-            0xE000E010 => &mut self.syst_csr,
-            0xE000E014 => &mut self.syst_rvr,
-            0xE000E018 => &mut self.syst_cvr,
-            0xE000E01C => panic!("Write of read only reg"),
+            SYST_CSR_ADDR => &mut self.syst_csr,
+            SYST_RVR_ADDR => &mut self.syst_rvr,
+            SYST_CVR_ADDR => &mut self.syst_cvr,
+            SYST_CALIB_ADDR => panic!("Write of read only reg"),
             // RESERVED
             // 0xE000E020- 0xE000E0FC	-	-	-	Reserved
             0xE000E020..=0xE000E0FC => panic!("Write to Reserved addr"),
