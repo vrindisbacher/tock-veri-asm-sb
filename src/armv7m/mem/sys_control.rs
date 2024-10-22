@@ -438,86 +438,20 @@ impl SysControlIDReg {
 // System Control Space: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/System-Control-Space--SCS-/System-control-and-ID-registers?lang=en
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    // sys control id regs
-    ictr: int,    
-    actlr: int,    
-    stir: int,    
-    pid4: int,    
-    pid5: int,    
-    pid6: int,    
-    pid7: int,    
-    pid0: int,    
-    pid1: int,    
-    pid2: int,    
-    pid3: int,    
-    cid0: int,    
-    cid1: int,    
-    cid2: int,    
-    cid3: int,
-    // sys control blocks
-    cpuid: int,    
-    icsr: int,    
-    vtor: int,    
-    aircr: int,    
-    scr: int,    
-    ccr: int,    
-    shpr1: int,    
-    shpr2: int,    
-    shpr3: int,    
-    shcsr: int,    
-    cfsr: int,    
-    hfsr: int,    
-    dfsr: int,    
-    mmfar: int,    
-    bfar: int,    
-    afsr: int,    
-    cpacr: int,
+    sys_control_id_reg: SysControlIDReg,
+    sys_control_block: SysControlBlock
 )]
 pub struct SysControlSpace {
-    #[field(SysControlIDReg[
-        ictr,    
-        actlr,    
-        stir,    
-        pid4,    
-        pid5,    
-        pid6,    
-        pid7,    
-        pid0,    
-        pid1,    
-        pid2,    
-        pid3,    
-        cid0,    
-        cid1,    
-        cid2,    
-        cid3
-    ])]
+    #[field(SysControlIDReg[sys_control_id_reg])]
     sys_control_id_regs: SysControlIDReg,
-    #[field(SysControlBlock[
-        cpuid,    
-        icsr,    
-        vtor,    
-        aircr,    
-        scr,    
-        ccr,    
-        shpr1,    
-        shpr2,    
-        shpr3,    
-        shcsr,    
-        cfsr,    
-        hfsr,    
-        dfsr,    
-        mmfar,    
-        bfar,    
-        afsr,    
-        cpacr
-    ])]
+    #[field(SysControlBlock[sys_control_block])]
     sys_control_block: SysControlBlock,
 }
 
 impl SysControlSpace {
     
     #[flux_rs::sig(
-        fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32[sys_control_space_addr_into_reg(addr, sys_control)]
+        fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32{ v: check_sys_control_space_value_read(addr, sys_control, v) } 
             requires is_valid_sys_control_space_read_addr(addr)
     )]
     pub fn read(&self, address: u32) -> u32 {
@@ -532,7 +466,7 @@ impl SysControlSpace {
     #[flux_rs::sig(
         fn (self: &strg SysControlSpace[@sys_control], u32[@addr], u32[@val]) 
             requires is_valid_sys_control_space_write_addr(addr)
-            ensures self: SysControlSpace { new_sys_control: sys_control_space_addr_into_reg(addr, new_sys_control) == val }
+            ensures self: SysControlSpace { new_sys_control: check_sys_control_space_value_write(addr, new_sys_control, val) }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
