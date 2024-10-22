@@ -591,7 +591,7 @@ pub struct Ppb {
 }
 
 impl Ppb {
-    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 requires in_ppb(addr))]
+    #[flux_rs::sig(fn (&Ppb[@ppb], u32[@addr]) -> u32[ppb_addr_into_reg(addr, ppb)] requires is_valid_read_addr(addr))]
     pub fn read(&self, address: u32) -> u32 {
         match address {
             INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
@@ -609,7 +609,11 @@ impl Ppb {
         }
     }
 
-    #[flux_rs::sig(fn (&mut Memory, u32[@addr], u32[@value]) requires in_ppb(addr))]
+    #[flux_rs::sig(
+        fn (self: &strg Ppb[@ppb], u32[@addr], u32[@val]) 
+            requires is_valid_write_addr(addr)
+            ensures self: Ppb { new_ppb: ppb_addr_into_reg(addr, new_ppb) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
             INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
@@ -1150,18 +1154,22 @@ pub struct Memory {
 
 impl Memory {
 
-    #[flux_rs::sig(fn (&Memory, u32[@addr]) -> u32 requires in_ppb(addr) )]
+    #[flux_rs::sig(fn (&Memory[@mem], u32[@addr]) -> u32[mem_addr_into_reg(addr, mem)] requires is_valid_read_addr(addr))]
     pub fn read(&self, address: u32) -> u32 {
         match address {
-            0xE000_0000..=0xE00F_FFFF => self.ppb.read(address),
+            PPB_START..=PPB_END => self.ppb.read(address),
             _ => panic!("Read of unknown memory address (only ppb is defined)")
         }
     }
 
-    #[flux_rs::sig(fn (&mut Memory, u32[@addr]) requires in_ppb(addr))]
+    #[flux_rs::sig(
+        fn (self: &strg Memory[@mem], u32[@addr], u32[@val]) 
+            requires is_valid_write_addr(addr)
+            ensures self: Memory { new_mem: mem_addr_into_reg(addr, new_mem) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
-            0xE000_0000..=0xE00F_FFFF => self.ppb.write(address, value),
+            PPB_START..=PPB_END => self.ppb.write(address, value),
             _ => panic!("Write to unknown memory address (only ppb is defined)")
         }
     }

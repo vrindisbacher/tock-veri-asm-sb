@@ -1,3 +1,5 @@
+use super::flux_defs::mpu_defs::*;
+
 pub const MPU_TYPE_ADDR: u32 = 0xE000ED90;
 pub const MPU_CTRL_ADDR: u32 = 0xE000ED94;
 pub const MPU_RNR_ADDR: u32 = 0xE000ED98;
@@ -82,6 +84,7 @@ pub struct Mpu {
 }
 
 impl Mpu {
+    #[flux_rs::sig(fn (&Mpu[@mpu], u32[@addr]) -> u32[mpu_addr_into_reg(addr, mpu)] requires is_valid_mpu_read_addr(addr))]
     pub fn read(&self, address: u32) -> u32 {
         // 0xE000ED90	MPU_TYPE	RO	implementation defined
         // MPU Type Register, MPU_TYPE
@@ -125,6 +128,10 @@ impl Mpu {
         }
     }
 
+    #[flux_rs::sig(fn (self: &strg Mpu[@mpu], u32[@addr], u32[@val]) 
+           requires is_valid_mpu_write_addr(addr) 
+           ensures self: Mpu { new_mpu: mpu_addr_into_reg(addr, new_mpu) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         // 0xE000ED90	MPU_TYPE	RO	implementation defined
         // MPU Type Register, MPU_TYPE

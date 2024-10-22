@@ -1,3 +1,6 @@
+use super::flux_defs::sys_control_block_defs::*;
+use super::flux_defs::sys_control_id_reg_defs::*;
+
 // Range
 use super::SYSTEM_CONTROL_BLOCK_START;
 use super::SYSTEM_CONTROL_BLOCK_END;
@@ -138,6 +141,10 @@ pub struct SysControlBlock {
 
 impl SysControlBlock {
 
+    #[flux_rs::sig(
+        fn (&SysControlBlock[@sys_control_block], u32[@addr]) -> u32[sys_control_block_addr_into_reg(addr, sys_control_block)]
+            requires is_valid_sys_control_block_read_addr(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
         // 0xE000ED00	CPUID	RO	implementation defined	CPUID Base Register.
         // 0xE000ED04	ICSR	RW	0x00000000	Interrupt Control and State Register, ICSR.
@@ -185,6 +192,13 @@ impl SysControlBlock {
         }
     }
 
+    #[flux_rs::sig(
+        fn (self: &strg SysControlBlock[@sys_control_block], u32[@addr], u32[@val]) 
+                requires is_valid_sys_control_block_write_addr(addr)
+                ensures self: SysControlBlock {
+                    new_sys_control_block: sys_control_block_addr_into_reg(addr, new_sys_control_block) == val
+                }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         // 0xE000ED00	CPUID	RO	implementation defined	CPUID Base Register.
         // 0xE000ED04	ICSR	RW	0x00000000	Interrupt Control and State Register, ICSR.
@@ -313,6 +327,10 @@ pub struct SysControlIDReg {
 }
 
 impl SysControlIDReg {
+    #[flux_rs::sig(
+        fn (&SysControlIDReg[@sys_control_id], u32[@addr]) -> u32[sys_control_id_reg_addr_into_reg(addr, sys_control_id)]
+            requires is_valid_sys_control_id_reg_read_addr(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
         // Address	Name	Type	Reset	Description
         // 0xE000E004	ICTR	RO	implementation defined	Interrupt Controller Type Register, ICTR
@@ -361,6 +379,11 @@ impl SysControlIDReg {
         }
     }
 
+    #[flux_rs::sig(
+        fn (self: &strg SysControlIDReg[@sys_control_id], u32[@addr], u32[@val])
+            requires is_valid_sys_control_id_reg_write_addr(addr)
+            ensures self: SysControlIDReg { new_sys_control_id: sys_control_id_reg_addr_into_reg(addr, new_sys_control_id) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         // Address	Name	Type	Reset	Description
         // 0xE000E004	ICTR	RO	implementation defined	Interrupt Controller Type Register, ICTR
@@ -493,8 +516,9 @@ pub struct SysControlSpace {
 
 impl SysControlSpace {
     
-    #[flux_rs::sig(fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32
-        requires in_system_control(addr)
+    #[flux_rs::sig(
+        fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32[sys_control_space_addr_into_reg(addr, sys_control)]
+            requires is_valid_sys_control_space_read_addr(addr)
     )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
@@ -505,8 +529,10 @@ impl SysControlSpace {
         }
     }
     
-    #[flux_rs::sig(fn (&mut SysControlSpace[@sys_control], u32[@addr], u32[@value]) 
-        requires in_system_control(addr)
+    #[flux_rs::sig(
+        fn (self: &strg SysControlSpace[@sys_control], u32[@addr], u32[@val]) 
+            requires is_valid_sys_control_space_write_addr(addr)
+            ensures self: SysControlSpace { new_sys_control: sys_control_space_addr_into_reg(addr, new_sys_control) == val }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {

@@ -1,3 +1,5 @@
+use super::flux_defs::sys_tick_defs::*;
+
 pub const SYST_CSR_ADDR: u32 = 0xE000E010;
 pub const SYST_RVR_ADDR: u32 = 0xE000E014;
 pub const SYST_CVR_ADDR: u32 = 0xE000E018;
@@ -36,6 +38,9 @@ pub struct SysTick {
 }
 
 impl SysTick {
+    #[flux_rs::sig(fn (&SysTick[@sys_tick],  u32[@addr]) -> u32[sys_tick_addr_into_reg(addr, sys_tick)] 
+           requires is_valid_sys_tick_read_addr(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
         // 0xE000E010	SYST_CSR	RW	0x0000000x [a]	SysTick Control and Status Register, SYST_CSR
         // 0xE000E014	SYST_RVR	RW	unknown	SysTick Reload Value Register, SYST_RVR
@@ -53,6 +58,10 @@ impl SysTick {
         }
     }
 
+    #[flux_rs::sig(fn (self: &strg SysTick[@sys_tick],  u32[@addr], u32[@val])
+           requires is_valid_sys_tick_write_addr(addr)
+           ensures self: SysTick { new_sys_tick: sys_tick_addr_into_reg(addr, new_sys_tick) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         // 0xE000E010	SYST_CSR	RW	0x0000000x [a]	SysTick Control and Status Register, SYST_CSR
         // 0xE000E014	SYST_RVR	RW	unknown	SysTick Reload Value Register, SYST_RVR

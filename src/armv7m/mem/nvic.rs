@@ -1,3 +1,5 @@
+use super::flux_defs::nvic_defs::*;
+
 pub const ISER0_ADDR: u32 = 0xE000E100;
 pub const ISER1_ADDR: u32 = 0xE000E104;
 pub const ISER2_ADDR: u32 = 0xE000E108;
@@ -855,6 +857,7 @@ pub struct Nvic {
 }
 
 impl Nvic {
+    #[flux_rs::sig(fn (&Nvic[@nvic], u32[@addr]) -> u32[nvic_addr_into_reg(addr, nvic)] requires is_valid_nvic_read_addr(addr))]
     fn addr_into_reg_value(&self, address: u32) -> u32 {
         match address {
             // NVIC_ISER0 - NVIC_ISER15
@@ -1079,6 +1082,10 @@ impl Nvic {
         }
     }
 
+    #[flux_rs::sig(
+        fn (&mut Nvic[@nvic], u32[@addr]) -> &mut u32[nvic_addr_into_reg(addr, nvic)]
+            requires is_valid_nvic_write_addr(addr)
+    )]
     fn addr_into_reg_mut(&mut self, address: u32) -> &mut u32 {
         match address {
             // NVIC_ISER0 - NVIC_ISER15
@@ -1304,11 +1311,17 @@ impl Nvic {
         }
     }
 
+    #[flux_rs::sig(fn (&Nvic[@nvic], u32[@addr]) -> u32[nvic_addr_into_reg(addr, nvic)] requires is_valid_nvic_read_addr(addr))]
     pub fn read(&self, address: u32) -> u32 {
         // everything in NVIC is read / write
         self.addr_into_reg_value(address)
     }
 
+    #[flux_rs::sig(
+        fn (self: &strg Nvic[@nvic], u32[@addr], u32[@val])
+            requires is_valid_nvic_write_addr(addr)
+            ensures self: Nvic { new_nvic: nvic_addr_into_reg(addr, new_nvic) == val }
+    )]
     pub fn write(&mut self, address: u32, value: u32) {
         // everything in NVIC is read / write
         let reg = self.addr_into_reg_mut(address);
