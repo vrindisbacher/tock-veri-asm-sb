@@ -1,7 +1,7 @@
-const SYST_CSR_ADDR: u32 = 0xE000E010;
-const SYST_RVR_ADDR: u32 = 0xE000E014;
-const SYST_CVR_ADDR: u32 = 0xE000E018;
-const SYST_CALIB_ADDR: u32 = 0xE000E01C;
+pub const SYST_CSR_ADDR: u32 = 0xE000E010;
+pub const SYST_RVR_ADDR: u32 = 0xE000E014;
+pub const SYST_CVR_ADDR: u32 = 0xE000E018;
+pub const SYST_CALIB_ADDR: u32 = 0xE000E01C;
 
 // Sys Tick: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/The-system-timer--SysTick/System-timer-register-support-in-the-SCS?lang=en
 //

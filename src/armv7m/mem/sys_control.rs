@@ -9,40 +9,40 @@ use super::INTERRUPT_AUXILIARY_CONTROL_REGISTER_END;
 
 
 // System Control Block Addresses
-const CPUID_ADDR: u32 =	 0xE000ED00;	
-const ICSR_ADDR: u32 =	 0xE000ED04;	
-const VTOR_ADDR: u32 =	 0xE000ED08;	
-const AIRCR_ADDR: u32 =	 0xE000ED0C;	
-const SCR_ADDR: u32 =	 0xE000ED10;	
-const CCR_ADDR: u32 =	 0xE000ED14;	
-const SHPR1_ADDR: u32 =	 0xE000ED18;	
-const SHPR2_ADDR: u32 =	 0xE000ED1C;	
-const SHPR3_ADDR: u32 =	 0xE000ED20;	
-const SHCSR_ADDR: u32 =	 0xE000ED24;	
-const CFSR_ADDR: u32 =	 0xE000ED28;	
-const HFSR_ADDR: u32 =	 0xE000ED2C;	
-const DFSR_ADDR: u32 =	 0xE000ED30;	
-const MMFAR_ADDR: u32 =	 0xE000ED34;	
-const BFAR_ADDR: u32 =	 0xE000ED38;	
-const AFSR_ADDR: u32 =	 0xE000ED3C;	
-const CPACR_ADDR: u32 =	 0xE000ED88;	
+pub const CPUID_ADDR: u32 =	 0xE000ED00;	
+pub const ICSR_ADDR: u32 =	 0xE000ED04;	
+pub const VTOR_ADDR: u32 =	 0xE000ED08;	
+pub const AIRCR_ADDR: u32 =	 0xE000ED0C;	
+pub const SCR_ADDR: u32 =	 0xE000ED10;	
+pub const CCR_ADDR: u32 =	 0xE000ED14;	
+pub const SHPR1_ADDR: u32 =	 0xE000ED18;	
+pub const SHPR2_ADDR: u32 =	 0xE000ED1C;	
+pub const SHPR3_ADDR: u32 =	 0xE000ED20;	
+pub const SHCSR_ADDR: u32 =	 0xE000ED24;	
+pub const CFSR_ADDR: u32 =	 0xE000ED28;	
+pub const HFSR_ADDR: u32 =	 0xE000ED2C;	
+pub const DFSR_ADDR: u32 =	 0xE000ED30;	
+pub const MMFAR_ADDR: u32 =	 0xE000ED34;	
+pub const BFAR_ADDR: u32 =	 0xE000ED38;	
+pub const AFSR_ADDR: u32 =	 0xE000ED3C;	
+pub const CPACR_ADDR: u32 =	 0xE000ED88;	
 
 // ID Reg
-const ICTR_ADDR: u32 =	 0xE000E004;	
-const ACTLR_ADDR: u32 =	 0xE000E008;	
-const STIR_ADDR: u32 =	 0xE000EF00;	
-const PID4_ADDR: u32 =	 0xE000EFD0;	
-const PID5_ADDR: u32 =	 0xE000EFD4;	
-const PID6_ADDR: u32 =	 0xE000EFD8;	
-const PID7_ADDR: u32 =	 0xE000EFDC;	
-const PID0_ADDR: u32 =	 0xE000EFE0;	
-const PID1_ADDR: u32 =	 0xE000EFE4;	
-const PID2_ADDR: u32 =	 0xE000EFE8;	
-const PID3_ADDR: u32 =	 0xE000EFEC;	
-const CID0_ADDR: u32 =	 0xE000EFF0;	
-const CID1_ADDR: u32 =	 0xE000EFF4;	
-const CID2_ADDR: u32 =	 0xE000EFF8;	
-const CID3_ADDR: u32 =	 0xE000EFFC;	
+pub const ICTR_ADDR: u32 =	 0xE000E004;	
+pub const ACTLR_ADDR: u32 =	 0xE000E008;	
+pub const STIR_ADDR: u32 =	 0xE000EF00;	
+pub const PID4_ADDR: u32 =	 0xE000EFD0;	
+pub const PID5_ADDR: u32 =	 0xE000EFD4;	
+pub const PID6_ADDR: u32 =	 0xE000EFD8;	
+pub const PID7_ADDR: u32 =	 0xE000EFDC;	
+pub const PID0_ADDR: u32 =	 0xE000EFE0;	
+pub const PID1_ADDR: u32 =	 0xE000EFE4;	
+pub const PID2_ADDR: u32 =	 0xE000EFE8;	
+pub const PID3_ADDR: u32 =	 0xE000EFEC;	
+pub const CID0_ADDR: u32 =	 0xE000EFF0;	
+pub const CID1_ADDR: u32 =	 0xE000EFF4;	
+pub const CID2_ADDR: u32 =	 0xE000EFF8;	
+pub const CID3_ADDR: u32 =	 0xE000EFFC;	
 
 // System Control Block (see table 10.5)
 //

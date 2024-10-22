@@ -1,14 +1,14 @@
-const MPU_TYPE_ADDR: u32 = 0xE000ED90;
-const MPU_CTRL_ADDR: u32 = 0xE000ED94;
-const MPU_RNR_ADDR: u32 = 0xE000ED98;
-const MPU_RBAR_ADDR: u32 = 0xE000ED9C;
-const MPU_RASR_ADDR: u32 = 0xE000EDA0;
-const MPU_RBAR_A1_ADDR: u32 = 0xE000EDA4;
-const MPU_RASR_A1_ADDR: u32 = 0xE000EDA8;
-const MPU_RBAR_A2_ADDR: u32 = 0xE000EDAC;
-const MPU_RASR_A2_ADDR: u32 = 0xE000EDB0;
-const MPU_RBAR_A3_ADDR: u32 = 0xE000EDB4;
-const MPU_RASR_A3_ADDR: u32 = 0xE000EDB8;
+pub const MPU_TYPE_ADDR: u32 = 0xE000ED90;
+pub const MPU_CTRL_ADDR: u32 = 0xE000ED94;
+pub const MPU_RNR_ADDR: u32 = 0xE000ED98;
+pub const MPU_RBAR_ADDR: u32 = 0xE000ED9C;
+pub const MPU_RASR_ADDR: u32 = 0xE000EDA0;
+pub const MPU_RBAR_A1_ADDR: u32 = 0xE000EDA4;
+pub const MPU_RASR_A1_ADDR: u32 = 0xE000EDA8;
+pub const MPU_RBAR_A2_ADDR: u32 = 0xE000EDAC;
+pub const MPU_RASR_A2_ADDR: u32 = 0xE000EDB0;
+pub const MPU_RBAR_A3_ADDR: u32 = 0xE000EDB4;
+pub const MPU_RASR_A3_ADDR: u32 = 0xE000EDB8;
 
 // MPU: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Protected-Memory-System-Architecture--PMSAv7/Register-support-for-PMSAv7-in-the-SCS?lang=en
 //
