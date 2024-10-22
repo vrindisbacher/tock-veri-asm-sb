@@ -28,7 +28,6 @@ use armv7m::{cpu::Armv7m, instr::{GeneralPurposeRegister, SpecialRegister, Value
 //   38:   e000e180        .word   0xe000e180
 //   3c:   e000e200        .word   0xe000e200
 //
-//
 pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
     armv7m.msr(

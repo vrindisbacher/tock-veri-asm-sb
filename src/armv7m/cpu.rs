@@ -98,14 +98,7 @@ flux_rs::defs! {
     lr: int,
     pc: int,
     apsr: int,
-    // Memory Layout
-    code: int,
-    sram: int,
-    periph: int,
-    ram: int,
-    device: int,
-    ppb: int,
-    vendor_sys: int
+    mem: Memory
 )]
 pub struct Armv7m {
     #[field(u32[r0])]
@@ -142,9 +135,8 @@ pub struct Armv7m {
     pc: u32,
     #[field(u32[apsr])]
     apsr: u32,
-    #[field(Memory[
-        code, sram, periph, ram, device, ppb, vendor_sys
-    ])]
+    // Memory 
+    #[field(Memory[mem])]
     mem: Memory,
 }
 
