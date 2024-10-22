@@ -197,7 +197,7 @@ pub mod sys_control_block_defs {
                 sys_control.afsr
             } else if address == CPACR_ADDR {
                 sys_control.cpacr
-            } else {
+            }  else {
                 -1
             }
         }
@@ -264,10 +264,9 @@ pub mod sys_control_id_reg_defs {
                     sys_control_id.cid1
                 } else if address == CID2_ADDR {
                     sys_control_id.cid2
-                } else if address == CID3_ADDR {
-                    sys_control_id.cid3
                 } else {
-                    -1
+                    // if address == CID3_ADDR {
+                    sys_control_id.cid3
                 }
             }
     }
@@ -294,15 +293,23 @@ pub mod sys_control_space_defs {
             }
 
             fn check_sys_control_space_value_read(address: int, sys_control: SysControlSpace, value: int) -> bool {
-                is_valid_sys_control_id_reg_read_addr(address) => sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg) == value
-                &&
-                is_valid_sys_control_block_read_addr(address) => sys_control_block_addr_into_reg(address, sys_control.sys_control_block) == value
+                if is_valid_sys_control_id_reg_read_addr(address) {
+                    sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg) == value
+                } else if is_valid_sys_control_block_read_addr(address) {
+                    sys_control_block_addr_into_reg(address, sys_control.sys_control_block) == value
+                } else {
+                    false
+                }
             }
 
             fn check_sys_control_space_value_write(address: int, sys_control: SysControlSpace, value: int) -> bool {
-                is_valid_sys_control_id_reg_write_addr(address) => sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg) == value
-                &&
-                is_valid_sys_control_block_write_addr(address) => sys_control_block_addr_into_reg(address, sys_control.sys_control_block) == value
+                if is_valid_sys_control_id_reg_write_addr(address) {
+                    sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg) == value
+                } else if is_valid_sys_control_block_write_addr(address) {
+                    sys_control_block_addr_into_reg(address, sys_control.sys_control_block) == value
+                } else {
+                    false
+                }
             }
     }
 }
@@ -377,8 +384,25 @@ pub mod nvic_defs {
                 } else if (address >= IABR_START && address <= IABR_END) {
                     nvic.iabrs
                 } else {
-                    nvic.iprs
                     // (address >= IPR_START && address <= IPR_END)
+                    nvic.iprs
+                }
+            }
+
+            fn is_four_byte_aligned(address: int) -> bool {
+                if (address >= ISER_START && address <= ISER_END) {
+                   (address - ISER_START) % 4 == 0
+                } else if (address >= ICER_START && address <= ICER_END) {
+                    (address - ICER_START) % 4 == 0
+                } else if (address >= ISPR_START && address <= ISPR_END) {
+                    (address - ISPR_START) % 4 == 0
+                } else if (address >= ICPR_START && address <= ICPR_END) {
+                    (address - ICPR_START) % 4 == 0
+                } else if (address >= IABR_START && address <= IABR_END) {
+                    (address - IABR_START) % 4 == 0
+                } else {
+                    // (address >= IPR_START && address <= IPR_END)
+                    (address - IPR_START) % 4 == 0
                 }
             }
     }
@@ -411,23 +435,32 @@ flux_rs::defs! {
     }
 
     fn check_ppb_value_read(address: int, ppb: Ppb, value: int) -> bool {
-        is_valid_sys_control_space_read_addr(address) => check_sys_control_space_value_read(address, ppb.sys_control, value)
-        &&
-        is_valid_nvic_read_addr(address) => map_get(nvic_addr_to_reg_map(address, ppb.nvic), address) == value
-        &&
-        is_valid_mpu_read_addr(address) => mpu_addr_into_reg(address, ppb.mpu) == value
-        &&
-        is_valid_sys_tick_read_addr(address) => sys_tick_addr_into_reg(address, ppb.sys_tick) == value
+        if is_valid_sys_control_space_read_addr(address) {
+            check_sys_control_space_value_read(address, ppb.sys_control, value)
+        } else if is_valid_nvic_read_addr(address) {
+            map_get(nvic_addr_to_reg_map(address, ppb.nvic), address) == value
+        } else if is_valid_mpu_read_addr(address) {
+            mpu_addr_into_reg(address, ppb.mpu) == value
+        } else if is_valid_sys_tick_read_addr(address) {
+            sys_tick_addr_into_reg(address, ppb.sys_tick) == value
+        } else {
+            false
+        }
     }
 
     fn check_ppb_value_write(address: int, ppb: Ppb, value: int) -> bool {
-        is_valid_sys_control_space_write_addr(address) => check_sys_control_space_value_write(address, ppb.sys_control, value)
-        &&
-        is_valid_nvic_write_addr(address) =>  map_get(nvic_addr_to_reg_map(address, ppb.nvic), address) == value
-        &&
-        is_valid_mpu_write_addr(address) => mpu_addr_into_reg(address, ppb.mpu) == value
-        &&
-        is_valid_sys_tick_write_addr(address) => sys_tick_addr_into_reg(address, ppb.sys_tick) == value
+        if is_valid_sys_control_space_write_addr(address) {
+            check_sys_control_space_value_write(address, ppb.sys_control, value)
+        } else if is_valid_nvic_write_addr(address) {
+            map_get(nvic_addr_to_reg_map(address, ppb.nvic), address) == value
+        } else if is_valid_mpu_write_addr(address) {
+            mpu_addr_into_reg(address, ppb.mpu) == value
+        } else if is_valid_sys_tick_write_addr(address) {
+            sys_tick_addr_into_reg(address, ppb.sys_tick) == value
+        } else {
+            false
+        }
+
     }
 
     fn check_mem_value_read(address: int, mem: Memory, value: int) -> bool {

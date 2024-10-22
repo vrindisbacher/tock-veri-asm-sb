@@ -18,6 +18,28 @@ pub const IABR_END: u32 = 0xE000E37C;
 pub const IPR_START: u32 = 0xE000E400;
 pub const IPR_END: u32 = 0xE000E7EC;
 
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_nvic_addr(addr)])]
+fn is_valid_nvic_addr(address: u32) -> bool {
+    (address >= ISER_START && address <= ISER_END)
+        || (address >= ICER_START && address <= ICER_END)
+        || (address >= ISPR_START && address <= ISPR_END)
+        || (address >= ICPR_START && address <= ICPR_END)
+        || (address >= IABR_START && address <= IABR_END)
+        || (address >= IPR_START && address <= IPR_END)
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_nvic_read_addr(addr)])]
+pub fn is_valid_nvic_read_addr(address: u32) -> bool {
+    // all read
+    is_valid_nvic_addr(address)
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_nvic_write_addr(addr)])]
+pub fn is_valid_nvic_write_addr(address: u32) -> bool {
+    // all write
+    is_valid_nvic_addr(address)
+}
+
 // NVIC: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Nested-Vectored-Interrupt-Controller--NVIC/NVIC-register-support-in-the-SCS?lang=en
 //
 // Some unimplemented blocks:
@@ -66,7 +88,7 @@ pub struct Nvic {
 }
 
 impl Nvic {
-    #[flux_rs::sig(fn (&Nvic[@nvic], u32[@addr]) -> u32[map_get(nvic_addr_to_reg_map(addr, nvic), addr)] requires is_valid_nvic_read_addr(addr))]
+    #[flux_rs::sig(fn (&Nvic[@nvic], u32[@addr]) -> u32[map_get(nvic_addr_to_reg_map(addr, nvic), addr)] requires is_valid_nvic_read_addr(addr) && is_four_byte_aligned(addr))]
     pub fn read(&self, addr: u32) -> u32 {
         match addr {
             ISER_START..=ISER_END => {
@@ -118,7 +140,7 @@ impl Nvic {
 
     #[flux_rs::sig(
         fn (self: &strg Nvic[@nvic], u32[@addr], u32[@value]) 
-            requires is_valid_nvic_write_addr(addr)
+            requires is_valid_nvic_write_addr(addr) && is_four_byte_aligned(addr)
             ensures self: Nvic { new_nvic: map_get(nvic_addr_to_reg_map(addr, new_nvic), addr) == value }
     )]
     pub fn write(&mut self, addr: u32, value: u32) {
