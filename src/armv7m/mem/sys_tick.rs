@@ -5,6 +5,21 @@ pub const SYST_RVR_ADDR: u32 = 0xE000E014;
 pub const SYST_CVR_ADDR: u32 = 0xE000E018;
 pub const SYST_CALIB_ADDR: u32 = 0xE000E01C;
 
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_tick_read_addr(addr)])]
+pub fn is_valid_sys_tick_read_addr(address: u32) -> bool {
+    // all addresses are read
+    address == SYST_CSR_ADDR
+        || address == SYST_RVR_ADDR
+        || address == SYST_CVR_ADDR
+        || address == SYST_CALIB_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_tick_write_addr(addr)])]
+pub fn is_valid_sys_tick_write_addr(address: u32) -> bool {
+    // all addresses but SYS_CALIB are write
+    address == SYST_CSR_ADDR || address == SYST_RVR_ADDR || address == SYST_CVR_ADDR
+}
+
 // Sys Tick: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/The-system-timer--SysTick/System-timer-register-support-in-the-SCS?lang=en
 //
 // Here are some unimplemented blocks:
@@ -67,16 +82,15 @@ impl SysTick {
         // 0xE000E014	SYST_RVR	RW	unknown	SysTick Reload Value Register, SYST_RVR
         // 0xE000E018	SYST_CVR	RW	unknown	SysTick Current Value Register, SYST_CVR
         // 0xE000E01C	SYST_CALIB	RO	IMP DEF	SysTick Calibration value Register, SYST_CALIB
-        let reg = match address {
-            SYST_CSR_ADDR => &mut self.syst_csr,
-            SYST_RVR_ADDR => &mut self.syst_rvr,
-            SYST_CVR_ADDR => &mut self.syst_cvr,
+        match address {
+            SYST_CSR_ADDR => self.syst_csr = value,
+            SYST_RVR_ADDR => self.syst_rvr = value,
+            SYST_CVR_ADDR => self.syst_cvr = value,
             SYST_CALIB_ADDR => panic!("Write of read only reg"),
             // RESERVED
             // 0xE000E020- 0xE000E0FC	-	-	-	Reserved
             0xE000E020..=0xE000E0FC => panic!("Write to Reserved addr"),
             _ => panic!("Write to invalid addr"),
         };
-        *reg = value;
     }
 }

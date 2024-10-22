@@ -12,6 +12,38 @@ pub const MPU_RASR_A2_ADDR: u32 = 0xE000EDB0;
 pub const MPU_RBAR_A3_ADDR: u32 = 0xE000EDB4;
 pub const MPU_RASR_A3_ADDR: u32 = 0xE000EDB8;
 
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_mpu_read_addr(addr)])]
+pub fn is_valid_mpu_read_addr(address: u32) -> bool {
+    // all address are read
+    address == MPU_TYPE_ADDR
+        || address == MPU_CTRL_ADDR
+        || address == MPU_RNR_ADDR
+        || address == MPU_RBAR_ADDR
+        || address == MPU_RASR_ADDR
+        || address == MPU_RBAR_A1_ADDR
+        || address == MPU_RASR_A1_ADDR
+        || address == MPU_RBAR_A2_ADDR
+        || address == MPU_RASR_A2_ADDR
+        || address == MPU_RBAR_A3_ADDR
+        || address == MPU_RASR_A3_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_mpu_write_addr(addr)])]
+pub fn is_valid_mpu_write_addr(address: u32) -> bool {
+    // all address except MPU_TYPE are write
+    address == MPU_CTRL_ADDR
+        || address == MPU_RNR_ADDR
+        || address == MPU_RBAR_ADDR
+        || address == MPU_RASR_ADDR
+        || address == MPU_RBAR_A1_ADDR
+        || address == MPU_RASR_A1_ADDR
+        || address == MPU_RBAR_A2_ADDR
+        || address == MPU_RASR_A2_ADDR
+        || address == MPU_RBAR_A3_ADDR
+        || address == MPU_RASR_A3_ADDR
+}
+
+
 // MPU: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Protected-Memory-System-Architecture--PMSAv7/Register-support-for-PMSAv7-in-the-SCS?lang=en
 //
 //
@@ -155,22 +187,21 @@ impl Mpu {
         // Alias 3 of MPU_RBAR, see MPU alias register support
         // 0xE000EDB8	MPU_RASR_A3	RW	-
         // Alias 3 of MPU_RASR, see MPU alias register support
-        let reg = match address {
+        match address {
             MPU_TYPE_ADDR => panic!("Write to read only address"),
-            MPU_CTRL_ADDR => &mut self.mpu_ctrl,
-            MPU_RNR_ADDR => &mut self.mpu_rnr,
-            MPU_RBAR_ADDR => &mut self.mpu_rbar,
-            MPU_RASR_ADDR => &mut self.mpu_rasr,
-            MPU_RBAR_A1_ADDR => &mut self.mpu_rbar_a1,
-            MPU_RASR_A1_ADDR => &mut self.mpu_rasr_a1,
-            MPU_RBAR_A2_ADDR => &mut self.mpu_rbar_a2,
-            MPU_RASR_A2_ADDR => &mut self.mpu_rasr_a2,
-            MPU_RBAR_A3_ADDR => &mut self.mpu_rbar_a3,
-            MPU_RASR_A3_ADDR => &mut self.mpu_rasr_a3,
+            MPU_CTRL_ADDR => self.mpu_ctrl = value,
+            MPU_RNR_ADDR => self.mpu_rnr = value,
+            MPU_RBAR_ADDR => self.mpu_rbar = value,
+            MPU_RASR_ADDR => self.mpu_rasr = value,
+            MPU_RBAR_A1_ADDR => self.mpu_rbar_a1 = value,
+            MPU_RASR_A1_ADDR => self.mpu_rasr_a1 = value,
+            MPU_RBAR_A2_ADDR => self.mpu_rbar_a2 = value,
+            MPU_RASR_A2_ADDR => self.mpu_rasr_a2 = value,
+            MPU_RBAR_A3_ADDR => self.mpu_rbar_a3 = value,
+            MPU_RASR_A3_ADDR => self.mpu_rasr_a3 = value,
             // Reserved
             0xE000EDBC..=0xE000EDEC => panic!("Write to reserved addr"),
             _ => panic!("Write to invalid addr"),
-        };
-        *reg = value;
+        }
     }
 }

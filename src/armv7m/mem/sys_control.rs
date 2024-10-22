@@ -1,16 +1,6 @@
 use super::flux_defs::sys_control_block_defs::*;
 use super::flux_defs::sys_control_id_reg_defs::*;
 
-// Range
-use super::SYSTEM_CONTROL_BLOCK_START;
-use super::SYSTEM_CONTROL_BLOCK_END;
-use super::SW_TRIGGER_INTERRUPT_REG_START;
-use super::SW_TRIGGER_INTERRUPT_REG_END;
-use super::INTERRUPT_AUXILIARY_CONTROL_REGISTER_START;
-use super::INTERRUPT_AUXILIARY_CONTROL_REGISTER_END;
-
-
-
 // System Control Block Addresses
 pub const CPUID_ADDR: u32 =	 0xE000ED00;	
 pub const ICSR_ADDR: u32 =	 0xE000ED04;	
@@ -46,6 +36,84 @@ pub const CID0_ADDR: u32 =	 0xE000EFF0;
 pub const CID1_ADDR: u32 =	 0xE000EFF4;	
 pub const CID2_ADDR: u32 =	 0xE000EFF8;	
 pub const CID3_ADDR: u32 =	 0xE000EFFC;	
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_block_read_addr(addr)])]
+fn is_valid_sys_control_block_read_addr(address: u32) -> bool {
+    // all addresses are read
+    address == CPUID_ADDR
+        || address == ICSR_ADDR
+        || address == VTOR_ADDR
+        || address == AIRCR_ADDR
+        || address == SCR_ADDR
+        || address == CCR_ADDR
+        || address == SHPR1_ADDR
+        || address == SHPR2_ADDR
+        || address == SHPR3_ADDR
+        || address == SHCSR_ADDR
+        || address == CFSR_ADDR
+        || address == HFSR_ADDR
+        || address == DFSR_ADDR
+        || address == MMFAR_ADDR
+        || address == BFAR_ADDR
+        || address == AFSR_ADDR
+        || address == CPACR_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_block_write_addr(addr)])]
+fn is_valid_sys_control_block_write_addr(address: u32) -> bool {
+    // all addresses but CPUID are write
+    address == ICSR_ADDR
+        || address == VTOR_ADDR
+        || address == AIRCR_ADDR
+        || address == SCR_ADDR
+        || address == CCR_ADDR
+        || address == SHPR1_ADDR
+        || address == SHPR2_ADDR
+        || address == SHPR3_ADDR
+        || address == SHCSR_ADDR
+        || address == CFSR_ADDR
+        || address == HFSR_ADDR
+        || address == DFSR_ADDR
+        || address == MMFAR_ADDR
+        || address == BFAR_ADDR
+        || address == AFSR_ADDR
+        || address == CPACR_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_read_addr(addr)])]
+fn is_valid_sys_control_id_reg_read_addr(address: u32) -> bool {
+    // all but STIR are read
+    address == ICTR_ADDR ||
+        address == ACTLR_ADDR ||
+        address == PID4_ADDR ||
+        address == PID5_ADDR ||
+        address == PID6_ADDR ||
+        address == PID7_ADDR ||
+        address == PID0_ADDR ||
+        address == PID1_ADDR ||
+        address == PID2_ADDR ||
+        address == PID3_ADDR ||
+        address == CID0_ADDR ||
+        address == CID1_ADDR ||
+        address == CID2_ADDR ||
+        address == CID3_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_write_addr(addr)])]
+fn is_valid_sys_control_id_reg_write_addr(address: u32) -> bool {
+    // only actlr && stir are write
+    address == ACTLR_ADDR || address == STIR_ADDR
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_space_read_addr(addr)])]
+pub fn is_valid_sys_control_space_read_addr(address: u32) -> bool {
+    is_valid_sys_control_block_read_addr(address) || is_valid_sys_control_id_reg_read_addr(address)
+}
+
+#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_space_write_addr(addr)])]
+pub fn is_valid_sys_control_space_write_addr(address: u32) -> bool {
+    is_valid_sys_control_block_write_addr(address) || is_valid_sys_control_id_reg_write_addr(address)
+}
 
 // System Control Block (see table 10.5)
 //
@@ -217,24 +285,24 @@ impl SysControlBlock {
         // 0xE000ED38	BFAR	RW	unknown	BusFault Address Register, BFAR.
         // 0xE000ED3C	AFSR	RW	unknown	Auxiliary Fault Status Register, AFSR, implementation defined.
         // 0xE000ED88	CPACR	RW	unknown	Coprocessor Access Control Register, CPACR.
-        let reg = match address {
+        match address {
             CPUID_ADDR => panic!("Write to read only reg"),
-            ICSR_ADDR => &mut self.icsr,
-            VTOR_ADDR => &mut self.vtor,
-            AIRCR_ADDR => &mut self.aircr,
-            SCR_ADDR => &mut self.scr,
-            CCR_ADDR => &mut self.ccr,
-            SHPR1_ADDR => &mut self.shpr1,
-            SHPR2_ADDR => &mut self.shpr2,
-            SHPR3_ADDR => &mut self.shpr3,
-            SHCSR_ADDR => &mut self.shcsr,
-            CFSR_ADDR => &mut self.cfsr,
-            HFSR_ADDR => &mut self.hfsr,
-            DFSR_ADDR => &mut self.dfsr,
-            MMFAR_ADDR => &mut self.mmfar,
-            BFAR_ADDR => &mut self.bfar,
-            AFSR_ADDR => &mut self.afsr,
-            CPACR_ADDR => &mut self.cpacr,
+            ICSR_ADDR => self.icsr = value,
+            VTOR_ADDR => self.vtor = value,
+            AIRCR_ADDR => self.aircr = value,
+            SCR_ADDR => self.scr = value,
+            CCR_ADDR => self.ccr = value,
+            SHPR1_ADDR => self.shpr1 = value,
+            SHPR2_ADDR => self.shpr2 = value,
+            SHPR3_ADDR => self.shpr3 = value,
+            SHCSR_ADDR => self.shcsr = value,
+            CFSR_ADDR => self.cfsr = value,
+            HFSR_ADDR => self.hfsr = value,
+            DFSR_ADDR => self.dfsr = value,
+            MMFAR_ADDR => self.mmfar = value,
+            BFAR_ADDR => self.bfar = value,
+            AFSR_ADDR => self.afsr = value,
+            CPACR_ADDR => self.cpacr = value,
             // Reserved fields etc.
             // 0xE000ED40 - 0xE000ED7C	-	-	-	Reserved for CPUID registers, see The CPUID Scheme.
             // 0xE000ED80 - 0xE000ED84	-	-	-	Reserved.
@@ -244,7 +312,6 @@ impl SysControlBlock {
             0xE000ED8C => panic!("Write to Reserved Reg"),
             _ => panic!("Write to invalid addr")
         };
-        *reg = value;
     }
 }
 
@@ -401,10 +468,10 @@ impl SysControlIDReg {
         // 0xE000EFF4	CID1	RO
         // 0xE000EFF8	CID2	RO
         // 0xE000EFFC	CID3	RO
-        let reg = match address {
+        match address {
             ICTR_ADDR => panic!("Attempted write to read only reg"),
-            ACTLR_ADDR => &mut self.actlr,
-            STIR_ADDR => &mut self.stir,
+            ACTLR_ADDR => self.actlr = value,
+            STIR_ADDR => self.stir = value,
             PID4_ADDR => panic!("Attempted write to read only reg"),
             PID5_ADDR => panic!("Attempted write to read only reg"),
             PID6_ADDR => panic!("Attempted write to read only reg"),
@@ -430,7 +497,6 @@ impl SysControlIDReg {
             0xE000EDF0..=0xE000EEFC	 => panic!("Write to debug reg (not implemented)"),
             _ => panic!("Write to invalid addr")
         };
-        *reg = value;
     }
 }
 
@@ -455,11 +521,12 @@ impl SysControlSpace {
             requires is_valid_sys_control_space_read_addr(addr)
     )]
     pub fn read(&self, address: u32) -> u32 {
-        match address {
-            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END 
-            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.sys_control_id_regs.read(address),
-             SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END => self.sys_control_block.read(address),
-            _ => panic!("Read of invalid addr")
+        if is_valid_sys_control_block_read_addr(address) {
+            self.sys_control_block.read(address)
+        } else if is_valid_sys_control_id_reg_read_addr(address) {
+            self.sys_control_id_regs.read(address)
+        } else {
+            panic!("Read of invalid addr")
         }
     }
     
@@ -469,11 +536,12 @@ impl SysControlSpace {
             ensures self: SysControlSpace { new_sys_control: check_sys_control_space_value_write(addr, new_sys_control, val) }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
-        match address {
-            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END 
-            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.sys_control_id_regs.write(address, value),
-             SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END => self.sys_control_block.write(address, value),
-            _ => panic!("Write to invalid addr")
+        if is_valid_sys_control_block_write_addr(address) {
+            self.sys_control_block.write(address, value);
+        } else if is_valid_sys_control_id_reg_write_addr(address) {
+            self.sys_control_id_regs.write(address, value);
+        } else {
+            panic!("Write to invalid addr")
         }
     }
 }

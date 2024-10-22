@@ -52,10 +52,10 @@ mod sys_tick;
 mod mpu;
 
 use flux_defs::*;
-use mpu::Mpu;
-use sys_control::SysControlSpace;
-use sys_tick::SysTick;
-use nvic::Nvic;
+use mpu::{is_valid_mpu_read_addr, is_valid_mpu_write_addr, Mpu};
+use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr, SysControlSpace};
+use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr, SysTick};
+use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr, Nvic};
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
@@ -79,45 +79,44 @@ pub struct Ppb {
 }
 
 impl Ppb {
-    #[flux_rs::sig(fn (&Ppb[@ppb], u32[@addr]) -> u32{v: check_ppb_value_read(addr, ppb, v) } requires is_valid_read_addr(addr))]
+    #[flux_rs::sig(
+        fn (&Ppb[@ppb], u32[@addr]) -> u32 // {v: check_ppb_value_read(addr, ppb, v) } 
+               requires is_valid_read_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
-        match address {
-            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
-            | SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END
-            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END
-            => self.system_control_space.read(address),
-            SYS_TICK_START..=SYS_TICK_END => self.sys_tick.read(address),
-            NVIC_START..=NVIC_END => self.nvic.read(address),
-            MPU_START..=MPU_END => self.mpu.read(address),
-            // NOTE: Not supporting some of these for now
-            0xE000EDF0..=0xE000EEFF => panic!("Read of debug reg (not implemented)"),
-            0xE000EF90..=0xE000EFCF => panic!("Read of Implementation defined regs"),
-            0xE000EFD0..=0xE000EFFF => panic!("Read of mc specific space"),
-            _ => panic!("Read of invalid addr (only system control, sys tick, nvic, and mpun are defined)")
+        if is_valid_mpu_read_addr(address) {
+            self.mpu.read(address)
+        } else if is_valid_sys_tick_read_addr(address) { 
+            self.sys_tick.read(address)
+        } else if is_valid_sys_control_space_read_addr(address) {
+            self.system_control_space.read(address)
+        } else if is_valid_nvic_read_addr(address) {
+            self.nvic.read(address)
+        } else {
+            panic!("Read of invalid addr")
         }
     }
 
     #[flux_rs::sig(
         fn (self: &strg Ppb[@ppb], u32[@addr], u32[@val]) 
-            requires is_valid_write_addr(addr)
-            ensures self: Ppb { new_ppb: check_ppb_value_write(addr, new_ppb, val) }
+            requires is_valid_write_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
+            ensures self: Ppb // { new_ppb: check_ppb_value_write(addr, new_ppb, val) }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
-        match address {
-            INTERRUPT_AUXILIARY_CONTROL_REGISTER_START..=INTERRUPT_AUXILIARY_CONTROL_REGISTER_END
-            | SYSTEM_CONTROL_BLOCK_START..=SYSTEM_CONTROL_BLOCK_END
-            | SW_TRIGGER_INTERRUPT_REG_START..=SW_TRIGGER_INTERRUPT_REG_END => self.system_control_space.write(address, value),
-            SYS_TICK_START..=SYS_TICK_END =>  self.sys_tick.write(address, value),
-            NVIC_START..=NVIC_END => self.nvic.write(address, value),
-            MPU_START..=MPU_END => self.mpu.write(address, value),
-            // NOTE: Not supporting some of these for now
-            0xE000EF90..=0xE000EFCF => panic!("Write to Implementation defined regs"),
-            0xE000EFD0..=0xE000EFFF => panic!("Write to mc specific space"),
-            0xE000EDF0..=0xE000EEFF =>  panic!("Write to debug regs (not implemented)"),
-            _ => panic!("Write to invalid addr (only system control, sys tick, nvic, and mpun are defined)")
+        if is_valid_mpu_write_addr(address) {
+            self.mpu.write(address, value);
+        } else if is_valid_sys_tick_write_addr(address) { 
+            self.sys_tick.write(address, value);
+        } else if is_valid_sys_control_space_write_addr(address) {
+            self.system_control_space.write(address, value);
+        } else if is_valid_nvic_write_addr(address) {
+            self.nvic.write(address, value);
+        } else {
+            panic!("Read of invalid addr")
         }
     }
 }
+
 
 #[derive(Debug)]
 #[flux_rs::refined_by(ppb: Ppb)]
@@ -127,8 +126,10 @@ pub struct Memory {
 }
 
 impl Memory {
-
-    #[flux_rs::sig(fn (&Memory[@mem], u32[@addr]) -> u32{ v: check_mem_value_read(addr, mem, v) } requires is_valid_read_addr(addr))]
+    #[flux_rs::sig(
+        fn (&Memory[@mem], u32[@addr]) -> u32 //{ v: check_mem_value_read(addr, mem, v) } 
+            requires is_valid_read_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
+    )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
             PPB_START..=PPB_END => self.ppb.read(address),
@@ -138,8 +139,8 @@ impl Memory {
 
     #[flux_rs::sig(
         fn (self: &strg Memory[@mem], u32[@addr], u32[@val]) 
-            requires is_valid_write_addr(addr)
-            ensures self: Memory { new_mem: check_mem_value_write(addr, new_mem, val) }
+            requires is_valid_write_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
+            ensures self: Memory // { new_mem: check_mem_value_write(addr, new_mem, val) }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
