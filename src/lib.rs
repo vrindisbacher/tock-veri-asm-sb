@@ -1,7 +1,9 @@
 pub mod armv7m;
-mod internals;
 
-use armv7m::{cpu::Armv7m, instr::{GeneralPurposeRegister, SpecialRegister, Value}};
+use armv7m::{
+    cpu::Armv7m,
+    instr::{GeneralPurposeRegister, SpecialRegister, Value},
+};
 
 //
 // Here is disassembly of the armv7m program. Note that the .w specifies "wide"
@@ -24,46 +26,34 @@ use armv7m::{cpu::Armv7m, instr::{GeneralPurposeRegister, SpecialRegister, Value
 //   2e:   4b03            ldr     r3, [pc, #12]   @ (3c <generic_isr_arm_v7m+0x3c>)
 //   30:   f843 0022       str.w   r0, [r3, r2, lsl #2]
 //   34:   4770            bx      lr
-//   36:   0000            movs    r0, r0
 //   38:   e000e180        .word   0xe000e180
 //   3c:   e000e200        .word   0xe000e200
 //
 pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
-    armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
-    armv7m.msr(
-        SpecialRegister::Control,
-        Value::GeneralRegister(GeneralPurposeRegister::R0),
-    );
-    armv7m.isb();
+    armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+    armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
+    armv7m.isb(Some(armv7m::instr::IsbOpt::Sys));
 
-    // r14 is the link register
-    // TODO: use special register for LR
-    // armv7m.mvn(GeneralPurposeRegister::R14, Value::Value(6));
+    armv7m.mvn_imm(GeneralPurposeRegister::Lr, 6);
 
     armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
-    armv7m.and(GeneralPurposeRegister::R0, Value::Value(0xFF), None);
-    armv7m.sub(GeneralPurposeRegister::R0, Value::Value(16));
+    armv7m.and_imm(GeneralPurposeRegister::R0, 0xff);
+    armv7m.subw_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 16);
 
-    armv7m.lsrs(
-        GeneralPurposeRegister::R2,
-        Value::GeneralRegister(GeneralPurposeRegister::R0),
-        Value::Value(5),
-    );
-    armv7m.movs(GeneralPurposeRegister::R3, Value::Value(1));
-    armv7m.and(
+    armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, 5);
+    armv7m.movs_imm(GeneralPurposeRegister::R3, 0);
+    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+    armv7m.lslw_reg(
         GeneralPurposeRegister::R0,
-        Value::GeneralRegister(GeneralPurposeRegister::R0),
-        Some(Value::Value(31)),
-    );
-    armv7m.lsl(
+        GeneralPurposeRegister::R3,
         GeneralPurposeRegister::R0,
-        Value::GeneralRegister(GeneralPurposeRegister::R3),
-        Value::GeneralRegister(GeneralPurposeRegister::R0),
     );
 
-    // VTOCK TODO: Encode this as the pc + 12 operation???
-    // Also, the PC has to move with instructions...
-    armv7m.ldr(GeneralPurposeRegister::R3, Value::Value(0xe000e180));
+    // Note: Ignoring the dissasembled version of this because dealing with program counter is
+    // annoying
+    //
+    // Gonna encode this as a pseudo instruction for now
+    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e180);
 
     // VTOCK TODO - is it ok to just hard code 4 here - also I don't our encoding of this is right ????
     // str r0, [r3, r2, lsl #2]          // *(r3 + r2 * 4) = r0
@@ -76,8 +66,11 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
         ],
     );
 
-    // VTOCK TODO: Encode this as the pc + 12 operation???
-    armv7m.ldr(GeneralPurposeRegister::R3, Value::Value(0xe000e200));
+    // Note: Ignoring the dissasembled version of this because dealing with program counter is
+    // annoying
+    //
+    // Gonna encode this as a pseudo instruction for now
+    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e200);
 
     // VTOCK TODO - is it ok to just hard code 4 here - also I don't our encoding of this is right ????
     // str r0, [r3, r2, lsl #2]          // *(r3 + r2 * 4) = r0
@@ -90,6 +83,5 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
         ],
     );
 
-    // TODO: use special register for lr
-    // armv7m.bx(GeneralPurposeRegister::R14);
+    armv7m.bx(GeneralPurposeRegister::Lr);
 }

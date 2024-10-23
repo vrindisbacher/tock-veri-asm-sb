@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq)]
 #[flux_rs::refined_by(n: int)]
 pub enum GeneralPurposeRegister {
     #[variant(GeneralPurposeRegister[0])]
@@ -34,8 +35,6 @@ pub enum GeneralPurposeRegister {
     Pc,
 }
 
-//
-// See here for a full set of special registers in the Thumb Instruction Set: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Instruction-Details/About-the-ARMv7-M-system-instructions/Special-register-encodings-used-in-ARMv7-M-system-instructions?lang=en
 #[flux_rs::refined_by(n : int)]
 pub enum SpecialRegister {
     #[variant(SpecialRegister[16])]
@@ -48,6 +47,7 @@ pub enum SpecialRegister {
 }
 
 #[flux_rs::refined_by(is_reg: bool, is_special: bool, val: int)]
+// NOTE: Glossing over negative values...
 pub enum Value {
     #[variant({SpecialRegister[@n]} -> Value[true, true, n])]
     SpecialRegister(SpecialRegister),
@@ -55,4 +55,9 @@ pub enum Value {
     GeneralRegister(GeneralPurposeRegister),
     #[variant({u32[@n]} -> Value[false, false, n])]
     Value(u32),
+}
+
+#[derive(Debug)]
+pub enum IsbOpt {
+    Sys,
 }

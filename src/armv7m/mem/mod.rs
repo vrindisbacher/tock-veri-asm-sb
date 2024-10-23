@@ -9,7 +9,7 @@
 // - Device Memory: Causes side effects
 // - Strongly Ordered Memory: An access to memory marked as Strongly Ordered acts as a memory barrier to all other explicit accesses from that processor, until the point at which the access is complete (that is, has changed the state of the target location or data has been returned). In addition, an access to memory marked as Strongly Ordered must complete before the end of a memory barrier
 //
-// See here for PPB docs: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/System-Control-Space--SCS-?lang=en
+// See here for PPB docs
 //
 // System control and ID registers	
 // 0xE000E000-0xE000E00F	Includes the Interrupt Controller Type and Auxiliary Control registers
