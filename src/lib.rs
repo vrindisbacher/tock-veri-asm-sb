@@ -32,7 +32,7 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
     armv7m.msr(
         SpecialRegister::Control,
-        Value::Register(GeneralPurposeRegister::R0),
+        Value::GeneralRegister(GeneralPurposeRegister::R0),
     );
     armv7m.isb();
 
@@ -46,19 +46,19 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
 
     armv7m.lsrs(
         GeneralPurposeRegister::R2,
-        Value::Register(GeneralPurposeRegister::R0),
+        Value::GeneralRegister(GeneralPurposeRegister::R0),
         Value::Value(5),
     );
     armv7m.movs(GeneralPurposeRegister::R3, Value::Value(1));
     armv7m.and(
         GeneralPurposeRegister::R0,
-        Value::Register(GeneralPurposeRegister::R0),
+        Value::GeneralRegister(GeneralPurposeRegister::R0),
         Some(Value::Value(31)),
     );
     armv7m.lsl(
         GeneralPurposeRegister::R0,
-        Value::Register(GeneralPurposeRegister::R3),
-        Value::Register(GeneralPurposeRegister::R0),
+        Value::GeneralRegister(GeneralPurposeRegister::R3),
+        Value::GeneralRegister(GeneralPurposeRegister::R0),
     );
 
     // VTOCK TODO: Encode this as the pc + 12 operation???
@@ -70,8 +70,8 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.str(
         GeneralPurposeRegister::R0,
         vec![
-            Value::Register(GeneralPurposeRegister::R3),
-            Value::Register(GeneralPurposeRegister::R2),
+            Value::GeneralRegister(GeneralPurposeRegister::R3),
+            Value::GeneralRegister(GeneralPurposeRegister::R2),
             Value::Value(4),
         ],
     );
@@ -84,8 +84,8 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.str(
         GeneralPurposeRegister::R0,
         vec![
-            Value::Register(GeneralPurposeRegister::R3),
-            Value::Register(GeneralPurposeRegister::R2),
+            Value::GeneralRegister(GeneralPurposeRegister::R3),
+            Value::GeneralRegister(GeneralPurposeRegister::R2),
             Value::Value(4),
         ],
     );

@@ -1,7 +1,7 @@
 use super::{instr::{GeneralPurposeRegister, SpecialRegister, Value}, mem::Memory};
 
 flux_rs::defs! {
-    fn get_reg(reg: int, cpu: Armv7m) -> int {
+    fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> int {
         if reg == 0 {
             cpu.r0
         } else if reg == 1 {
@@ -28,21 +28,59 @@ flux_rs::defs! {
             cpu.r11
         } else if reg == 12 {
             cpu.r12
-        } else if reg == 13 {
+        }  else if reg == 13 {
             cpu.sp
         } else if reg == 14 { 
             cpu.lr
-        } else {
+        } else  {
+            // if reg == 15 {
             cpu.pc
         }
     }
 
+    fn pc_moved(old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
+        new_cpu.pc == old_cpu.pc + 4
+    }
+
+    fn is_pc(reg: int) -> bool {
+        reg == 15
+    }
+
+    fn is_sp(reg: int) -> bool {
+        reg == 14
+    }
+
+    fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
+
+    fn get_special_reg(reg: int, cpu: Armv7m) -> int {
+        if reg == 16 {
+            cpu.control
+        } else if reg == 17 {
+            cpu.psr
+        } else {
+            // if reg == 18 {
+            // VTOCK TODO: Fix me
+            cpu.psr
+            // bv_bv32_to_int(bv_and(bv32(cpu.psr), bv32(0xff)))
+        }
+    }
+
     fn value_into_u32(value: Value, cpu: Armv7m) -> int {
-        if value.is_reg {
-            get_reg(value.val, cpu)
+        if value.is_reg && value.is_special {
+            get_special_reg(value.val, cpu)
+        } else if value.is_reg {
+            get_general_purpose_reg(value.val, cpu)
         } else {
             value.val
         }
+    }
+
+
+
+    // 0 being the least significant bit, 31 the most significant
+    fn nth_bit_is_set(val: int, n: int) -> bool {
+        // val & (1 << n)
+        bv_and(bv32(val), bv_lshr(bv32(1), bv32(n))) == bv32(1)
     }
 }
 
@@ -97,7 +135,8 @@ flux_rs::defs! {
     sp: int,
     lr: int,
     pc: int,
-    apsr: int,
+    psr: int,
+    control: int,
     mem: Memory
 )]
 pub struct Armv7m {
@@ -133,24 +172,94 @@ pub struct Armv7m {
     lr: u32,
     #[field(u32[pc])]
     pc: u32,
-    #[field(u32[apsr])]
-    apsr: u32,
+    #[field(u32[psr])]
+    psr: u32,
+    #[field(u32[control])]
+    control: u32,
     // Memory 
     #[field(Memory[mem])]
     mem: Memory,
 }
 
 impl Armv7m {
+
+    #[flux_rs::sig(fn (&Armv7m[@cpu], SpecialRegister[@reg]) -> u32[get_special_reg(reg, cpu)])]
+    fn special_reg_into_u32(&self, reg: SpecialRegister) -> u32 {
+            match reg {
+                SpecialRegister::Control => self.control,
+                SpecialRegister::PSR => self.psr,
+                // the last 8 bits of the PSR register 
+                // VTOCK TODO: Actuall fix this
+                SpecialRegister::IPSR => self.psr // & 0xff,
+            }
+    }
+
+    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(cpu.psr, 31)])]
+    // fn s_flag_set(&self) -> bool {
+    //     self.psr & (1 << 31) == 1
+    // }
+
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: nth_bit_is_set(new_cpu.psr, 31) })]
+    // fn set_s_flag(&mut self) {
+    //     self.psr = self.psr | (1 << 31);
+    // }
+
+    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(cpu.psr, 30)])]
+    // fn z_flag_set(&self) -> bool {
+    //     self.psr & (1 << 30) == 1
+    // }
+
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: nth_bit_is_set(new_cpu.psr, 30) })]
+    // fn set_z_flag(&mut self) {
+    //     self.psr = self.psr | (1 << 30);
+    // }
+
+    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(cpu.psr, 29)])]
+    // fn c_flag_set(&self) -> bool {
+    //     self.psr & (1 << 29) == 1
+    // }
+
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: nth_bit_is_set(new_cpu.psr, 29) })]
+    // fn set_c_flag(&mut self) {
+    //     self.psr = self.psr | (1 << 29);
+    // }
+
+    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(cpu.psr, 28)])]
+    // fn v_flag_set(&self) -> bool {
+    //     self.psr & (1 << 28) == 1
+    // }
+
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: nth_bit_is_set(new_cpu.psr, 28) })]
+    // fn set_v_flag(&mut self) {
+    //     self.psr = self.psr | (1 << 28);
+    // }
+
+    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(cpu.psr, 27)])]
+    // fn g_flag_set(&self) -> bool {
+    //     self.psr & (1 << 27) == 1
+    // }
+
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: nth_bit_is_set(new_cpu.psr, 27) })]
+    // fn set_g_flag(&mut self) {
+    //     self.psr = self.psr | (1 << 27);
+    // }
+
     #[flux_rs::sig(fn (&Armv7m[@cpu], Value[@val]) -> u32[value_into_u32(val, cpu)])]
     fn value_into_u32(&self, value: Value) -> u32 {
         match value {
-            Value::Register(register) => self.get_value_from_reg(&register),
+            Value::SpecialRegister(register) => self.special_reg_into_u32(register),
+            Value::GeneralRegister(register) => self.get_value_from_general_reg(&register),
             Value::Value(v) => v,
         }
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@new_val]) ensures self: Armv7m { new_cpu: get_reg(reg, new_cpu) == new_val })] 
-    fn update_reg_with_u32(&mut self, register: GeneralPurposeRegister, value: u32) {
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@new_val]) 
+            // no updates to PC or SP allowed
+            requires !(is_pc(reg) || is_sp(reg))
+            ensures self: Armv7m { new_cpu: get_general_purpose_reg(reg, new_cpu) == new_val }
+    )] 
+    fn update_general_reg_with_u32(&mut self, register: GeneralPurposeRegister, value: u32) {
         match register {
             GeneralPurposeRegister::R0 => self.r0 = value,
             GeneralPurposeRegister::R1 => self.r1 = value,
@@ -165,11 +274,14 @@ impl Armv7m {
             GeneralPurposeRegister::R10 => self.r10 = value,
             GeneralPurposeRegister::R11 => self.r11 = value,
             GeneralPurposeRegister::R12 => self.r12 = value,
+            GeneralPurposeRegister::Lr => self.lr = value,
+            GeneralPurposeRegister::Sp => panic!("Cannot update Stack Pointer in a direct manner"), // self.sp = value,
+            GeneralPurposeRegister::Pc => panic!("Cannot update program counter in a direct manner"), 
         }
     }
 
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> u32[get_reg(reg, cpu)])]
-    fn get_value_from_reg(&self, register: &GeneralPurposeRegister) -> u32 {
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> u32[get_general_purpose_reg(reg, cpu)])]
+    fn get_value_from_general_reg(&self, register: &GeneralPurposeRegister) -> u32 {
         match register {
             GeneralPurposeRegister::R0 => self.r0,
             GeneralPurposeRegister::R1 => self.r1,
@@ -184,6 +296,9 @@ impl Armv7m {
             GeneralPurposeRegister::R10 => self.r10,
             GeneralPurposeRegister::R11 => self.r11,
             GeneralPurposeRegister::R12 => self.r12,
+            GeneralPurposeRegister::Sp => self.sp,
+            GeneralPurposeRegister::Lr => self.lr,
+            GeneralPurposeRegister::Pc => self.pc, 
         }
     }
 
@@ -200,8 +315,10 @@ impl Armv7m {
 
     // Mov
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], Value[@val]) 
+        // no updates to PC or SP allowed
+        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: get_reg(reg, new_cpu) == value_into_u32(val, old_cpu) 
+            new_cpu: get_general_purpose_reg(reg, new_cpu) == value_into_u32(val, old_cpu) && pc_moved(old_cpu, new_cpu)
         }
     )]
     // Interesting note: incr the program counter is an issue for this refinement
@@ -209,9 +326,8 @@ impl Armv7m {
         // Move immediate - writes a value into destination register
         // This does not cause a flag update
         let val = self.value_into_u32(value);
-        self.update_reg_with_u32(register, val);
-
-        // self.move_pc();
+        self.update_general_reg_with_u32(register, val);
+        self.move_pc();
     }
 
     // Movs
@@ -219,7 +335,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     pub fn movs(&mut self, register: GeneralPurposeRegister, value: Value) {
         let val = self.value_into_u32(value);
-        self.update_reg_with_u32(register, val);
+        self.update_general_reg_with_u32(register, val);
         // TODO: Flag updates
         self.move_pc();
     }
@@ -257,7 +373,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     pub fn ldr(&mut self, register: GeneralPurposeRegister, value: Value) {
         let val = self.value_into_u32(value);
-        self.update_reg_with_u32(register, val);
+        self.update_general_reg_with_u32(register, val);
         // TODO: There are a bunch of flag updates here
         self.move_pc();
     }
@@ -285,11 +401,11 @@ impl Armv7m {
         match value1 {
             Some(val1) => {
                 let val1 = self.value_into_u32(val1);
-                self.update_reg_with_u32(register, val & val1);
+                self.update_general_reg_with_u32(register, val & val1);
             }
             None => {
-                let reg_val = self.get_value_from_reg(&register);
-                self.update_reg_with_u32(register, reg_val & val);
+                let reg_val = self.get_value_from_general_reg(&register);
+                self.update_general_reg_with_u32(register, reg_val & val);
             }
         }
         self.move_pc();
@@ -300,8 +416,8 @@ impl Armv7m {
     pub fn sub(&mut self, register: GeneralPurposeRegister, value: Value) {
         // No flag updates here
         let val = self.value_into_u32(value);
-        let register_val = self.get_value_from_reg(&register);
-        self.update_reg_with_u32(register, register_val - val);
+        let register_val = self.get_value_from_general_reg(&register);
+        self.update_general_reg_with_u32(register, register_val - val);
         self.move_pc();
     }
 
@@ -311,7 +427,7 @@ impl Armv7m {
     pub fn lsrs(&mut self, register: GeneralPurposeRegister, value: Value, value1: Value) {
         let val = self.value_into_u32(value);
         let val1 = self.value_into_u32(value1);
-        self.update_reg_with_u32(register, val >> val1);
+        self.update_general_reg_with_u32(register, val >> val1);
         // TODO: There are a bunch of flag updates here
         self.move_pc();
     }
@@ -322,7 +438,7 @@ impl Armv7m {
         // No flag updates here
         let val = self.value_into_u32(value);
         let val1 = self.value_into_u32(value1);
-        self.update_reg_with_u32(register, val << val1);
+        self.update_general_reg_with_u32(register, val << val1);
         self.move_pc();
     }
 
