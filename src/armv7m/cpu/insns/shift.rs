@@ -18,18 +18,13 @@ impl Armv7m {
 
 
 
-    // VTOCK NOTE: Marking this as trusted because it takes a long time
-    // to check but I did check it
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], u32[@shift]) 
         // no updates to PC or SP allowed
         // VTOCK TODO: Inspect PC + SP precondition
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
             new_cpu: 
-                shift != 0 => general_purpose_register_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift))
-                &&
-                lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
+                shift != 0 => (general_purpose_register_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift))
         }
     )]
     pub fn lsrs_imm(
@@ -89,9 +84,6 @@ impl Armv7m {
     //      // APSR.V unchanged
 
 
-    // VTOCK NOTE: Marking this as trusted because it takes a long time
-    // to check but I did check it
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], GeneralPurposeRegister[@shift]) 
         // no updates to PC or SP allowed
         // NOTE: Actually can't be lr, sp, or pc as destination
@@ -99,9 +91,7 @@ impl Armv7m {
         ensures self: Armv7m { 
             new_cpu: 
                 get_general_purpose_reg(shift, old_cpu) != 0 
-                    => general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_general_purpose_reg(shift, old_cpu)))
-                &&
-                lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_general_purpose_reg(shift, old_cpu))
+                    => (general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_general_purpose_reg(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_general_purpose_reg(shift, old_cpu)))
         }
     )]
     pub fn lslw_reg(

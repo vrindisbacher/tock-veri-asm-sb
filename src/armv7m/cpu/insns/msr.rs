@@ -49,8 +49,20 @@ impl Armv7m {
     //                  if CurrentMode == Mode_Thread then
     //                      CONTROL.SPSEL = R[n]<1>;
     //                  if HaveFPExt() then CONTROL.FPCA = R[n]<2>;
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], GeneralPurposeRegister[@val])
+            // only updates to CONTROL right now
+            requires is_control(reg)
+            ensures self: Armv7m {
+                new_cpu: get_special_reg(reg, new_cpu) == get_general_purpose_reg(val, old_cpu)
+            }
+    )]
     pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {
         // This is a monster op
-        todo!()
+        match register {
+            SpecialRegister::Control => self.control = self.get_value_from_general_reg(&value),
+            SpecialRegister::PSR => panic!("Not done"),
+            SpecialRegister::IPSR => panic!("Not done"),
+        }
     }
 }

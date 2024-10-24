@@ -57,6 +57,10 @@ flux_rs::defs! {
         reg == 13
     }
 
+    fn is_control(reg: int) -> bool {
+        reg == 16
+    }
+
     fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
 
     fn get_ipsr(cpu: Armv7m) -> int {
@@ -183,7 +187,7 @@ flux_rs::defs! {
             &&
             if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 1 {
                 nth_bit_is_set(new_cpu.psr, 29)
-            } else if  right_shift_immediate_carry_flag(reg, old_cpu, shift) == 0 {
+            } else if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 0 {
                 nth_bit_is_unset(new_cpu.psr, 29)
             } else {
                 // that's wrong :)
