@@ -24,7 +24,9 @@ impl Armv7m {
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m 
             { 
-                 new_cpu: general_purpose_register_updated(reg, new_cpu, wrapping_add_u32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
+                 new_cpu: general_purpose_register_updated(reg, new_cpu, 
+                                                           //wrapping_add_u32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
+                                                           wrapping_add_u32(get_general_purpose_reg(val1, old_cpu), negated(val2)))
             }
     )]
     pub fn subw_imm(

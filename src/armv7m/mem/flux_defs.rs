@@ -311,6 +311,17 @@ pub mod sys_control_space_defs {
                     false
                 }
             }
+
+            fn get_sys_control_space_value(address: int, sys_control: SysControlSpace) -> int {
+                if is_valid_sys_control_id_reg_write_addr(address) {
+                    sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg)
+                } else if is_valid_sys_control_block_write_addr(address) {
+                    sys_control_block_addr_into_reg(address, sys_control.sys_control_block)
+                } else {
+                    -1
+                }
+
+            }
     }
 }
 
@@ -383,7 +394,7 @@ pub mod nvic_defs {
                     nvic.icprs
                 } else if (address >= IABR_START && address <= IABR_END) {
                     nvic.iabrs
-                } else {
+                } else { 
                     // (address >= IPR_START && address <= IPR_END)
                     nvic.iprs
                 }
@@ -463,11 +474,29 @@ flux_rs::defs! {
 
     }
 
+    fn get_ppb_value(address: int, ppb: Ppb) -> int {
+        if is_valid_sys_control_space_write_addr(address) {
+            get_sys_control_space_value(address, ppb.sys_control)
+        } else if is_valid_nvic_write_addr(address) {
+            map_get(nvic_addr_to_reg_map(address, ppb.nvic), address)
+        } else if is_valid_mpu_write_addr(address) {
+            mpu_addr_into_reg(address, ppb.mpu)
+        } else if is_valid_sys_tick_write_addr(address) {
+            sys_tick_addr_into_reg(address, ppb.sys_tick)
+        } else {
+            -1
+        }
+    }
+
     fn check_mem_value_read(address: int, mem: Memory, value: int) -> bool {
         check_ppb_value_read(address, mem.ppb, value)
     }
 
     fn check_mem_value_write(address: int, mem: Memory, value: int) -> bool {
         check_ppb_value_write(address, mem.ppb, value)
+    }
+
+    fn get_mem_value(address: int, mem: Memory) -> int {
+        get_ppb_value(address, mem.ppb)
     }
 }

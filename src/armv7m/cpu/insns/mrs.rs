@@ -44,8 +44,19 @@ impl Armv7m {
     //                          R[d]<2:0> = CONTROL<2:0>;
     //                      else
     //                          R[d]<1:0> = CONTROL<1:0>;
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], SpecialRegister[@val]) 
+        // no updates to PC or SP allowed
+        // VTOCK TODO: Inspect PC + SP precondition
+        requires !(is_pc(reg) || is_sp(reg))
+        ensures self: Armv7m { 
+            new_cpu: general_purpose_register_updated(reg, new_cpu, get_special_reg(val, old_cpu)) 
+        }
+    )]
     pub fn mrs(&mut self, register: GeneralPurposeRegister, value: SpecialRegister) {
-        // monster op
-        todo!()
+        // VTOCK TODO: monster op
+        
+        // for now just move the value
+        let value = self.get_value_from_special_reg(value);
+        self.update_general_reg_with_u32(register, value);
     }
 }

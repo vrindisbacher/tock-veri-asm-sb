@@ -29,7 +29,10 @@ pub fn negate(val: u32) -> u32 {
     !val
 }
 
-#[flux_rs::sig(fn (u32[@val1], u32[@val2], u32[@carry]) -> u32[wrapping_add_u32_with_carry(val1, negated(val2), carry)] requires carry == 0 || carry == 1)]
-pub fn sub(val1: u32, val2: u32, carry: u32) -> u32 {
-    val1.wrapping_add(negate(val2)).wrapping_add(carry)
+#[flux_rs::sig(fn (u32[@val1], u32[@val2], u32[@carry]) -> u32[wrapping_add_u32(val1, negated(val2))])]
+           // u32[wrapping_add_u32_with_carry(val1, negated(val2), carry)] requires carry == 0 || carry == 1)]
+pub fn sub(val1: u32, val2: u32, _carry: u32) -> u32 {
+    val1.wrapping_add(negate(val2))
+    // .wrapping_add(carry)
+    // val1 - val2
 }

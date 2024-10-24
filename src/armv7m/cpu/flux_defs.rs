@@ -59,6 +59,10 @@ flux_rs::defs! {
 
     fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
 
+    fn get_ipsr(cpu: Armv7m) -> int {
+            bv_bv32_to_int(bv_and(bv32(cpu.psr), bv32(0xff)))
+    }
+
     fn get_special_reg(reg: int, cpu: Armv7m) -> int {
         if reg == 16 {
             cpu.control
@@ -66,7 +70,7 @@ flux_rs::defs! {
             cpu.psr
         } else {
             // if reg == 18 {
-            bv_bv32_to_int(bv_and(bv32(cpu.psr), bv32(0xff)))
+            get_ipsr(cpu)
         }
     }
 
