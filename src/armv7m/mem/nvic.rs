@@ -40,7 +40,7 @@ pub fn is_valid_nvic_write_addr(address: u32) -> bool {
     is_valid_nvic_addr(address)
 }
 
-// NVIC: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Nested-Vectored-Interrupt-Controller--NVIC/NVIC-register-support-in-the-SCS?lang=en
+// NVIC
 //
 // Some unimplemented blocks:
 //

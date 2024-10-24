@@ -20,7 +20,7 @@ pub fn is_valid_sys_tick_write_addr(address: u32) -> bool {
     address == SYST_CSR_ADDR || address == SYST_RVR_ADDR || address == SYST_CVR_ADDR
 }
 
-// Sys Tick: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/The-system-timer--SysTick/System-timer-register-support-in-the-SCS?lang=en
+// Sys Tick
 //
 // Here are some unimplemented blocks:
 //

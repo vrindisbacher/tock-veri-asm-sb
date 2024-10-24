@@ -501,7 +501,7 @@ impl SysControlIDReg {
 }
 
 
-// System Control Space: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/System-Control-Space--SCS-/System-control-and-ID-registers?lang=en
+// System Control Space
 #[derive(Debug)]
 #[flux_rs::refined_by(
     sys_control_id_reg: SysControlIDReg,

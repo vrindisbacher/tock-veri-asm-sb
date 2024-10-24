@@ -44,8 +44,7 @@ pub fn is_valid_mpu_write_addr(address: u32) -> bool {
 }
 
 
-// MPU: https://developer.arm.com/documentation/ddi0403/d/System-Level-Architecture/System-Address-Map/Protected-Memory-System-Architecture--PMSAv7/Register-support-for-PMSAv7-in-the-SCS?lang=en
-//
+// MPU
 //
 // Here are some unimplemented blocks:
 // 0xE000EDBC - 0xE000EDEC
