@@ -30,5 +30,9 @@ impl Armv7m {
     #[flux_rs::trusted]
     pub fn bx(&mut self, register: GeneralPurposeRegister) {
         // Corresponds to Encoding T1
+        //
+        // Which is simply as BxWritePc op
+        let addr = self.get_value_from_general_reg(&register);
+        self.bx_write_pc(addr);
     }
 }

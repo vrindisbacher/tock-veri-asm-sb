@@ -21,7 +21,7 @@ impl Armv7m {
         // VTOCK TODO: Inspect PC + SP precondition
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: get_general_purpose_reg(reg, new_cpu) == val
+            new_cpu: general_purpose_register_updated(reg, new_cpu, val) 
         }
     )]
     pub fn movw_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -38,7 +38,15 @@ impl Armv7m {
         self.update_general_reg_with_u32(register, value);
     }
   
-    #[flux_rs::trusted]
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
+            // no updates to PC or SP allowed
+            // VTOCK TODO: Inspect PC + SP precondition
+            requires !(is_pc(reg) || is_sp(reg))
+            ensures self: Armv7m {
+                new_cpu: general_purpose_register_updated(reg, new_cpu, val) &&  movs_flag_updates(new_cpu)
+            }
+    )]
     pub fn movs_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
         // Corresponds to encoding T1 of Mov immediate: 
         //

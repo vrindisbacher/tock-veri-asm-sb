@@ -1,7 +1,6 @@
 use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::super::Armv7m;
-
+use super::{super::Armv7m, utils::sub};
 impl Armv7m {
     // Sub Immediate (see p. A7-402 of the manual)
     //
@@ -9,8 +8,7 @@ impl Armv7m {
     // register. It can optionally update the condition flags based on the result.
     //
     // Pseudo code provided by arm:
-    // if ConditionPassed() then
-    //  EncodingSpecificOperations();
+    // if ConditionPassed() then EncodingSpecificOperations();
     //  (result, carry, overflow) = AddWithCarry(R[n], NOT(imm32), '1');
     //  R[d] = result;
     //  if setflags then
@@ -20,16 +18,14 @@ impl Armv7m {
     //      APSR.V = overflow;
 
 
-    // VTOCK TODO: Not sure how to refine this weird add with carry
-    //
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@val1], u32[@val2]) 
         // VTOCK TODO: Inspect this pre condition
         // no updates to PC or SP allowed
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m 
-            // { 
-            //      new_cpu: get_general_purpose_reg(reg, new_cpu) == get_general_purpose_reg(val1, old_cpu) - val2
-            // }
+            { 
+                 new_cpu: general_purpose_register_updated(reg, new_cpu, wrapping_add_u32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
+            }
     )]
     pub fn subw_imm(
         &mut self,
@@ -50,7 +46,7 @@ impl Armv7m {
 
         // VTOCK TODO: Inspect ThumbExpandImm (same as ThumbExpandImm_C ignoring the carry flag)
         let val1 = self.get_value_from_general_reg(&value1);
-        let res = val1.wrapping_add(!value2).wrapping_add(1);
+        let res = sub(val1, value2, 1);
         self.update_general_reg_with_u32(register, res);
     }
 }

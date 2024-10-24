@@ -45,7 +45,7 @@ const NVIC_END: u32 = 0xE000ECFF;
 const MPU_START: u32 = 0xE000ED90;
 const MPU_END: u32 = 0xE000EDEF;
 
-mod flux_defs;
+pub mod flux_defs;
 mod nvic;
 mod sys_control;
 mod sys_tick;

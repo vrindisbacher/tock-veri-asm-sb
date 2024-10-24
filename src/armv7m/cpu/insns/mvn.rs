@@ -1,6 +1,6 @@
 use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::super::Armv7m;
+use super::{super::Armv7m, utils::negate};
 
 impl Armv7m {
     // Move (not) Immediate (word) (see p. A7-304 of the manual)
@@ -18,13 +18,12 @@ impl Armv7m {
     //   APSR.C = carry;
     //   APSR.V unchanged
 
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
         // VTOCK TODO: Inspect this pre condition
         // no updates to PC or SP allowed
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: get_general_purpose_reg(reg, new_cpu) == bv_bv32_to_int(bv_not(bv32(val)))
+            new_cpu: general_purpose_register_updated(reg, new_cpu, negated(val))
         }
     )]
     pub fn mvn_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -39,6 +38,6 @@ impl Armv7m {
         // We already know d (register above), setflags is false because no S bit
 
         // VTOCK TODO: Look at ThumbExpandImm_C
-        self.update_general_reg_with_u32(register, !value);
+        self.update_general_reg_with_u32(register, negate(value));
     }
 }

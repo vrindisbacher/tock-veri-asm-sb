@@ -1,9 +1,8 @@
 use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::super::Armv7m;
+use super::{super::Armv7m, utils::and};
 
-impl Armv7m {
-    // And Immediate (see p. A7-200 of the manual)
+impl Armv7m { // And Immediate (see p. A7-200 of the manual)
     //
     // AND (immediate) performs a bitwise AND of a register value and
     // an immediate value, and writes the result to the destination
@@ -19,14 +18,14 @@ impl Armv7m {
     //          APSR.Z = IsZeroBit(result);
     //          APSR.C = carry;
     //          // APSR.V unchanged
+    
 
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
         // VTOCK TODO: Inspect this pre condition
         // no updates to PC or SP allowed
         requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: get_general_purpose_reg(reg, new_cpu) == bv_bv32_to_int(bv_and(bv32(get_general_purpose_reg(reg, old_cpu)), bv32(val)))
+            new_cpu: general_purpose_register_updated(reg, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
         }
     )]
     pub fn and_imm(
@@ -49,7 +48,7 @@ impl Armv7m {
         // VTOCK TODO:
         // Look at ThumbExpandImm_C
         let val1 = self.get_value_from_general_reg(&register);
-        let res = val1 & value;
+        let res = and(val1, value);
         self.update_general_reg_with_u32(register, res);
     }
 }

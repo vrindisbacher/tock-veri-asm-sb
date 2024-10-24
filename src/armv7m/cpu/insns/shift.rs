@@ -1,6 +1,6 @@
 use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::super::Armv7m;
+use super::{super::Armv7m, utils::{get_nth_bit, shift_left, shift_right}};
 
 impl Armv7m {
     // LSR Immediate (see p. A7-284 of the manual)
@@ -16,7 +16,22 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
+
+
+    // VTOCK NOTE: Marking this as trusted because it takes a long time
+    // to check but I did check it
     #[flux_rs::trusted]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], u32[@shift]) 
+        // no updates to PC or SP allowed
+        // VTOCK TODO: Inspect PC + SP precondition
+        requires !(is_pc(reg) || is_sp(reg))
+        ensures self: Armv7m { 
+            new_cpu: 
+                shift != 0 => general_purpose_register_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift))
+                &&
+                lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
+        }
+    )]
     pub fn lsrs_imm(
         &mut self,
         register: GeneralPurposeRegister,
@@ -33,14 +48,14 @@ impl Armv7m {
             return;
         }
         let value1 = self.get_value_from_general_reg(&value);
-        let res = value1 >> shift;
+        let res = shift_right(value1, shift);
         let (res, carry) = if value1 > 0 && res == value1 {
-            (0, Self::get_nth_bit(value1, 31))
+            (0, get_nth_bit(value1, 31))
         } else {
             (
                 res,
                 match shift {
-                    1..32 => Self::get_nth_bit(value1, shift - 1),
+                    1..32 => get_nth_bit(value1, shift - 1),
                     _ => 0,
                 },
             )
@@ -72,8 +87,23 @@ impl Armv7m {
     //      APSR.Z = IsZeroBit(result);
     //      APSR.C = carry;
     //      // APSR.V unchanged
+
+
+    // VTOCK NOTE: Marking this as trusted because it takes a long time
+    // to check but I did check it
     #[flux_rs::trusted]
-    // VTOCK TODO: Actually can't be lr, sp, or pc as destination
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], GeneralPurposeRegister[@shift]) 
+        // no updates to PC or SP allowed
+        // NOTE: Actually can't be lr, sp, or pc as destination
+        requires !(is_pc(reg) || is_sp(reg) || is_lr(reg))
+        ensures self: Armv7m { 
+            new_cpu: 
+                get_general_purpose_reg(shift, old_cpu) != 0 
+                    => general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_general_purpose_reg(shift, old_cpu)))
+                &&
+                lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_general_purpose_reg(shift, old_cpu))
+        }
+    )]
     pub fn lslw_reg(
         &mut self,
         register: GeneralPurposeRegister,
@@ -93,14 +123,14 @@ impl Armv7m {
             return;
         }
         let value1 = self.get_value_from_general_reg(&value);
-        let res = value1 << shift;
+        let res = shift_left(value1, shift);
         let (res, carry) = if value1 > 0 && res == value1 {
-            (0, Self::get_nth_bit(value1, 31))
+            (0, get_nth_bit(value1, 31))
         } else {
             (
                 res,
                 match shift {
-                    1..32 => Self::get_nth_bit(value1, shift - 1),
+                    1..32 => get_nth_bit(value1, shift - 1),
                     _ => 0,
                 },
             )
