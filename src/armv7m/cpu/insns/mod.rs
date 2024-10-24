@@ -6,6 +6,7 @@ mod mov;
 mod mrs;
 mod msr;
 mod mvn;
-mod psr;
 mod shift;
 mod sub;
+mod str;
+pub (crate)mod utils;

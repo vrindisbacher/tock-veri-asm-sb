@@ -2,8 +2,20 @@ pub mod armv7m;
 
 use armv7m::{
     cpu::Armv7m,
-    lang::{GeneralPurposeRegister, SpecialRegister, Value},
+    lang::{GeneralPurposeRegister, SpecialRegister},
 };
+
+pub fn test_invalid_mem_access(mut armv7m: Armv7m) {
+    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0x0);
+    armv7m.movw_imm(GeneralPurposeRegister::R3, 0);
+    armv7m.movw_imm(GeneralPurposeRegister::R2, 1);
+    armv7m.strw_lsl_reg(
+        GeneralPurposeRegister::R0,
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R2,
+        2,
+    );
+}
 
 //
 // Here is disassembly of the armv7m program. Note that the .w specifies "wide"
@@ -55,15 +67,11 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     // Gonna encode this as a pseudo instruction for now
     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e180);
 
-    // VTOCK TODO - is it ok to just hard code 4 here - also I don't our encoding of this is right ????
-    // str r0, [r3, r2, lsl #2]          // *(r3 + r2 * 4) = r0
-    armv7m.str(
+    armv7m.strw_lsl_reg(
         GeneralPurposeRegister::R0,
-        vec![
-            Value::GeneralRegister(GeneralPurposeRegister::R3),
-            Value::GeneralRegister(GeneralPurposeRegister::R2),
-            Value::Value(4),
-        ],
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R2,
+        2,
     );
 
     // Note: Ignoring the dissasembled version of this because dealing with program counter is
@@ -72,15 +80,11 @@ pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     // Gonna encode this as a pseudo instruction for now
     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e200);
 
-    // VTOCK TODO - is it ok to just hard code 4 here - also I don't our encoding of this is right ????
-    // str r0, [r3, r2, lsl #2]          // *(r3 + r2 * 4) = r0
-    armv7m.str(
+    armv7m.strw_lsl_reg(
         GeneralPurposeRegister::R0,
-        vec![
-            Value::GeneralRegister(GeneralPurposeRegister::R3),
-            Value::GeneralRegister(GeneralPurposeRegister::R2),
-            Value::Value(4),
-        ],
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R2,
+        2,
     );
 
     armv7m.bx(GeneralPurposeRegister::Lr);

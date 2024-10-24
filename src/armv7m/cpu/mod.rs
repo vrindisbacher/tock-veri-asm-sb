@@ -1,6 +1,8 @@
 mod insns;
+mod psr;
 mod flux_defs;
 
+use insns::utils::get_nth_bit;
 use super::mem::Memory;
 use super::lang::{GeneralPurposeRegister, SpecialRegister, Value};
 use flux_defs::*;
@@ -102,14 +104,14 @@ pub struct Armv7m {
 
 impl Armv7m {
 
+    #[flux_rs::trusted]
     #[flux_rs::sig(fn (&Armv7m[@cpu], SpecialRegister[@reg]) -> u32[get_special_reg(reg, cpu)])]
     fn get_value_from_special_reg(&self, reg: SpecialRegister) -> u32 {
             match reg {
                 SpecialRegister::Control => self.control,
                 SpecialRegister::PSR => self.psr,
                 // the last 8 bits of the PSR register 
-                // VTOCK TODO: Actuall fix this
-                SpecialRegister::IPSR => self.psr // & 0xff,
+                SpecialRegister::IPSR => self.psr & 0xff,
             }
     }
 
@@ -185,6 +187,7 @@ impl Armv7m {
         self.pc += 4;
     }
 
+    #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]
     fn in_if_then_block(&self) -> bool {
         // See page B1-517 for where IT lies in EPSR register
         //
@@ -192,20 +195,11 @@ impl Armv7m {
         // IT  IT[1:0]      IT[7:4]    IT[3:2]     See ITSTATE on page A7-179
         //
         // See A7-180 for pseudo code for InItBlock
-        let bit_0 = Self::get_nth_bit(self.psr, 25) == 0;
-        let bit_1 = Self::get_nth_bit(self.psr, 26) == 0;
-        let bit_2 = Self::get_nth_bit(self.psr, 10) == 0;
-        let bit_3 = Self::get_nth_bit(self.psr, 11) == 0;
+        let bit_0 = get_nth_bit(self.psr, 25) == 0;
+        let bit_1 = get_nth_bit(self.psr, 26) == 0;
+        let bit_2 = get_nth_bit(self.psr, 10) == 0;
+        let bit_3 = get_nth_bit(self.psr, 11) == 0;
         !(bit_0 && bit_1 && bit_2 && bit_3)
 
-    }
-
-    // VTOCK TODO: Check flag updates here
-
-    // Str
-    #[flux_rs::trusted]
-    pub fn str(&mut self, register: GeneralPurposeRegister, value_vec: Vec<Value>) {
-        // NOTE: This is a pain - need to update Value to be another instruction
-        todo!()
     }
 }
