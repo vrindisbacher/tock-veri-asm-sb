@@ -45,19 +45,19 @@ use armv7m::{
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:  
         // r0 = 1 << (ipsr & 31)
-        new_cpu.r0 == lshl(1, (and(old_cpu.ipsr, 31)))
+        new_cpu.r0 == lshl(1, (and(get_ipsr(old_cpu), 31)))
         &&
         // r2 = (ipsr >> 5) << 2
-        new_cpu.r2 == lshl(lshr(old_cpu.ipsr, 5), 2)
+        new_cpu.r2 == lshl(lshr(get_ipsr(old_cpu), 5), 2)
         &&
         // nvic iser bit for ipsr is correct
         nth_bit(
-            get_mem_value(0xe000_e180 + new_cpu.r2), and(old_cpu.ipsr, 31)
+            get_mem_value(0xE000E180 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
         ) == 1
         &&
         // nvic icer bit for ipsr is correct
         nth_bit(
-            get_mem_value(0xe000_e200 + new_cpu.r2), and(old_cpu.ipsr, 31)
+            get_mem_value(0xE000E200 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
         ) == 1
     }    
 )]
