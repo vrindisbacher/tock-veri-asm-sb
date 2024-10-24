@@ -25,7 +25,10 @@ pub enum GeneralPurposeRegister {
     R10,
     #[variant(GeneralPurposeRegister[11])]
     R11,
+
+    // VTOCK TODO: Make these special purpose
     #[variant(GeneralPurposeRegister[12])]
+    // R12 is used for IPC
     R12,
     #[variant(GeneralPurposeRegister[13])]
     Sp,
