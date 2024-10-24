@@ -1,6 +1,6 @@
-use crate::armv7m::instr::IsbOpt;
+use crate::armv7m::lang::IsbOpt;
 
-use super::Armv7m;
+use super::super::Armv7m;
 
 impl Armv7m {
     pub fn isb(&mut self, opt: Option<IsbOpt>) {

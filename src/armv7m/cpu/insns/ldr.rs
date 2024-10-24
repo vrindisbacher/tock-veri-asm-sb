@@ -1,6 +1,6 @@
-use crate::armv7m::instr::{GeneralPurposeRegister, Value};
+use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::Armv7m;
+use super::super::Armv7m;
 
 impl Armv7m {
     // LDR (literal) see p. A7-248 in the manual
@@ -23,7 +23,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     pub fn pseudo_ldr(&mut self, register: GeneralPurposeRegister, value: u32) {
         // Note the non pseudo instruction would do this:
-        // 
+        //
         //      fn align(value: u32, alignment: u32) -> u32 {
         //          alignment * (value / alignment)
         //      }

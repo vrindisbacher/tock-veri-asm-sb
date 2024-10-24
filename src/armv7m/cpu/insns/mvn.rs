@@ -1,6 +1,6 @@
-use crate::armv7m::instr::GeneralPurposeRegister;
+use crate::armv7m::lang::GeneralPurposeRegister;
 
-use super::Armv7m;
+use super::super::Armv7m;
 
 impl Armv7m {
     // Move (not) Immediate (word) (see p. A7-304 of the manual)

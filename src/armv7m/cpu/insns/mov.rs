@@ -1,6 +1,6 @@
-use crate::armv7m::instr::{GeneralPurposeRegister, Value};
-use super::Armv7m;
-use super::flux_defs::*;
+use crate::armv7m::lang::GeneralPurposeRegister;
+use super::super::Armv7m;
+use super::super::flux_defs::*;
 
 impl Armv7m {
     // Move Immediate (see p. A7-291 of the manual)

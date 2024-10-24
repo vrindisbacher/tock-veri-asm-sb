@@ -1,24 +1,23 @@
-use super::flux_defs::*;
-use super::Armv7m;
+use super::super::flux_defs::*;
+use super::super::Armv7m;
 
 // Manages PSR state, specifically the conditional flags:
 //
 // N, bit [31]
 // Negative condition code flag. Set to bit [31] of the result of the instruction. If the result is regarded as a two's complement signed integer, then N == 1 if the result is negative and N == 0 if it is positive or zero.
-// 
+//
 // Z, bit [30]
 // Zero condition code flag. Set to 1 if the result of the instruction is zero, and to 0 otherwise. A result of zero often indicates an equal result from a comparison.
-// 
+//
 // C, bit [29]
 // Carry condition code flag. Set to 1 if the instruction results in a carry condition, for example an unsigned overflow on an addition.
-// 
+//
 // V, bit [28]
 // Overflow condition code flag. Set to 1 if the instruction results in an overflow condition, for example a signed overflow on an addition.
-// 
+//
 // Q, bit [27]
 //
 // Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
-
 
 impl Armv7m {
     #[flux_rs::trusted]

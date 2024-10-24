@@ -1,18 +1,8 @@
-mod mov;
-mod ldr;
-mod sub;
-mod isb;
-mod shift;
-mod msr;
-mod mrs;
-mod bx;
-mod mvn;
-mod and;
-mod psr;
+mod insns;
 mod flux_defs;
 
 use super::mem::Memory;
-use super::instr::{GeneralPurposeRegister, SpecialRegister, Value};
+use super::lang::{GeneralPurposeRegister, SpecialRegister, Value};
 use flux_defs::*;
 
 // The following is a struct that represents the CPU of the ARMv7m processor architecture

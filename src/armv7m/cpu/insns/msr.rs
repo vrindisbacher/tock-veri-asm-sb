@@ -1,6 +1,6 @@
-use crate::armv7m::instr::{GeneralPurposeRegister, SpecialRegister};
+use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
 
-use super::Armv7m;
+use super::super::Armv7m;
 
 impl Armv7m {
     // Move to Special Register from Arm Register moves the value of a

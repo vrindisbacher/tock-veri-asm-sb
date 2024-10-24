@@ -2,7 +2,7 @@ pub mod armv7m;
 
 use armv7m::{
     cpu::Armv7m,
-    instr::{GeneralPurposeRegister, SpecialRegister, Value},
+    lang::{GeneralPurposeRegister, SpecialRegister, Value},
 };
 
 //
@@ -32,7 +32,7 @@ use armv7m::{
 pub fn generic_isr_armv7m(mut armv7m: Armv7m) {
     armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
     armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
-    armv7m.isb(Some(armv7m::instr::IsbOpt::Sys));
+    armv7m.isb(Some(armv7m::lang::IsbOpt::Sys));
 
     armv7m.mvn_imm(GeneralPurposeRegister::Lr, 6);
 

@@ -1,5 +1,5 @@
 use super::Armv7m;
-use crate::armv7m::instr::{GeneralPurposeRegister, SpecialRegister, Value};
+use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister, Value};
 
 flux_rs::defs! {
     fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> int {
