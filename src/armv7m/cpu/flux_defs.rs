@@ -180,27 +180,27 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn lsrs_imm_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: int) -> bool {
-    //     if !itstate_0_4_not_all_zero(old_cpu) {
-    //         // flag updates
-    //         // n flag and z flag are unset and set and carry is computed
-    //         nth_bit_is_unset(new_cpu.psr, 31)
-    //         &&
-    //         nth_bit_is_set(new_cpu.psr, 30)
-    //         &&
-    //         if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 1 {
-    //             nth_bit_is_set(new_cpu.psr, 29)
-    //         } else if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 0 {
-    //             nth_bit_is_unset(new_cpu.psr, 29)
-    //         } else {
-    //             // that's wrong :)
-    //             false
-    //         }
-    //     } else {
-    //             // no flag updates
-    //             true
-    //     }
-    // }
+    fn lsrs_imm_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: int) -> bool {
+        if !itstate_0_4_not_all_zero(old_cpu) {
+            // flag updates
+            // n flag and z flag are unset and set and carry is computed
+            nth_bit_is_unset(new_cpu.psr, 31)
+            &&
+            nth_bit_is_set(new_cpu.psr, 30)
+            &&
+            if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 1 {
+                nth_bit_is_set(new_cpu.psr, 29)
+            } else if right_shift_immediate_carry_flag(reg, old_cpu, shift) == 0 {
+                nth_bit_is_unset(new_cpu.psr, 29)
+            } else {
+                // that's wrong :)
+                false
+            }
+        } else {
+                // no flag updates
+                true
+        }
+    }
 
     // fn left_shift_reg_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: int) -> int {
     //     if (
