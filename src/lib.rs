@@ -44,20 +44,21 @@ use armv7m::{
 //   3c:   e000e200        .word   0xe000e200
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:  
-        // note basically checks that NVIC ISER & ICER bits are set
-        new_cpu.r0 == get_ipsr(old_cpu) % 32  
+        // r0 = 1 << (ipsr & 31)
+        new_cpu.r0 == lshl(1, (and(old_cpu.ipsr, 31)))
         &&
-        new_cpu.r2 == get_ipsr(old_cpu) / 32 * 4 
+        // r2 = (ipsr >> 5) << 2
+        new_cpu.r2 == lshl(lshr(old_cpu.ipsr, 5), 2)
         &&
         // nvic iser bit for ipsr is correct
         nth_bit(
-            get_mem_value(0xE000_E180 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
-        ) == 0
+            get_mem_value(0xe000_e180 + new_cpu.r2), and(old_cpu.ipsr, 31)
+        ) == 1
         &&
         // nvic icer bit for ipsr is correct
         nth_bit(
-            get_mem_value(0xE000_E200 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
-        ) == 0
+            get_mem_value(0xe000_e200 + new_cpu.r2), and(old_cpu.ipsr, 31)
+        ) == 1
     }    
 )]
 pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
