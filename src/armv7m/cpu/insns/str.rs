@@ -34,7 +34,7 @@ impl Armv7m {
             !(is_pc(reg_offset) || is_sp(reg_offset) || is_lr(reg_offset))
         ensures self: Armv7m { 
             new_cpu: check_mem_value_write(
-                        get_general_purpose_reg(reg_base, old_cpu) + lshl(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                        get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
                         new_cpu.mem, 
                         get_general_purpose_reg(reg_to_store, old_cpu)
                      )

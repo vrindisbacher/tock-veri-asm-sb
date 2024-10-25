@@ -12,13 +12,13 @@ pub fn and(val1: u32, val2: u32) -> u32 {
 }
 
 #[flux_rs::trusted]
-#[flux_rs::sig(fn (u32[@val], u32[@shift]) -> u32[lshr(val, shift)])]
+#[flux_rs::sig(fn (u32[@val], u32[@shift]) -> u32[right_shift(val, shift)])]
 pub fn shift_right(val: u32, shift: u32) -> u32 {
     val >> shift
 }
 
 #[flux_rs::trusted]
-#[flux_rs::sig(fn (u32[@val], u32[@shift]) -> u32[lshl(val, shift)])]
+#[flux_rs::sig(fn (u32[@val], u32[@shift]) -> u32[left_shift(val, shift)])]
 pub fn shift_left(val: u32, shift: u32) -> u32 {
     val << shift
 }

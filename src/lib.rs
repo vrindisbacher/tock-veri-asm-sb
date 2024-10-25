@@ -58,8 +58,6 @@ use armv7m::{
         nth_bit(
             get_mem_value(0xE000_E200 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
         ) == 0
-        && 
-        false
     }    
 )]
 pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
@@ -134,9 +132,15 @@ pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
     armv7m.bx(GeneralPurposeRegister::Lr);
 }
 
+#[flux_rs::should_fail]
 #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     new_cpu.r0 == get_ipsr(old_cpu) % 32 && false
 })]
 fn obviously_wrong(armv7m: &mut Armv7m) {
-    armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, 5);
+
+
+    // r3 = 1
+    armv7m.movs_imm(GeneralPurposeRegister::R3, 1);
+    // r0 = r0 & 31
+    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
 }
