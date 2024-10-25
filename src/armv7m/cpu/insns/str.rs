@@ -17,6 +17,7 @@ impl Armv7m {
     //  MemU[address,4] = R[t];
 
     // NOTE: Dest cannot be LR, PC, or SP
+    // TOCK TODO: Seems like there's a bug here
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
@@ -33,7 +34,7 @@ impl Armv7m {
             !(is_pc(reg_offset) || is_sp(reg_offset) || is_lr(reg_offset))
         ensures self: Armv7m { 
             new_cpu: check_mem_value_write(
-                        get_general_purpose_reg(reg_base, old_cpu) + lshl(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                        get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
                         new_cpu.mem, 
                         get_general_purpose_reg(reg_to_store, old_cpu)
                      )

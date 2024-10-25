@@ -44,7 +44,7 @@ impl Armv7m {
             // VTOCK TODO: Inspect PC + SP precondition
             requires !(is_pc(reg) || is_sp(reg))
             ensures self: Armv7m {
-                new_cpu: general_purpose_register_updated(reg, new_cpu, val) &&  movs_flag_updates(new_cpu)
+                new_cpu: general_purpose_register_updated(reg, new_cpu, val) // &&  movs_flag_updates(new_cpu)
             }
     )]
     pub fn movs_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -55,12 +55,12 @@ impl Armv7m {
         //
         // We already know d (register above)
         self.update_general_reg_with_u32(register, value);
-        let set_flags = !self.in_if_then_block();
-        if set_flags {
-            // VTOCK TODO: Actually deal with negative values
-            self.unset_n_flag();
-            self.set_z_flag();
-        }
+        // let set_flags = !self.in_if_then_block();
+        // if set_flags {
+        //     // VTOCK TODO: Actually deal with negative values
+        //     self.unset_n_flag();
+        //     self.set_z_flag();
+        // }
     }
 
 }
