@@ -21,9 +21,6 @@ impl Armv7m {
     //      R[t] = data;
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-        // no updates to PC or SP allowed
-        // VTOCK TODO: Inspect PC + SP precondition
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
             new_cpu: get_general_purpose_reg(reg, new_cpu) == val
         }

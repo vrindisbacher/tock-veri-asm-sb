@@ -7,7 +7,7 @@ impl Armv7m {
     // Bitwise NOT (immediate) writes the bitwise inverse of an immediate value to the destination register. It can
     // optionally update the condition flags based on the value.
     //
-    // Pseudo code provided by arm: 
+    // Pseudo code provided by arm:
     // if ConditionPassed() then
     //  EncodingSpecificOperations();
     //  result = NOT(imm32);
@@ -19,15 +19,12 @@ impl Armv7m {
     //   APSR.V unchanged
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-        // VTOCK TODO: Inspect this pre condition
-        // no updates to PC or SP allowed
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
             new_cpu: general_purpose_register_updated(reg, new_cpu, negated(val))
         }
     )]
     pub fn mvn_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
-        // Corresponds to encoding T1 of Mvn Immediate 
+        // Corresponds to encoding T1 of Mvn Immediate
         //
         // Specific encoding ops are:
         // d = UInt(Rd); setflags = (S == '1');

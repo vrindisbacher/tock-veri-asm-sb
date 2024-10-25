@@ -59,10 +59,6 @@ impl Armv7m {
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {
         // This is a monster op
-        match register {
-            SpecialRegister::Control => self.control = self.get_value_from_general_reg(&value),
-            SpecialRegister::PSR => panic!("Not done"),
-            SpecialRegister::IPSR => panic!("Not done"),
-        }
+        self.update_special_reg_with_u32(register, self.get_value_from_general_reg(&value));
     }
 }

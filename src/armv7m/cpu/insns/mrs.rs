@@ -3,7 +3,7 @@ use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
 use super::super::Armv7m;
 
 impl Armv7m {
-    // Move to Register from Special register moves the value from the 
+    // Move to Register from Special register moves the value from the
     // selected special-purpose register into a general-purpose Arm register.
     // See p. A7-300 & p. B5-675 of the manual
     //
@@ -30,7 +30,7 @@ impl Armv7m {
     //                      when ‘001’
     //                          R[d] = SP_process;
     //          when ‘00010’ /* Priority mask or CONTROL access */
-//                  case SYSm<2:0> of
+    //                  case SYSm<2:0> of
     //                  when ‘000’
     //                      R[d]<0> = if CurrentModeIsPrivileged() then PRIMASK<0> else ‘0’;
     //                  when ‘001’
@@ -45,18 +45,15 @@ impl Armv7m {
     //                      else
     //                          R[d]<1:0> = CONTROL<1:0>;
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], SpecialRegister[@val]) 
-        // no updates to PC or SP allowed
-        // VTOCK TODO: Inspect PC + SP precondition
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
             new_cpu: general_purpose_register_updated(reg, new_cpu, get_special_reg(val, old_cpu)) 
         }
     )]
     pub fn mrs(&mut self, register: GeneralPurposeRegister, value: SpecialRegister) {
         // VTOCK TODO: monster op
-        
+
         // for now just move the value
-        let value = self.get_value_from_special_reg(value);
+        let value = self.get_value_from_special_reg(&value);
         self.update_general_reg_with_u32(register, value);
     }
 }
