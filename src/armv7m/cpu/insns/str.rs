@@ -18,7 +18,7 @@ impl Armv7m {
 
     // NOTE: Dest cannot be LR, PC, or SP
     // TOCK TODO: Seems like there's a bug here
-    #[flux_rs::trusted]
+    // #[flux_rs::trusted]
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
             GeneralPurposeRegister[@reg_to_store], 
