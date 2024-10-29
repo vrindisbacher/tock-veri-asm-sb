@@ -46,7 +46,7 @@ impl Armv7m {
     //                          R[d]<1:0> = CONTROL<1:0>;
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], SpecialRegister[@val]) 
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, new_cpu, get_special_reg(val, old_cpu)) 
+            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
         }
     )]
     pub fn mrs(&mut self, register: GeneralPurposeRegister, value: SpecialRegister) {

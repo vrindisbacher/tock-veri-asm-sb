@@ -23,7 +23,7 @@ use super::Armv7m;
 impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], u32[@val])
-        ensures self: Armv7m { new_cpu:  get_special_reg(psr(), new_cpu) == val }
+        ensures self: Armv7m { new_cpu: special_purpose_register_updated(psr(), old_cpu, new_cpu, val) }
     )]
     fn set_psr(&mut self, value: u32) {
         self.update_special_reg_with_u32(SpecialRegister::PSR, value);
@@ -36,6 +36,8 @@ impl Armv7m {
         let reg = SpecialRegister::PSR;
         self.get_value_from_special_reg(&reg)
     }
+
+    // VTOCK TODO: nth_bit_set needs to be reworked
 
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(get_psr(cpu), 31)])]

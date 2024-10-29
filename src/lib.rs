@@ -137,7 +137,7 @@ use armv7m::{
 
 #[flux_rs::should_fail]
 #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    get_general_purpose_reg(r0(), new_cpu) == get_ipsr(old_cpu) % 32
+    general_purpose_register_updated(r0(), old_cpu, new_cpu, get_special_reg(ipsr(), old_cpu) % 32)
 })]
 fn simple_mod(armv7m: &mut Armv7m) {
     // r0 = ipsr
@@ -165,14 +165,14 @@ fn simple_store(armv7m: &mut Armv7m) {
 }
 
 #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    get_general_purpose_reg(r0(), new_cpu) == 0
+    general_purpose_register_updated(r0(), old_cpu, new_cpu, 0)
 })]
 fn movw_r0(armv7m: &mut Armv7m) {
     armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
 }
 
 #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    get_general_purpose_reg(r1(), new_cpu) == 1
+    general_purpose_register_updated(r1(), old_cpu, new_cpu, 1)
 })]
 fn movw_r1(armv7m: &mut Armv7m) {
     armv7m.movw_imm(GeneralPurposeRegister::R1, 1);

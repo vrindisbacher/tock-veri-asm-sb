@@ -9,12 +9,28 @@ flux_rs::defs! {
         map_get(cpu.general_regs, reg)
     }
 
-    fn general_purpose_register_updated(reg: int, cpu: Armv7m, val: int) -> bool {
-        get_general_purpose_reg(reg, cpu) == val
+    fn general_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: int) -> bool {
+        map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
     }
 
     fn get_special_reg(reg: int, cpu: Armv7m) -> int {
-        map_get(cpu.special_regs, reg)
+        if is_ipsr(reg) {
+            bv_bv32_to_int(bv_and(bv32(map_get(cpu.special_regs, psr())), bv32(0xff)))
+        } else {
+            map_get(cpu.special_regs, reg)
+        }
+    }
+
+    fn get_psr(cpu: Armv7m) ->  int {
+        get_special_reg(psr(), cpu)
+    }
+
+    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: int) -> bool {
+        map_set(old_cpu.special_regs, reg, val) == new_cpu.special_regs
+    }
+
+    fn is_ipsr(reg: int) -> bool {
+        reg == 18
     }
 
     fn is_pc(reg: int) -> bool {
@@ -44,20 +60,13 @@ flux_rs::defs! {
     fn psr() -> int {
         17
     }
-
-    fn get_psr(cpu: Armv7m) -> int {
-       get_special_reg(psr(), cpu)
+    
+    fn ipsr() -> int {
+        18
     }
 
     fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
 
-    fn get_ipsr(cpu: Armv7m) -> int {
-        bv_bv32_to_int(bv_and(bv32(get_psr(cpu)), bv32(0xff)))
-    }
-
-    fn get_special_reg(reg: int, cpu: Armv7m) -> int {
-        map_get(cpu.special_regs, reg)
-    }
 
     fn nth_bit(val: int, n: int) -> int {
         // val & (1 << n)
