@@ -118,6 +118,8 @@ impl Ppb {
     }
 }
 
+// VTOCK TODO: Update to use maps so that state is preserved across ops
+
 #[derive(Debug)]
 #[flux_rs::refined_by(ppb: Ppb)]
 pub struct Memory {

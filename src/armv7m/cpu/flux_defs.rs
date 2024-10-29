@@ -60,32 +60,34 @@ flux_rs::defs! {
     fn psr() -> int {
         17
     }
-    
+
     fn ipsr() -> int {
         18
     }
 
     fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
 
-
     fn nth_bit(val: int, n: int) -> int {
         // val & (1 << n)
-        bv_bv32_to_int(bv_and(bv32(val), lshr_bv32(1, n)))
+        bv_bv32_to_int(bv_and(bv32(val), left_shift_bv32(1, n)))
     }
 
-    fn lshr_bv32(val: int, n: int) -> bitvec<32> {
-        // right shift
+    fn right_shift_bv32(val: int, n: int) -> bitvec<32> {
         bv_lshr(bv32(val), bv32(n))
     }
 
     fn right_shift(val: int, n: int) -> int {
         // right shift
-        bv_bv32_to_int(lshr_bv32(val, n))
+        bv_bv32_to_int(right_shift_bv32(val, n))
+    }
+
+    fn left_shift_bv32(val: int, n: int) -> bitvec<32> {
+        bv_shl(bv32(val), bv32(n))
     }
 
     fn left_shift(val: int, n: int) -> int {
         // shift left
-        bv_bv32_to_int(bv_shl(bv32(val), bv32(n)))
+        bv_bv32_to_int(left_shift_bv32(val, n))
     }
 
     // 0 being the least significant bit, 31 the most significant
@@ -103,6 +105,10 @@ flux_rs::defs! {
 
     fn and(val1: int, val2: int) -> int {
         bv_bv32_to_int(bv_and(bv32(val1), bv32(val2)))
+    }
+
+    fn or(val1: int, val2: int) -> int {
+        bv_bv32_to_int(bv_or(bv32(val1), bv32(val2)))
     }
 
     fn wrapping_add_u32(val1: int, val2: int) -> int {

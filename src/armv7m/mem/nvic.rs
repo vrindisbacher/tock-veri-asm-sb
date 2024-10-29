@@ -128,9 +128,9 @@ impl Nvic {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Nvic[@nvic], u32[@addr], u32[@value]) 
+        fn (self: &strg Nvic[@old_nvic], u32[@addr], u32[@value]) 
             requires is_valid_nvic_write_addr(addr) && is_four_byte_aligned(addr)
-            ensures self: Nvic { new_nvic: map_get(nvic_addr_to_reg_map(addr, new_nvic), addr) == value }
+            ensures self: Nvic { new_nvic: map_set(nvic_addr_to_reg_map(addr, old_nvic), addr, value) == nvic_addr_to_reg_map(addr, new_nvic) }
     )]
     pub fn write(&mut self, addr: u32, value: u32) {
         if !is_four_byte_aligned(addr) {

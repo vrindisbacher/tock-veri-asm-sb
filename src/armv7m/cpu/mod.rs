@@ -66,7 +66,7 @@ impl Armv7m {
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> u32 {
         *self.special_regs.get(register).unwrap()
     }
-    
+
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], u32[@val])
             ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) }

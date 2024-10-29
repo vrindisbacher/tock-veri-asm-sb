@@ -135,65 +135,79 @@ use armv7m::{
 //     armv7m.bx(GeneralPurposeRegister::Lr);
 // }
 
-#[flux_rs::should_fail]
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    general_purpose_register_updated(r0(), old_cpu, new_cpu, get_special_reg(ipsr(), old_cpu) % 32)
-})]
-fn simple_mod(armv7m: &mut Armv7m) {
-    // r0 = ipsr
-    armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
-    // r0 = r0 & 31
-    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
-}
+mod arm_test {
+    use crate::armv7m::{
+        cpu::Armv7m,
+        lang::{GeneralPurposeRegister, SpecialRegister},
+    };
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_general_purpose_reg(r0(), new_cpu) ==  right_shift(1 % 32, 5) })]
-fn simple_shift(armv7m: &mut Armv7m) {
-    // r0 = 1
-    armv7m.movs_imm(GeneralPurposeRegister::R0, 1);
-    // r0 = r0 & 31
-    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
-    // r0 = r0 >> 5
-    armv7m.lsrs_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 5);
-}
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
+        general_purpose_register_updated(r0(), old_cpu, new_cpu, get_special_reg(ipsr(), old_cpu) % 32)
+    })]
+    fn simple_mod(armv7m: &mut Armv7m) {
+        // r0 = ipsr
+        armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
+        // r0 = r0 & 31
+        armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+    }
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    check_mem_value_write(0xE000_E010, new_cpu.mem, 1) 
-})]
-fn simple_store(armv7m: &mut Armv7m) {
-    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E010);
-    armv7m.str_direct(1, GeneralPurposeRegister::R3)
-}
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_general_purpose_reg(r0(), new_cpu) ==  right_shift(1 % 32, 5) })]
+    fn simple_shift(armv7m: &mut Armv7m) {
+        // r0 = 1
+        armv7m.movs_imm(GeneralPurposeRegister::R0, 1);
+        // r0 = r0 & 31
+        armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+        // r0 = r0 >> 5
+        armv7m.lsrs_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 5);
+    }
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    general_purpose_register_updated(r0(), old_cpu, new_cpu, 0)
-})]
-fn movw_r0(armv7m: &mut Armv7m) {
-    armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
-}
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E010, new_cpu.mem, 1) 
+    })]
+    fn simple_store(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E010);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
+    }
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    general_purpose_register_updated(r1(), old_cpu, new_cpu, 1)
-})]
-fn movw_r1(armv7m: &mut Armv7m) {
-    armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
-}
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E180, new_cpu.mem, 1) 
+    })]
+    fn simple_store_nvic(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
+    }
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    get_general_purpose_reg(r0(), new_cpu) == 0 
-    &&
-    get_general_purpose_reg(r1(), new_cpu) == 1
-})]
-fn two_movs_by_call(armv7m: &mut Armv7m) {
-    movw_r0(armv7m);
-    movw_r1(armv7m);
-}
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        general_purpose_register_updated(r0(), old_cpu, new_cpu, 0)
+    })]
+    fn movw_r0(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+    }
 
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    get_general_purpose_reg(r0(), new_cpu) == 0 
-    &&
-    get_general_purpose_reg(r1(), new_cpu) == 1
-})]
-fn two_movs(armv7m: &mut Armv7m) {
-    armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
-    armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        general_purpose_register_updated(r1(), old_cpu, new_cpu, 1)
+    })]
+    fn movw_r1(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        get_general_purpose_reg(r0(), new_cpu) == 0 
+        &&
+        get_general_purpose_reg(r1(), new_cpu) == 1
+    })]
+    fn two_movs_by_call(armv7m: &mut Armv7m) {
+        movw_r0(armv7m);
+        movw_r1(armv7m);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        get_general_purpose_reg(r0(), new_cpu) == 0 
+        &&
+        get_general_purpose_reg(r1(), new_cpu) == 1
+    })]
+    fn two_movs(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+    }
 }
