@@ -30,17 +30,10 @@ impl Armv7m {
             is_valid_write_addr(
                 get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
             )
-            && 
-            (
-                is_valid_nvic_addr(
-                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                ) => is_four_byte_aligned(
-                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                )
-            )
         ensures self: Armv7m { 
-            new_cpu: check_mem_value_write(
+            new_cpu: mem_value_updated(
                         get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                        old_cpu.mem,
                         new_cpu.mem, 
                         get_general_purpose_reg(reg_to_store, old_cpu)
                      )
@@ -73,13 +66,11 @@ impl Armv7m {
             u32[@val],
             GeneralPurposeRegister[@reg_base], 
         ) 
-        requires 
-            is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
-            && 
-            (is_valid_nvic_addr(get_general_purpose_reg(reg_base, old_cpu)) => is_four_byte_aligned(get_general_purpose_reg(reg_base, old_cpu)))
+        requires is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
         ensures self: Armv7m { 
-            new_cpu: check_mem_value_write(
+            new_cpu: mem_value_updated(
                         get_general_purpose_reg(reg_base, old_cpu),
+                        old_cpu.mem,
                         new_cpu.mem, 
                         val
                      )
@@ -87,6 +78,25 @@ impl Armv7m {
     )]
     pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {
         let addr = self.get_value_from_general_reg(&addr);
+        self.mem.write(addr, value);
+    }
+
+    #[flux_rs::sig(fn (
+            self: &strg Armv7m[@old_cpu], 
+            u32[@val],
+            u32[@reg_base], 
+        ) 
+        requires is_valid_write_addr(reg_base)
+        ensures self: Armv7m { 
+            new_cpu: mem_value_updated(
+                        reg_base,
+                        old_cpu.mem,
+                        new_cpu.mem, 
+                        val
+                     )
+        }
+    )]
+    pub fn str_super_direct(&mut self, value: u32, addr: u32) {
         self.mem.write(addr, value);
     }
 }
