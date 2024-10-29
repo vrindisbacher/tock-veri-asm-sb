@@ -115,7 +115,7 @@ use armv7m::{
 mod arm_test {
     use crate::armv7m::{
         cpu::Armv7m,
-        lang::{GeneralPurposeRegister, SpecialRegister},
+        lang::{GeneralPurposeRegister, SpecialRegister}, mem::Memory,
     };
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
@@ -167,6 +167,21 @@ mod arm_test {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: mem_value_updated(0xE000_E010, old_cpu.mem, new_cpu.mem, 1) })]
     fn store_super_direct(armv7m: &mut Armv7m) {
         armv7m.str_super_direct(0xE000_E010, 1);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Memory[@old_mem]) ensures self: Memory { new_mem: mem_value_updated(0xE000_E010, old_mem, new_mem, 1)})]
+    fn store_super_super_direct(mem: &mut Memory) {
+        mem.write(0xE000_E010, 1)
+    }
+
+    #[flux_rs::sig(fn (self: &strg Memory[@old_mem], u32[@addr], u32[@value]) requires is_valid_write_addr(addr) ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, value) } )]
+    fn store_with_some_indirection(mem: &mut Memory, addr: u32, value: u32) {
+        mem.write(addr, value)
+    }
+
+    #[flux_rs::sig(fn (self: &strg Memory[@old_mem]) ensures self: Memory { new_mem: mem_value_updated(0xE000_E010, old_mem, new_mem, 1)})]
+    fn store_direct_with_indirection(mem: &mut Memory) {
+        store_with_some_indirection(mem, 0xE000_E010, 1);
     }
 
     #[flux_rs::should_fail] // Sanity check that we the postcondition here specifies the wrong
