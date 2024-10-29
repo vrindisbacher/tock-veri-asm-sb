@@ -178,6 +178,28 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E184, new_cpu.mem, 1) 
+    })]
+    fn lsl_store_nvic(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 1);
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+        armv7m.strw_lsl_reg(GeneralPurposeRegister::R0, GeneralPurposeRegister::R3, GeneralPurposeRegister::R1, 2);
+    }
+
+    #[flux_rs::should_fail] // Sanity check that we the postcondition here specifies the wrong
+                            // register (should be 0xE000_E184)
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E180, new_cpu.mem, 1) 
+    })]
+    fn lsl_store_nvic_wrong(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 1);
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+        armv7m.strw_lsl_reg(GeneralPurposeRegister::R0, GeneralPurposeRegister::R3, GeneralPurposeRegister::R1, 2);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
         general_purpose_register_updated(r0(), old_cpu, new_cpu, 0)
     })]
     fn movw_r0(armv7m: &mut Armv7m) {
