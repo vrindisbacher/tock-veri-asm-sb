@@ -17,14 +17,10 @@ impl Armv7m {
     //      APSR.C = carry;
     //      APSR.V = overflow;
 
-
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@val1], u32[@val2]) 
-        // VTOCK TODO: Inspect this pre condition
-        // no updates to PC or SP allowed
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m 
             { 
-                 new_cpu: general_purpose_register_updated(reg, new_cpu, 
+                 new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, 
                                                            //wrapping_add_u32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
                                                            wrapping_add_u32(get_general_purpose_reg(val1, old_cpu), negated(val2)))
             }

@@ -1,48 +1,36 @@
 use super::Armv7m;
-use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister, Value};
+use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
+use crate::flux_support::rmap::*;
 
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
     fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> int {
-        if reg == 0 {
-            cpu.r0
-        } else if reg == 1 {
-            cpu.r1
-        } else if reg == 2 {
-            cpu.r2
-        } else if reg == 3 {
-            cpu.r3
-        } else if reg == 4 {
-            cpu.r4
-        } else if reg == 5 {
-            cpu.r5
-        } else if reg == 6 {
-            cpu.r6
-        } else if reg == 7 {
-            cpu.r7
-        } else if reg == 8 {
-            cpu.r8
-        } else if reg == 9 {
-            cpu.r9
-        } else if reg == 10 {
-            cpu.r10
-        } else if reg == 11 {
-            cpu.r11
-        } else if reg == 12 {
-            cpu.r12
-        }  else if reg == 13 {
-            cpu.sp
-        } else if reg == 14 {
-            cpu.lr
-        } else  {
-            // if reg == 15 {
-            cpu.pc
+        map_get(cpu.general_regs, reg)
+    }
+
+    fn general_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: int) -> bool {
+        map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
+    }
+
+    fn get_special_reg(reg: int, cpu: Armv7m) -> int {
+        if is_ipsr(reg) {
+            bv_bv32_to_int(bv_and(bv32(map_get(cpu.special_regs, psr())), bv32(0xff)))
+        } else {
+            map_get(cpu.special_regs, reg)
         }
     }
 
-    fn pc_moved(old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
-        new_cpu.pc == old_cpu.pc + 4
+    fn get_psr(cpu: Armv7m) ->  int {
+        get_special_reg(psr(), cpu)
+    }
+
+    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: int) -> bool {
+        map_set(old_cpu.special_regs, reg, val) == new_cpu.special_regs
+    }
+
+    fn is_ipsr(reg: int) -> bool {
+        reg == 18
     }
 
     fn is_pc(reg: int) -> bool {
@@ -61,51 +49,45 @@ flux_rs::defs! {
         reg == 16
     }
 
+    fn r0() -> int {
+        0
+    }
+
+    fn r1() -> int {
+        1
+    }
+
+    fn psr() -> int {
+        17
+    }
+
+    fn ipsr() -> int {
+        18
+    }
+
     fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
-
-    fn get_ipsr(cpu: Armv7m) -> int {
-            bv_bv32_to_int(bv_and(bv32(cpu.psr), bv32(0xff)))
-    }
-
-    fn get_special_reg(reg: int, cpu: Armv7m) -> int {
-        if reg == 16 {
-            cpu.control
-        } else if reg == 17 {
-            cpu.psr
-        } else {
-            // if reg == 18 {
-            get_ipsr(cpu)
-        }
-    }
-
-    fn value_into_u32(value: Value, cpu: Armv7m) -> int {
-        if value.is_reg && value.is_special {
-            get_special_reg(value.val, cpu)
-        } else if value.is_reg {
-            get_general_purpose_reg(value.val, cpu)
-        } else {
-            value.val
-        }
-    }
 
     fn nth_bit(val: int, n: int) -> int {
         // val & (1 << n)
-        bv_bv32_to_int(bv_and(bv32(val), lshr_bv32(1, n)))
+        bv_bv32_to_int(bv_and(bv32(val), left_shift_bv32(1, n)))
     }
 
-    fn lshr_bv32(val: int, n: int) -> bitvec<32> {
-        // right shift
+    fn right_shift_bv32(val: int, n: int) -> bitvec<32> {
         bv_lshr(bv32(val), bv32(n))
     }
 
     fn right_shift(val: int, n: int) -> int {
         // right shift
-        bv_bv32_to_int(lshr_bv32(val, n))
+        bv_bv32_to_int(right_shift_bv32(val, n))
+    }
+
+    fn left_shift_bv32(val: int, n: int) -> bitvec<32> {
+        bv_shl(bv32(val), bv32(n))
     }
 
     fn left_shift(val: int, n: int) -> int {
         // shift left
-        bv_bv32_to_int(bv_shl(bv32(val), bv32(n)))
+        bv_bv32_to_int(left_shift_bv32(val, n))
     }
 
     // 0 being the least significant bit, 31 the most significant
@@ -125,32 +107,44 @@ flux_rs::defs! {
         bv_bv32_to_int(bv_and(bv32(val1), bv32(val2)))
     }
 
-    fn itstate_0_4_not_all_zero(cpu: Armv7m) -> bool {
-        !(
-            nth_bit(cpu.psr, 25) == 0
-            &&
-            nth_bit(cpu.psr, 26) == 0
-            &&
-            nth_bit(cpu.psr, 10) == 0
-            &&
-            nth_bit(cpu.psr, 11) == 0
-        )
+    fn or(val1: int, val2: int) -> int {
+        bv_bv32_to_int(bv_or(bv32(val1), bv32(val2)))
     }
 
-    fn movs_flag_updates(cpu: Armv7m) -> bool {
-        if !itstate_0_4_not_all_zero(cpu) {
-            // flag updates
-            // n flag and z flag are unset and set
-            nth_bit_is_unset(cpu.psr, 31) && nth_bit_is_set(cpu.psr, 30)
+    fn wrapping_add_u32(val1: int, val2: int) -> int {
+        if val1 + val2 > U32_MAX {
+            val1 + val2 % U32_MAX
         } else {
-                // no flag updates
-                true
+            val1 + val2
         }
     }
 
-    fn general_purpose_register_updated(reg: GeneralPurposeRegister, cpu: Armv7m, val: int) -> bool {
-        get_general_purpose_reg(reg, cpu) == val
+    fn wrapping_add_u32_with_carry(val1: int, val2: int, val3: int) -> int {
+        wrapping_add_u32(wrapping_add_u32(val1, val2), val3)
     }
+
+    // fn itstate_0_4_not_all_zero(cpu: Armv7m) -> bool {
+    //     !(
+    //         nth_bit(cpu.psr, 25) == 0
+    //         &&
+    //         nth_bit(cpu.psr, 26) == 0
+    //         &&
+    //         nth_bit(cpu.psr, 10) == 0
+    //         &&
+    //         nth_bit(cpu.psr, 11) == 0
+    //     )
+    // }
+
+    // fn movs_flag_updates(cpu: Armv7m) -> bool {
+    //     if !itstate_0_4_not_all_zero(cpu) {
+    //         // flag updates
+    //         // n flag and z flag are unset and set
+    //         nth_bit_is_unset(cpu.psr, 31) && nth_bit_is_set(cpu.psr, 30)
+    //     } else {
+    //             // no flag updates
+    //             true
+    //     }
+    // }
 
     // fn right_shift_immediate_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: int) -> int {
     //     if (
@@ -251,18 +245,6 @@ flux_rs::defs! {
     //             true
     //     }
     // }
-
-    fn wrapping_add_u32(val1: int, val2: int) -> int {
-        if val1 + val2 > U32_MAX {
-            val1 + val2 % U32_MAX
-        } else {
-            val1 + val2
-        }
-    }
-
-    fn wrapping_add_u32_with_carry(val1: int, val2: int, val3: int) -> int {
-        wrapping_add_u32(wrapping_add_u32(val1, val2), val3)
-    }
 }
 
 #[flux_rs::extern_spec(std::u32)]

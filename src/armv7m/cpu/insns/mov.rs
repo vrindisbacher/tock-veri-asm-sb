@@ -1,11 +1,11 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
-use super::super::Armv7m;
 use super::super::flux_defs::*;
+use super::super::Armv7m;
+use crate::armv7m::lang::GeneralPurposeRegister;
 
 impl Armv7m {
     // Move Immediate (see p. A7-291 of the manual)
     //
-    // Pseudo code provided by arm: 
+    // Pseudo code provided by arm:
     // if ConditionPassed() then
     //   EncodingSpecificOperations();
     //   result = imm32;
@@ -17,11 +17,8 @@ impl Armv7m {
     //       // APSR.V unchanged
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-        // no updates to PC or SP allowed
-        // VTOCK TODO: Inspect PC + SP precondition
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, new_cpu, val) 
+            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) 
         }
     )]
     pub fn movw_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -33,22 +30,19 @@ impl Armv7m {
         //
         // We already know d (register above), setflags is false because no S bit
 
-        // VTOCK TODO: 
+        // VTOCK TODO:
         // Look at ThumbExpandImm_C
         self.update_general_reg_with_u32(register, value);
     }
-  
+
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-            // no updates to PC or SP allowed
-            // VTOCK TODO: Inspect PC + SP precondition
-            requires !(is_pc(reg) || is_sp(reg))
             ensures self: Armv7m {
-                new_cpu: general_purpose_register_updated(reg, new_cpu, val) // &&  movs_flag_updates(new_cpu)
+                new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) // &&  movs_flag_updates(new_cpu)
             }
     )]
     pub fn movs_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
-        // Corresponds to encoding T1 of Mov immediate: 
+        // Corresponds to encoding T1 of Mov immediate:
         //
         // Specific encoding ops are:
         // d = UInt(Rd);  setflags = !InITBlock();  imm32 = ZeroExtend(imm8, 32);  carry = APSR.C;
@@ -62,5 +56,4 @@ impl Armv7m {
         //     self.set_z_flag();
         // }
     }
-
 }

@@ -2,7 +2,8 @@ use crate::armv7m::lang::GeneralPurposeRegister;
 
 use super::{super::Armv7m, utils::and};
 
-impl Armv7m { // And Immediate (see p. A7-200 of the manual)
+impl Armv7m {
+    // And Immediate (see p. A7-200 of the manual)
     //
     // AND (immediate) performs a bitwise AND of a register value and
     // an immediate value, and writes the result to the destination
@@ -18,21 +19,13 @@ impl Armv7m { // And Immediate (see p. A7-200 of the manual)
     //          APSR.Z = IsZeroBit(result);
     //          APSR.C = carry;
     //          // APSR.V unchanged
-    
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-        // VTOCK TODO: Inspect this pre condition
-        // no updates to PC or SP allowed
-        requires !(is_pc(reg) || is_sp(reg))
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
+            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
         }
     )]
-    pub fn and_imm(
-        &mut self,
-        register: GeneralPurposeRegister,
-        value: u32,
-    ) {
+    pub fn and_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
         // Corresponds to encoding T1 of And immediate (VTOCK TODO: Inspect why there is no .W
         // option?)
         //

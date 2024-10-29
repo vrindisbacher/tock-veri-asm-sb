@@ -43,7 +43,6 @@ pub fn is_valid_mpu_write_addr(address: u32) -> bool {
         || address == MPU_RASR_A3_ADDR
 }
 
-
 // MPU
 //
 // Here are some unimplemented blocks:

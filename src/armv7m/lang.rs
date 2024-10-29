@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[flux_rs::refined_by(n: int)]
 pub enum GeneralPurposeRegister {
     #[variant(GeneralPurposeRegister[0])]
@@ -25,21 +25,20 @@ pub enum GeneralPurposeRegister {
     R10,
     #[variant(GeneralPurposeRegister[11])]
     R11,
-
-    // VTOCK TODO: Make these special purpose
-    #[variant(GeneralPurposeRegister[12])]
-    // R12 is used for IPC
-    R12,
-    #[variant(GeneralPurposeRegister[13])]
-    Sp,
-    #[variant(GeneralPurposeRegister[14])]
-    Lr,
-    #[variant(GeneralPurposeRegister[15])]
-    Pc,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[flux_rs::refined_by(n : int)]
 pub enum SpecialRegister {
+    #[variant(SpecialRegister[12])]
+    // R12 is used for IPC
+    R12,
+    #[variant(SpecialRegister[13])]
+    Sp,
+    #[variant(SpecialRegister[14])]
+    Lr,
+    #[variant(SpecialRegister[15])]
+    Pc,
     #[variant(SpecialRegister[16])]
     Control,
     // PSR and one of the sub register (IPSR)
@@ -47,17 +46,6 @@ pub enum SpecialRegister {
     PSR,
     #[variant(SpecialRegister[18])]
     IPSR,
-}
-
-#[flux_rs::refined_by(is_reg: bool, is_special: bool, val: int)]
-// NOTE: Glossing over negative values...
-pub enum Value {
-    #[variant({SpecialRegister[@n]} -> Value[true, true, n])]
-    SpecialRegister(SpecialRegister),
-    #[variant({GeneralPurposeRegister[@n]} -> Value[true, false, n])]
-    GeneralRegister(GeneralPurposeRegister),
-    #[variant({u32[@n]} -> Value[false, false, n])]
-    Value(u32),
 }
 
 #[derive(Debug)]

@@ -2,40 +2,40 @@ use super::flux_defs::sys_control_block_defs::*;
 use super::flux_defs::sys_control_id_reg_defs::*;
 
 // System Control Block Addresses
-pub const CPUID_ADDR: u32 =	 0xE000ED00;	
-pub const ICSR_ADDR: u32 =	 0xE000ED04;	
-pub const VTOR_ADDR: u32 =	 0xE000ED08;	
-pub const AIRCR_ADDR: u32 =	 0xE000ED0C;	
-pub const SCR_ADDR: u32 =	 0xE000ED10;	
-pub const CCR_ADDR: u32 =	 0xE000ED14;	
-pub const SHPR1_ADDR: u32 =	 0xE000ED18;	
-pub const SHPR2_ADDR: u32 =	 0xE000ED1C;	
-pub const SHPR3_ADDR: u32 =	 0xE000ED20;	
-pub const SHCSR_ADDR: u32 =	 0xE000ED24;	
-pub const CFSR_ADDR: u32 =	 0xE000ED28;	
-pub const HFSR_ADDR: u32 =	 0xE000ED2C;	
-pub const DFSR_ADDR: u32 =	 0xE000ED30;	
-pub const MMFAR_ADDR: u32 =	 0xE000ED34;	
-pub const BFAR_ADDR: u32 =	 0xE000ED38;	
-pub const AFSR_ADDR: u32 =	 0xE000ED3C;	
-pub const CPACR_ADDR: u32 =	 0xE000ED88;	
+pub const CPUID_ADDR: u32 = 0xE000ED00;
+pub const ICSR_ADDR: u32 = 0xE000ED04;
+pub const VTOR_ADDR: u32 = 0xE000ED08;
+pub const AIRCR_ADDR: u32 = 0xE000ED0C;
+pub const SCR_ADDR: u32 = 0xE000ED10;
+pub const CCR_ADDR: u32 = 0xE000ED14;
+pub const SHPR1_ADDR: u32 = 0xE000ED18;
+pub const SHPR2_ADDR: u32 = 0xE000ED1C;
+pub const SHPR3_ADDR: u32 = 0xE000ED20;
+pub const SHCSR_ADDR: u32 = 0xE000ED24;
+pub const CFSR_ADDR: u32 = 0xE000ED28;
+pub const HFSR_ADDR: u32 = 0xE000ED2C;
+pub const DFSR_ADDR: u32 = 0xE000ED30;
+pub const MMFAR_ADDR: u32 = 0xE000ED34;
+pub const BFAR_ADDR: u32 = 0xE000ED38;
+pub const AFSR_ADDR: u32 = 0xE000ED3C;
+pub const CPACR_ADDR: u32 = 0xE000ED88;
 
 // ID Reg
-pub const ICTR_ADDR: u32 =	 0xE000E004;	
-pub const ACTLR_ADDR: u32 =	 0xE000E008;	
-pub const STIR_ADDR: u32 =	 0xE000EF00;	
-pub const PID4_ADDR: u32 =	 0xE000EFD0;	
-pub const PID5_ADDR: u32 =	 0xE000EFD4;	
-pub const PID6_ADDR: u32 =	 0xE000EFD8;	
-pub const PID7_ADDR: u32 =	 0xE000EFDC;	
-pub const PID0_ADDR: u32 =	 0xE000EFE0;	
-pub const PID1_ADDR: u32 =	 0xE000EFE4;	
-pub const PID2_ADDR: u32 =	 0xE000EFE8;	
-pub const PID3_ADDR: u32 =	 0xE000EFEC;	
-pub const CID0_ADDR: u32 =	 0xE000EFF0;	
-pub const CID1_ADDR: u32 =	 0xE000EFF4;	
-pub const CID2_ADDR: u32 =	 0xE000EFF8;	
-pub const CID3_ADDR: u32 =	 0xE000EFFC;	
+pub const ICTR_ADDR: u32 = 0xE000E004;
+pub const ACTLR_ADDR: u32 = 0xE000E008;
+pub const STIR_ADDR: u32 = 0xE000EF00;
+pub const PID4_ADDR: u32 = 0xE000EFD0;
+pub const PID5_ADDR: u32 = 0xE000EFD4;
+pub const PID6_ADDR: u32 = 0xE000EFD8;
+pub const PID7_ADDR: u32 = 0xE000EFDC;
+pub const PID0_ADDR: u32 = 0xE000EFE0;
+pub const PID1_ADDR: u32 = 0xE000EFE4;
+pub const PID2_ADDR: u32 = 0xE000EFE8;
+pub const PID3_ADDR: u32 = 0xE000EFEC;
+pub const CID0_ADDR: u32 = 0xE000EFF0;
+pub const CID1_ADDR: u32 = 0xE000EFF4;
+pub const CID2_ADDR: u32 = 0xE000EFF8;
+pub const CID3_ADDR: u32 = 0xE000EFFC;
 
 #[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_block_read_addr(addr)])]
 fn is_valid_sys_control_block_read_addr(address: u32) -> bool {
@@ -83,20 +83,20 @@ fn is_valid_sys_control_block_write_addr(address: u32) -> bool {
 #[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_read_addr(addr)])]
 fn is_valid_sys_control_id_reg_read_addr(address: u32) -> bool {
     // all but STIR are read
-    address == ICTR_ADDR ||
-        address == ACTLR_ADDR ||
-        address == PID4_ADDR ||
-        address == PID5_ADDR ||
-        address == PID6_ADDR ||
-        address == PID7_ADDR ||
-        address == PID0_ADDR ||
-        address == PID1_ADDR ||
-        address == PID2_ADDR ||
-        address == PID3_ADDR ||
-        address == CID0_ADDR ||
-        address == CID1_ADDR ||
-        address == CID2_ADDR ||
-        address == CID3_ADDR
+    address == ICTR_ADDR
+        || address == ACTLR_ADDR
+        || address == PID4_ADDR
+        || address == PID5_ADDR
+        || address == PID6_ADDR
+        || address == PID7_ADDR
+        || address == PID0_ADDR
+        || address == PID1_ADDR
+        || address == PID2_ADDR
+        || address == PID3_ADDR
+        || address == CID0_ADDR
+        || address == CID1_ADDR
+        || address == CID2_ADDR
+        || address == CID3_ADDR
 }
 
 #[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_write_addr(addr)])]
@@ -112,7 +112,8 @@ pub fn is_valid_sys_control_space_read_addr(address: u32) -> bool {
 
 #[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_space_write_addr(addr)])]
 pub fn is_valid_sys_control_space_write_addr(address: u32) -> bool {
-    is_valid_sys_control_block_write_addr(address) || is_valid_sys_control_id_reg_write_addr(address)
+    is_valid_sys_control_block_write_addr(address)
+        || is_valid_sys_control_id_reg_write_addr(address)
 }
 
 // System Control Block (see table 10.5)
@@ -208,7 +209,6 @@ pub struct SysControlBlock {
 }
 
 impl SysControlBlock {
-
     #[flux_rs::sig(
         fn (&SysControlBlock[@sys_control_block], u32[@addr]) -> u32[sys_control_block_addr_into_reg(addr, sys_control_block)]
             requires is_valid_sys_control_block_read_addr(addr)
@@ -253,10 +253,12 @@ impl SysControlBlock {
             // 0xE000ED40 - 0xE000ED7C	-	-	-	Reserved for CPUID registers, see The CPUID Scheme.
             // 0xE000ED80 - 0xE000ED84	-	-	-	Reserved.
             // 0xE000ED8C	-	-	-	Reserved.
-            0xE000ED40..=0xE000ED7C => panic!("Read of CPUID scheme - these are implementation defined"),
+            0xE000ED40..=0xE000ED7C => {
+                panic!("Read of CPUID scheme - these are implementation defined")
+            }
             0xE000ED80..=0xE000ED84 => panic!("Read of reserved register"),
             0xE000ED8C => panic!("Read of reserved register"),
-            _ => panic!("Read of invalid addr")
+            _ => panic!("Read of invalid addr"),
         }
     }
 
@@ -307,10 +309,12 @@ impl SysControlBlock {
             // 0xE000ED40 - 0xE000ED7C	-	-	-	Reserved for CPUID registers, see The CPUID Scheme.
             // 0xE000ED80 - 0xE000ED84	-	-	-	Reserved.
             // 0xE000ED8C	-	-	-	Reserved.
-            0xE000ED40..=0xE000ED7C => panic!("Write to CPUID scheme - these are implementation defined"),
-            0xE000ED80..=0xE000ED84 =>  panic!("Write to Reserved Reg"),
+            0xE000ED40..=0xE000ED7C => {
+                panic!("Write to CPUID scheme - these are implementation defined")
+            }
+            0xE000ED80..=0xE000ED84 => panic!("Write to Reserved Reg"),
             0xE000ED8C => panic!("Write to Reserved Reg"),
-            _ => panic!("Write to invalid addr")
+            _ => panic!("Write to invalid addr"),
         };
     }
 }
@@ -390,7 +394,7 @@ pub struct SysControlIDReg {
     cid2: u32,
     // 0xE000EFFC	CID3	RO
     #[field(u32[cid3])]
-    cid3: u32
+    cid3: u32,
 }
 
 impl SysControlIDReg {
@@ -418,7 +422,7 @@ impl SysControlIDReg {
         match address {
             ICTR_ADDR => self.ictr,
             ACTLR_ADDR => self.actlr,
-            STIR_ADDR =>  panic!("Read of write only register"),
+            STIR_ADDR => panic!("Read of write only register"),
             PID4_ADDR => self.pid4,
             PID5_ADDR => self.pid5,
             PID6_ADDR => self.pid6,
@@ -438,11 +442,11 @@ impl SysControlIDReg {
             // 0xE000EF90 - 0xE000EFCC	...	...	...	implementation defined
             // 0xE000EDF0 - 0xE000EEFC	-	-	-	See Debug register support in the SCS
             0xE000E000 => panic!("READ of RESERVED REGISTER Master Control"),
-            0xE000E00C	=> panic!("READ of RESERVED REGISTER"),
-            0xE000EF04  => panic!("READ of RESERVED REGISTER"),
-            0xE000EF90..=0xE000EFCC	 => panic!("READ of IMPLEMENTATION DEFINED REG"),
-            0xE000EDF0..=0xE000EEFC	 => panic!("READ OF DEBUG REGISTER"),
-            _ => panic!("Read of invalid addr")
+            0xE000E00C => panic!("READ of RESERVED REGISTER"),
+            0xE000EF04 => panic!("READ of RESERVED REGISTER"),
+            0xE000EF90..=0xE000EFCC => panic!("READ of IMPLEMENTATION DEFINED REG"),
+            0xE000EDF0..=0xE000EEFC => panic!("READ OF DEBUG REGISTER"),
+            _ => panic!("Read of invalid addr"),
         }
     }
 
@@ -491,15 +495,14 @@ impl SysControlIDReg {
             // 0xE000EF90 - 0xE000EFCC	...	...	...	implementation defined
             // 0xE000EDF0 - 0xE000EEFC	-	-	-	See Debug register support in the SCS
             0xE000E000 => panic!("Write to reserved reg"),
-            0xE000E00C	=> panic!("Write to reserved reg"),
-            0xE000EF04  => panic!("Write to reserved reg"),
-            0xE000EF90..=0xE000EFCC	 => panic!("Write to implementation defined reg"),
-            0xE000EDF0..=0xE000EEFC	 => panic!("Write to debug reg (not implemented)"),
-            _ => panic!("Write to invalid addr")
+            0xE000E00C => panic!("Write to reserved reg"),
+            0xE000EF04 => panic!("Write to reserved reg"),
+            0xE000EF90..=0xE000EFCC => panic!("Write to implementation defined reg"),
+            0xE000EDF0..=0xE000EEFC => panic!("Write to debug reg (not implemented)"),
+            _ => panic!("Write to invalid addr"),
         };
     }
 }
-
 
 // System Control Space
 #[derive(Debug)]
@@ -515,7 +518,6 @@ pub struct SysControlSpace {
 }
 
 impl SysControlSpace {
-    
     #[flux_rs::sig(
         fn (&SysControlSpace[@sys_control], u32[@addr]) -> u32{ v: check_sys_control_space_value_read(addr, sys_control, v) } 
             requires is_valid_sys_control_space_read_addr(addr)
@@ -529,7 +531,7 @@ impl SysControlSpace {
             panic!("Read of invalid addr")
         }
     }
-    
+
     #[flux_rs::sig(
         fn (self: &strg SysControlSpace[@sys_control], u32[@addr], u32[@val]) 
             requires is_valid_sys_control_space_write_addr(addr)

@@ -1,4 +1,7 @@
+#![allow(unused)]
+
 pub mod armv7m;
+mod flux_support;
 
 use armv7m::{
     cpu::Armv7m,
@@ -42,105 +45,169 @@ use armv7m::{
 //   34:   4770            bx      lr
 //   38:   e000e180        .word   0xe000e180
 //   3c:   e000e200        .word   0xe000e200
-#[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:  
-        // note basically checks that NVIC ISER & ICER bits are set
-        new_cpu.r0 == get_ipsr(old_cpu) % 32  
+// #[flux_rs::sig(
+//     fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
+//         // note basically checks that NVIC ISER & ICER bits are set
+//         new_cpu.r0 == get_ipsr(old_cpu) % 32
+//         &&
+//         new_cpu.r2 == get_ipsr(old_cpu) / 32 * 4
+//         &&
+//         // nvic iser bit for ipsr is correct
+//         nth_bit(
+//             get_mem_value(0xE000_E180 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
+//         ) == 0
+//         &&
+//         // nvic icer bit for ipsr is correct
+//         nth_bit(
+//             get_mem_value(0xE000_E200 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
+//         ) == 0
+//     }
+// )]
+// pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
+//     // r0 = 0
+//     armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+//     // control = r0 = 0
+//     armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
+//     // isb
+//     armv7m.isb(Some(armv7m::lang::IsbOpt::Sys));
+//
+//     // NOTE: using pseudo instr here
+//     // lr = 0xFFFFFFF9
+//     armv7m.pseudo_ldr(GeneralPurposeRegister::Lr, 0xFFFFFFF9);
+//
+//     // r0 = ipsr
+//     armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
+//     // Note: this seems to be a useless instruction?
+//     armv7m.and_imm(GeneralPurposeRegister::R0, 0xff);
+//     // r0 = ipsr - 16
+//     armv7m.subw_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 16);
+//
+//     // r2 = r0 >> 5 ---> (ipsr / 32)
+//     armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, 5);
+//     // r3 = 1
+//     armv7m.movs_imm(GeneralPurposeRegister::R3, 1);
+//     // r0 = r0 & 31
+//     armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+//
+//     // r0 = r3 << r0
+//     //      -     -
+//     //      1     (ipsr & 31)
+//     armv7m.lslw_reg(
+//         GeneralPurposeRegister::R0,
+//         GeneralPurposeRegister::R3,
+//         GeneralPurposeRegister::R0,
+//     );
+//
+//     // Note: Ignoring the dissasembled version of this because dealing with program counter is
+//     // annoying
+//     //
+//     // Gonna encode this as a pseudo instruction for now
+//     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e180);
+//
+//     // r0 = 1 << (ipsr & 31)
+//     // r3 = 0xe000_e180
+//     // r2 = (ipsr >> 5) << 2
+//     armv7m.strw_lsl_reg(
+//         GeneralPurposeRegister::R0,
+//         GeneralPurposeRegister::R3,
+//         GeneralPurposeRegister::R2,
+//         2,
+//     );
+//
+//     // Note: Ignoring the dissasembled version of this because dealing with program counter is
+//     // annoying
+//     //
+//     // Gonna encode this as a pseudo instruction for now
+//     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e200);
+//
+//     // r0 = 1 << (ipsr & 31)
+//     // r3 = 0xe000_e200
+//     // r2 = (ipsr >> 5) << 2
+//     //
+//     // mem[0xe000_e200] + ((ipsr >> 5) << 2) = (1 << ipsr & 31) i.e. "bit for the ipsr # is set"
+//     armv7m.strw_lsl_reg(
+//         GeneralPurposeRegister::R0,
+//         GeneralPurposeRegister::R3,
+//         GeneralPurposeRegister::R2,
+//         2,
+//     );
+//
+//     armv7m.bx(GeneralPurposeRegister::Lr);
+// }
+
+mod arm_test {
+    use crate::armv7m::{
+        cpu::Armv7m,
+        lang::{GeneralPurposeRegister, SpecialRegister},
+    };
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
+        general_purpose_register_updated(r0(), old_cpu, new_cpu, get_special_reg(ipsr(), old_cpu) % 32)
+    })]
+    fn simple_mod(armv7m: &mut Armv7m) {
+        // r0 = ipsr
+        armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
+        // r0 = r0 & 31
+        armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_general_purpose_reg(r0(), new_cpu) ==  right_shift(1 % 32, 5) })]
+    fn simple_shift(armv7m: &mut Armv7m) {
+        // r0 = 1
+        armv7m.movs_imm(GeneralPurposeRegister::R0, 1);
+        // r0 = r0 & 31
+        armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+        // r0 = r0 >> 5
+        armv7m.lsrs_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 5);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E010, new_cpu.mem, 1) 
+    })]
+    fn simple_store(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E010);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        check_mem_value_write(0xE000_E180, new_cpu.mem, 1) 
+    })]
+    fn simple_store_nvic(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        general_purpose_register_updated(r0(), old_cpu, new_cpu, 0)
+    })]
+    fn movw_r0(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        general_purpose_register_updated(r1(), old_cpu, new_cpu, 1)
+    })]
+    fn movw_r1(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        get_general_purpose_reg(r0(), new_cpu) == 0 
         &&
-        new_cpu.r2 == get_ipsr(old_cpu) / 32 * 4 
+        get_general_purpose_reg(r1(), new_cpu) == 1
+    })]
+    fn two_movs_by_call(armv7m: &mut Armv7m) {
+        movw_r0(armv7m);
+        movw_r1(armv7m);
+    }
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        get_general_purpose_reg(r0(), new_cpu) == 0 
         &&
-        // nvic iser bit for ipsr is correct
-        nth_bit(
-            get_mem_value(0xE000_E180 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
-        ) == 0
-        &&
-        // nvic icer bit for ipsr is correct
-        nth_bit(
-            get_mem_value(0xE000_E200 + new_cpu.r2, new_cpu.mem), and(get_ipsr(old_cpu), 31)
-        ) == 0
-    }    
-)]
-pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
-    // r0 = 0
-    armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
-    // control = r0 = 0
-    armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
-    // isb
-    armv7m.isb(Some(armv7m::lang::IsbOpt::Sys));
-
-    // NOTE: using pseudo instr here 
-    // lr = 0xFFFFFFF9
-    armv7m.pseudo_ldr(GeneralPurposeRegister::Lr, 0xFFFFFFF9);
-
-    // r0 = ipsr
-    armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
-    // Note: this seems to be a useless instruction?
-    armv7m.and_imm(GeneralPurposeRegister::R0, 0xff);
-    // r0 = ipsr - 16
-    armv7m.subw_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 16);
-
-    // r2 = r0 >> 5 ---> (ipsr / 32)
-    armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, 5);
-    // r3 = 1
-    armv7m.movs_imm(GeneralPurposeRegister::R3, 1);
-    // r0 = r0 & 31
-    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
-    
-    // r0 = r3 << r0
-    //      -     -
-    //      1     (ipsr & 31)
-    armv7m.lslw_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R0,
-    );
-
-    // Note: Ignoring the dissasembled version of this because dealing with program counter is
-    // annoying
-    //
-    // Gonna encode this as a pseudo instruction for now
-    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e180);
-
-    // r0 = 1 << (ipsr & 31)
-    // r3 = 0xe000_e180
-    // r2 = (ipsr >> 5) << 2
-    armv7m.strw_lsl_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R2,
-        2,
-    );
-
-    // Note: Ignoring the dissasembled version of this because dealing with program counter is
-    // annoying
-    //
-    // Gonna encode this as a pseudo instruction for now
-    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xe000e200);
-
-    // r0 = 1 << (ipsr & 31)
-    // r3 = 0xe000_e200
-    // r2 = (ipsr >> 5) << 2
-    //
-    // mem[0xe000_e200] + ((ipsr >> 5) << 2) = (1 << ipsr & 31) i.e. "bit for the ipsr # is set"
-    armv7m.strw_lsl_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R2,
-        2,
-    );
-
-    armv7m.bx(GeneralPurposeRegister::Lr);
-}
-
-#[flux_rs::should_fail]
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    new_cpu.r0 == get_ipsr(old_cpu) % 32 && false
-})]
-fn obviously_wrong(armv7m: &mut Armv7m) {
-
-
-    // r3 = 1
-    armv7m.movs_imm(GeneralPurposeRegister::R3, 1);
-    // r0 = r0 & 31
-    armv7m.and_imm(GeneralPurposeRegister::R0, 31);
+        get_general_purpose_reg(r1(), new_cpu) == 1
+    })]
+    fn two_movs(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+    }
 }

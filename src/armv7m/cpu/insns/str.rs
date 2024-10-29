@@ -27,11 +27,17 @@ impl Armv7m {
             u32[@shift]
         ) 
         requires 
-            // reg base cannot be the PC
-            !is_pc(reg_base)
-            &&
-            // ofset reg cannot be PC, SP, or LR allowed
-            !(is_pc(reg_offset) || is_sp(reg_offset) || is_lr(reg_offset))
+            is_valid_write_addr(
+                get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+            )
+            && 
+            (
+                is_valid_nvic_addr(
+                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                ) => is_four_byte_aligned(
+                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                )
+            )
         ensures self: Armv7m { 
             new_cpu: check_mem_value_write(
                         get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
@@ -56,16 +62,31 @@ impl Armv7m {
         //  index = TRUE; add = TRUE; wback = FALSE;
         //  (shift_t, shift_n) = (SRType_LSL, UInt(imm2));
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
-        if base_reg == GeneralPurposeRegister::Pc 
-            || offset_reg == GeneralPurposeRegister::Sp
-            || offset_reg == GeneralPurposeRegister::Lr
-            || offset_reg == GeneralPurposeRegister::Pc
-        {
-            panic!("Preconditions for base and offset register not met")
-        }
         let offset = shift_left(self.get_value_from_general_reg(&offset_reg), shift);
         let addr = self.get_value_from_general_reg(&base_reg) + offset;
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
+    }
+
+    #[flux_rs::sig(fn (
+            self: &strg Armv7m[@old_cpu], 
+            u32[@val],
+            GeneralPurposeRegister[@reg_base], 
+        ) 
+        requires 
+            is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
+            && 
+            (is_valid_nvic_addr(get_general_purpose_reg(reg_base, old_cpu)) => is_four_byte_aligned(get_general_purpose_reg(reg_base, old_cpu)))
+        ensures self: Armv7m { 
+            new_cpu: check_mem_value_write(
+                        get_general_purpose_reg(reg_base, old_cpu),
+                        new_cpu.mem, 
+                        val
+                     )
+        }
+    )]
+    pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {
+        let addr = self.get_value_from_general_reg(&addr);
+        self.mem.write(addr, value);
     }
 }

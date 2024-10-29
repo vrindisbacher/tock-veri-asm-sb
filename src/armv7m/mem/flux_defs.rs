@@ -313,9 +313,9 @@ pub mod sys_control_space_defs {
             }
 
             fn get_sys_control_space_value(address: int, sys_control: SysControlSpace) -> int {
-                if is_valid_sys_control_id_reg_write_addr(address) {
+                if is_valid_sys_control_id_reg_write_addr(address) || is_valid_sys_control_id_reg_read_addr(address) {
                     sys_control_id_reg_addr_into_reg(address, sys_control.sys_control_id_reg)
-                } else if is_valid_sys_control_block_write_addr(address) {
+                } else if is_valid_sys_control_block_write_addr(address) || is_valid_sys_control_block_read_addr(address) {
                     sys_control_block_addr_into_reg(address, sys_control.sys_control_block)
                 } else {
                     -1
@@ -330,32 +330,7 @@ pub mod nvic_defs {
         Nvic, IABR_END, IABR_START, ICER_END, ICER_START, ICPR_END, ICPR_START, IPR_END, IPR_START,
         ISER_END, ISER_START, ISPR_END, ISPR_START,
     };
-
-    flux_rs::defs! {
-        fn map_set<K, V>(m:Map<K, V>, k: K, v: V) -> Map<K, V> { map_store(m, k, v) }
-        fn map_get<K, V>(m: Map<K, V>, k:K) -> V { map_select(m, k) }
-    }
-
-    #[derive(Debug)]
-    #[flux_rs::opaque]
-    #[flux_rs::refined_by(vals: Map<int, int>)]
-    pub struct RegMap {
-        inner: std::collections::HashMap<u32, u32>,
-    }
-
-    impl RegMap {
-        #[flux_rs::trusted]
-        #[flux_rs::sig(fn(self: &strg RegMap[@m], k: u32, v: u32) ensures self: RegMap[map_set(m.vals, k, v)])]
-        pub fn set(&mut self, k: u32, v: u32) {
-            self.inner.insert(k, v);
-        }
-
-        #[flux_rs::trusted]
-        #[flux_rs::sig(fn(&RegMap[@m], &u32[@k]) -> Option<&u32[map_get(m.vals, k)]>)]
-        pub fn get(&self, k: &u32) -> Option<&u32> {
-            self.inner.get(k)
-        }
-    }
+    use crate::flux_support::*;
 
     flux_rs::defs! {
             // all addresses are read / write
@@ -394,7 +369,7 @@ pub mod nvic_defs {
                     nvic.icprs
                 } else if (address >= IABR_START && address <= IABR_END) {
                     nvic.iabrs
-                } else { 
+                } else {
                     // (address >= IPR_START && address <= IPR_END)
                     nvic.iprs
                 }
@@ -411,9 +386,10 @@ pub mod nvic_defs {
                     (address - ICPR_START) % 4 == 0
                 } else if (address >= IABR_START && address <= IABR_END) {
                     (address - IABR_START) % 4 == 0
-                } else {
-                    // (address >= IPR_START && address <= IPR_END)
+                } else if (address >= IPR_START && address <= IPR_END) {
                     (address - IPR_START) % 4 == 0
+                } else {
+                    false
                 }
             }
     }
@@ -475,13 +451,13 @@ flux_rs::defs! {
     }
 
     fn get_ppb_value(address: int, ppb: Ppb) -> int {
-        if is_valid_sys_control_space_write_addr(address) {
+        if is_valid_sys_control_space_write_addr(address) || is_valid_sys_control_space_read_addr(address) {
             get_sys_control_space_value(address, ppb.sys_control)
-        } else if is_valid_nvic_write_addr(address) {
+        } else if is_valid_nvic_write_addr(address) || is_valid_nvic_read_addr(address) {
             map_get(nvic_addr_to_reg_map(address, ppb.nvic), address)
-        } else if is_valid_mpu_write_addr(address) {
+        } else if is_valid_mpu_write_addr(address) || is_valid_mpu_read_addr(address) {
             mpu_addr_into_reg(address, ppb.mpu)
-        } else if is_valid_sys_tick_write_addr(address) {
+        } else if is_valid_sys_tick_write_addr(address) || is_valid_sys_tick_read_addr(address) {
             sys_tick_addr_into_reg(address, ppb.sys_tick)
         } else {
             -1

@@ -54,15 +54,11 @@ impl Armv7m {
             // only updates to CONTROL right now
             requires is_control(reg)
             ensures self: Armv7m {
-                new_cpu: get_special_reg(reg, new_cpu) == get_general_purpose_reg(val, old_cpu)
+                new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, get_general_purpose_reg(val, old_cpu))
             }
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {
         // This is a monster op
-        match register {
-            SpecialRegister::Control => self.control = self.get_value_from_general_reg(&value),
-            SpecialRegister::PSR => panic!("Not done"),
-            SpecialRegister::IPSR => panic!("Not done"),
-        }
+        self.update_special_reg_with_u32(register, self.get_value_from_general_reg(&value));
     }
 }
