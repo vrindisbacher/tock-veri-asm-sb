@@ -55,9 +55,7 @@ mod sys_tick;
 use flux_defs::*;
 use mpu::{is_valid_mpu_read_addr, is_valid_mpu_write_addr};
 use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
-use sys_control::{
-    is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr,
-};
+use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
 use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
 
 use crate::flux_support::rmap::Regs;
@@ -68,7 +66,7 @@ use crate::flux_support::rmap::Regs;
 )]
 pub struct Memory {
     #[field(Regs<u32, u32>[mem])]
-    mem: Mem
+    mem: Mem,
 }
 
 impl Memory {
@@ -79,12 +77,11 @@ impl Memory {
     pub fn read(&self, address: u32) -> u32 {
         match address {
             PPB_START..=PPB_END => {
-                if !(
-                    is_valid_mpu_read_addr(address) ||
-                    is_valid_sys_tick_read_addr(address) ||
-                    is_valid_sys_control_space_read_addr(address) ||
-                    is_valid_nvic_read_addr(address)
-                ) {
+                if !(is_valid_mpu_read_addr(address)
+                    || is_valid_sys_tick_read_addr(address)
+                    || is_valid_sys_control_space_read_addr(address)
+                    || is_valid_nvic_read_addr(address))
+                {
                     panic!("Read of Invalid PPB address")
                 }
                 *self.mem.get(&address).unwrap()
@@ -101,12 +98,11 @@ impl Memory {
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
             PPB_START..=PPB_END => {
-                if !(
-                    is_valid_mpu_write_addr(address) || 
-                    is_valid_sys_tick_write_addr(address) || 
-                    is_valid_sys_control_space_write_addr(address) || 
-                    is_valid_nvic_write_addr(address)
-                ) {
+                if !(is_valid_mpu_write_addr(address)
+                    || is_valid_sys_tick_write_addr(address)
+                    || is_valid_sys_control_space_write_addr(address)
+                    || is_valid_nvic_write_addr(address))
+                {
                     panic!("Write to Invalid PPB address")
                 }
                 self.mem.set(address, value)

@@ -7,7 +7,6 @@
 // 0xE000E7F0 -0xE000ECFC	-	-	-	Reserved
 use super::flux_defs::nvic_defs::*;
 
-
 pub const ISER_START: u32 = 0xE000E100;
 pub const ISER_END: u32 = 0xE000E13C;
 //
@@ -56,4 +55,3 @@ pub fn is_valid_nvic_write_addr(address: u32) -> bool {
     // all write
     is_valid_nvic_addr(address)
 }
-

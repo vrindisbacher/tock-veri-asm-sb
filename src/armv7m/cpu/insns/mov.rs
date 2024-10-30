@@ -18,7 +18,12 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) 
+            new_cpu: 
+                general_purpose_register_updated(reg, old_cpu, new_cpu, val) 
+                &&
+                old_cpu.special_regs == new_cpu.special_regs
+                &&
+                old_cpu.mem == new_cpu.mem
         }
     )]
     pub fn movw_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -38,7 +43,12 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
             ensures self: Armv7m {
-                new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) // &&  movs_flag_updates(new_cpu)
+                new_cpu: 
+                    general_purpose_register_updated(reg, old_cpu, new_cpu, val) // &&  movs_flag_updates(new_cpu)
+                    &&
+                    old_cpu.special_regs == new_cpu.special_regs
+                    &&
+                    old_cpu.mem == new_cpu.mem
             }
     )]
     pub fn movs_imm(&mut self, register: GeneralPurposeRegister, value: u32) {

@@ -23,6 +23,10 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
         ensures self: Armv7m { 
             new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val)
+            &&
+            old_cpu.special_regs == new_cpu.special_regs
+            &&
+            old_cpu.mem == new_cpu.mem
         }
     )]
     pub fn pseudo_ldr(&mut self, register: GeneralPurposeRegister, value: u32) {
@@ -44,7 +48,12 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], u32[@val]) 
         ensures self: Armv7m { 
-            new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val)
+            new_cpu: 
+                special_purpose_register_updated(reg, old_cpu, new_cpu, val)
+                &&
+                old_cpu.general_regs == new_cpu.general_regs
+                &&
+                old_cpu.mem == new_cpu.mem
         }
     )]
     pub fn pseudo_ldr_special(&mut self, register: SpecialRegister, value: u32) {

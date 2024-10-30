@@ -54,7 +54,12 @@ impl Armv7m {
             // only updates to CONTROL right now
             requires is_control(reg)
             ensures self: Armv7m {
-                new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, get_general_purpose_reg(val, old_cpu))
+                new_cpu: 
+                    special_purpose_register_updated(reg, old_cpu, new_cpu, get_general_purpose_reg(val, old_cpu))
+                    &&
+                    old_cpu.general_regs == new_cpu.general_regs
+                    &&
+                    old_cpu.mem == new_cpu.mem
             }
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {

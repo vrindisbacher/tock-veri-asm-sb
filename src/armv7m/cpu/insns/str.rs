@@ -37,6 +37,10 @@ impl Armv7m {
                         new_cpu.mem, 
                         get_general_purpose_reg(reg_to_store, old_cpu)
                      )
+                    &&
+                    old_cpu.special_regs == new_cpu.special_regs
+                    &&
+                    old_cpu.general_regs == new_cpu.general_regs
         }
     )]
     pub fn strw_lsl_reg(
@@ -73,30 +77,14 @@ impl Armv7m {
                         old_cpu.mem,
                         new_cpu.mem, 
                         val
-                     )
+                     ) 
+                    && new_cpu.general_regs == old_cpu.general_regs
+                    && new_cpu.special_regs == old_cpu.special_regs
+
         }
     )]
     pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {
         let addr = self.get_value_from_general_reg(&addr);
-        self.mem.write(addr, value);
-    }
-
-    #[flux_rs::sig(fn (
-            self: &strg Armv7m[@old_cpu], 
-            u32[@val],
-            u32[@reg_base], 
-        ) 
-        requires is_valid_write_addr(reg_base)
-        ensures self: Armv7m { 
-            new_cpu: mem_value_updated(
-                        reg_base,
-                        old_cpu.mem,
-                        new_cpu.mem, 
-                        val
-                     )
-        }
-    )]
-    pub fn str_super_direct(&mut self, value: u32, addr: u32) {
         self.mem.write(addr, value);
     }
 }

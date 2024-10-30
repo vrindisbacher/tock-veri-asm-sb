@@ -115,7 +115,8 @@ use armv7m::{
 mod arm_test {
     use crate::armv7m::{
         cpu::Armv7m,
-        lang::{GeneralPurposeRegister, SpecialRegister}, mem::Memory,
+        lang::{GeneralPurposeRegister, SpecialRegister},
+        mem::Memory,
     };
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
@@ -138,54 +139,56 @@ mod arm_test {
         armv7m.lsrs_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, 5);
     }
 
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    //     mem_value_updated(0xE000_E010, old_cpu.mem, new_cpu.mem, 1) 
-    // })]
-    // fn simple_store(armv7m: &mut Armv7m) {
-    //     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E010);
-    //     armv7m.str_direct(1, GeneralPurposeRegister::R3)
-    // }
-
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    //     mem_value_updated(0xE000_E180, old_cpu.mem, new_cpu.mem, 1) 
-    // })]
-    // fn simple_store_nvic(armv7m: &mut Armv7m) {
-    //     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
-    //     armv7m.str_direct(1, GeneralPurposeRegister::R3)
-    // }
-
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    //     mem_value_updated(0xE000_E184, old_cpu.mem, new_cpu.mem, 1) 
-    // })]
-    // fn lsl_store_nvic(armv7m: &mut Armv7m) {
-    //     armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
-    //     armv7m.movw_imm(GeneralPurposeRegister::R0, 1);
-    //     armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
-    //     armv7m.strw_lsl_reg(GeneralPurposeRegister::R0, GeneralPurposeRegister::R3, GeneralPurposeRegister::R1, 2);
-    // }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: mem_value_updated(0xE000_E010, old_cpu.mem, new_cpu.mem, 1) })]
-    fn store_super_direct(armv7m: &mut Armv7m) {
-        armv7m.str_super_direct(0xE000_E010, 1);
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        // requires get_general_purpose_reg(r3(), old_cpu) == 0xE000_E010
+        ensures self: Armv7m { new_cpu: 
+            // mem_value_updated(0xE000_E010, old_cpu.mem, new_cpu.mem, 1) 
+            get_general_purpose_reg(r3(), new_cpu) == 0xE000_E010
+        }
+    )]
+    fn simple_store(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R3, 0xE000_E010);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
     }
 
-    #[flux_rs::sig(fn (self: &strg Memory[@old_mem]) ensures self: Memory { new_mem: mem_value_updated(0xE000_E010, old_mem, new_mem, 1)})]
-    fn store_super_super_direct(mem: &mut Memory) {
-        mem.write(0xE000_E010, 1)
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m { new_cpu: 
+            get_general_purpose_reg(r3(), new_cpu) == 0xE000_E010
+            &&
+            get_special_reg(control(), new_cpu) == 0xE000_E010
+        }
+    )]
+    fn store_diff_maps(armv7m: &mut Armv7m) {
+        armv7m.movw_imm(GeneralPurposeRegister::R3, 0xE000_E010);
+        armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R3);
     }
 
-    #[flux_rs::sig(fn (self: &strg Memory[@old_mem], u32[@addr], u32[@value]) requires is_valid_write_addr(addr) ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, value) } )]
-    fn store_with_some_indirection(mem: &mut Memory, addr: u32, value: u32) {
-        mem.write(addr, value)
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        mem_value_updated(0xE000_E180, old_cpu.mem, new_cpu.mem, 1) 
+    })]
+    fn simple_store_nvic(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.str_direct(1, GeneralPurposeRegister::R3)
     }
 
-    #[flux_rs::sig(fn (self: &strg Memory[@old_mem]) ensures self: Memory { new_mem: mem_value_updated(0xE000_E010, old_mem, new_mem, 1)})]
-    fn store_direct_with_indirection(mem: &mut Memory) {
-        store_with_some_indirection(mem, 0xE000_E010, 1);
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+        mem_value_updated(0xE000_E184, old_cpu.mem, new_cpu.mem, 1) 
+    })]
+    fn lsl_store_nvic(armv7m: &mut Armv7m) {
+        armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
+        armv7m.movw_imm(GeneralPurposeRegister::R0, 1);
+        armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
+        armv7m.strw_lsl_reg(
+            GeneralPurposeRegister::R0,
+            GeneralPurposeRegister::R3,
+            GeneralPurposeRegister::R1,
+            2,
+        );
     }
 
-    #[flux_rs::should_fail] // Sanity check that we the postcondition here specifies the wrong
-                            // register (should be 0xE000_E184)
+    #[flux_rs::should_fail]
+    // Sanity check that we the postcondition here specifies the wrong
+    // register (should be 0xE000_E184)
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
         mem_value_updated(0xE000_E180, old_cpu.mem, new_cpu.mem, 1) 
     })]
@@ -193,7 +196,12 @@ mod arm_test {
         armv7m.pseudo_ldr(GeneralPurposeRegister::R3, 0xE000_E180);
         armv7m.movw_imm(GeneralPurposeRegister::R0, 1);
         armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
-        armv7m.strw_lsl_reg(GeneralPurposeRegister::R0, GeneralPurposeRegister::R3, GeneralPurposeRegister::R1, 2);
+        armv7m.strw_lsl_reg(
+            GeneralPurposeRegister::R0,
+            GeneralPurposeRegister::R3,
+            GeneralPurposeRegister::R1,
+            2,
+        );
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
@@ -228,10 +236,5 @@ mod arm_test {
     fn two_movs(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GeneralPurposeRegister::R0, 0);
         armv7m.movw_imm(GeneralPurposeRegister::R1, 1);
-    }
-
-    #[flux_rs::sig(fn () -> bool[false])]
-    fn not_right() -> bool {
-        true
     }
 }
