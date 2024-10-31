@@ -1,6 +1,6 @@
 # Armv7m Status
 
-Most of the work done so far has been on the Arm Thumb Instruction Set used by Cortex M devices. Below are details on our Rust / Flux representation of this architecture.
+Most of the work done so far has been on the Arm Thumb Instruction Set used by Cortex M devices. We have verified the ISR for ARMv7 using the simplest encoding possible. Below are details on our Rust / Flux representation of this architecture and the ISR we verified.
 
 At a high level, we are currently able to...
 
@@ -9,34 +9,149 @@ At a high level, we are currently able to...
 
 Importantly, our emulation has semantics which are taken from the ARM hardware spec. 
 
-## A Non Trivial Program
+## Verified Armv7m ISR
 
-Here is an example of a non trivial program we are able to verify: 
+We are able to lift Tock's ARM ISR to our framework and refine it as follows.
 
 ```rust
-#[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    general_purpose_register_updated(
-        r0(), 
-        old_cpu,
-        new_cpu, 
-        // bv32 and to_int convert from ints to bitvectors and back
-        bv32(to_int(get_special_reg(ipsr(), old_cpu)) % 32)
-    )
-})]
-fn ipsr_mod_32(armv7m: &mut Armv7m) {
+flux_rs::defs! {
+    fn isr_bit_loc(old_cpu: Armv7m) -> B32 {
+        bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) % 32)
+    }
+    
+    fn isr_r0(old_cpu: Armv7m) -> B32 {
+        left_shift(
+            bv32(1), 
+            isr_bit_loc(old_cpu)
+        )
+    }
+
+    fn isr_r2(old_cpu: Armv7m) -> B32 {
+        bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) / 32)
+    }
+
+    fn isr_offset(old_cpu: Armv7m) -> int {
+        to_int(isr_r2(old_cpu)) * 4
+    }
+}
+
+// Here is disassembly of the armv7m program. Note that the .w specifies "wide"
+// for the 32 bit version of the instruction
+//
+//
+//   0:   f04f 0000       mov.w   r0, #0
+//   4:   f380 8814       msr     CONTROL, r0
+//   8:   f3bf 8f6f       isb     sy
+//   c:   f06f 0e06       mvn.w   lr, #6
+//   10:   f3ef 8005       mrs     r0, IPSR
+//   14:   f000 00ff       and.w   r0, r0, #255    @ 0xff
+//   18:   f1a0 0010       sub.w   r0, r0, #16
+//   1c:   0942            lsrs    r2, r0, #5
+//   1e:   2301            movs    r3, #1
+//   20:   f000 001f       and.w   r0, r0, #31
+//   24:   fa03 f000       lsl.w   r0, r3, r0
+//   28:   4b03            ldr     r3, [pc, #12]   @ (38 <generic_isr_arm_v7m+0x38>)
+//   2a:   f843 0022       str.w   r0, [r3, r2, lsl #2]
+//   2e:   4b03            ldr     r3, [pc, #12]   @ (3c <generic_isr_arm_v7m+0x3c>)
+//   30:   f843 0022       str.w   r0, [r3, r2, lsl #2]
+//   34:   4770            bx      lr
+//   38:   e000e180        .word   0xe000e180
+//   3c:   e000e200        .word   0xe000e200
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu]) 
+    // VTOCK TODO:
+    //
+    // Note we need to say that the IPSR is more than 16
+    // This is guaranteed by exception entry but we should
+    // probably formalize that somehow
+    requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 
+    ensures self: Armv7m { new_cpu:
+        get_general_purpose_reg(r0(), new_cpu) == isr_r0(old_cpu)
+        &&
+        get_general_purpose_reg(r2(), new_cpu) == isr_r2(old_cpu)
+        && 
+        nth_bit_is_set(
+            get_mem_addr(
+                0xe000_e180 + isr_offset(old_cpu),
+                new_cpu.mem
+            ),
+            isr_bit_loc(old_cpu)
+        )
+        &&
+        nth_bit_is_set(
+            get_mem_addr(
+                0xe000_e200 + isr_offset(old_cpu),
+                new_cpu.mem
+            ),
+            isr_bit_loc(old_cpu)
+        )
+    }
+)]
+pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
+    // r0 = 0
+    armv7m.movw_imm(GeneralPurposeRegister::R0, B32::from(0));
+    // control = r0 = 0
+    armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
+    // isb
+    armv7m.isb(Some(IsbOpt::Sys));
+    // NOTE: using pseudo instr here
+    // lr = 0xFFFFFFF9
+    armv7m.pseudo_ldr_special(SpecialRegister::Lr, B32::from(0xFFFFFFF9));
     // r0 = ipsr
-    // mrs meaning 'move register special' - moves a special register into a general purpose register
     armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
+    // Note: this seems to be a useless instruction?
+    armv7m.and_imm(GeneralPurposeRegister::R0, B32::from(0xff));
+    // r0 = ipsr - 16
+    armv7m.subw_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, B32::from(16));
+    // r2 = r0 >> 5 ---> (ipsr - 16 / 32)
+    armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, B32::from(5));
+    // r3 = 1
+    armv7m.movs_imm(GeneralPurposeRegister::R3, B32::from(1));
     // r0 = r0 & 31
-    // and_imm meaning 'and immediate' - computes the bitwise and of a general purpose register and an immediate
-    // value, storing the result in the general purpose register
     armv7m.and_imm(GeneralPurposeRegister::R0, B32::from(31));
+    // r0 = r3 << r0
+    //      -     -
+    //      1     (ipsr - 16 & 31)
+    armv7m.lslw_reg(
+        GeneralPurposeRegister::R0,
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R0,
+    );
+    // Note: Ignoring the dissasembled version of this because dealing with program counter is
+    // annoying
+    //
+    // Gonna encode this as a pseudo instruction for now
+    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e180));
+    // r0 = 1 << (ipsr - 16 & 31)
+    // r3 = 0xe000_e180
+    // r2 = (ipsr - 16 >> 5) 
+    armv7m.strw_lsl_reg(
+        GeneralPurposeRegister::R0,
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R2,
+        B32::from(2),
+    );
+    // Note: Ignoring the dissasembled version of this because dealing with program counter is
+    // annoying
+    //
+    // Gonna encode this as a pseudo instruction for now
+    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e200));
+    // r0 = 1 << (ipsr - 16 & 31)
+    // r3 = 0xe000_e200
+    // r2 = (ipsr - 16 >> 5) << 2
+    //
+    // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << (ipsr - 16) & 31) i.e. "bit for the ipsr # is set"
+    armv7m.strw_lsl_reg(
+        GeneralPurposeRegister::R0,
+        GeneralPurposeRegister::R3,
+        GeneralPurposeRegister::R2,
+        B32::from(2),
+    );
+    armv7m.bx(SpecialRegister::Lr);
 }
 ```
 
-Our annotations check that register `r0` has been updated to `ipsr % 32`. Here, `ipsr` is a sub register of the `psr` (Program Status Register) and is computed as `psr & 0xff`.
-
-These are non trivial operations in the sense that they say more than "I can move a value into a register". Hopefully, this motivates the fact that our framework will eventually be able to reason about complex programs.
+This spec effectively says, "The proper bit (meaning the bit specified by the exception number in the ispr) in NVIC ISPR and ICER are set". Below are details on our implementation.
 
 ## General Framework
 
@@ -313,7 +428,7 @@ Here we update register `r0` with immediate value `0`, and `r1` with immediate v
 
 1. Ensure that our emulation has semantics that are exactly the same as the hardware spec.
     - Certain ops need to be implemented fully (i.e. flag updates and other side effects)
-2. Verify the actual ARMv7 interrupt service routine for tock
-    - This has been a challenge because of performance issues with Z3 and bitvectors. However, our refactor to use the `B32` should help quite a bit.
-3. Encode register modes & exception handling for Arm.
+2. Encode register modes & exception handling for Arm.
     - This is important for our ISR reasoning as we need to reason about arbitrary processes being pre-empted by an interrupt
+3. Work on ARMv6m and Risc-V 
+    -
