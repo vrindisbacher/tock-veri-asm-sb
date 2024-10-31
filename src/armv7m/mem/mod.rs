@@ -23,7 +23,7 @@
 // NVIC	0xE000E100-0xE000ECFF	External interrupt controller, see Nested Vectored Interrupt Controller, NVIC
 // MPU	0xE000ED90-0xE000EDEF	Memory Protection Unit, see Protected Memory System Architecture, PMSAv7
 
-pub type Mem = Regs<u32, u32>;
+pub type Mem = Regs<u32, B32>;
 
 const PPB_START: u32 = 0xE000_0000;
 const PPB_END: u32 = 0xE00F_FFFF;
@@ -58,23 +58,23 @@ use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
 use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
 use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
 
-use crate::flux_support::rmap::Regs;
+use crate::flux_support::{b32::B32, rmap::Regs};
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    mem: Map<int, int>
+    mem: Map<int, B32>
 )]
 pub struct Memory {
-    #[field(Regs<u32, u32>[mem])]
+    #[field(Regs<u32, B32>[mem])]
     mem: Mem,
 }
 
 impl Memory {
     #[flux_rs::sig(
-        fn (&Memory[@mem], u32[@addr]) -> u32[get_mem_addr(addr, mem)] 
+        fn (&Memory[@mem], u32[@addr]) -> B32[get_mem_addr(addr, mem)] 
             requires is_valid_read_addr(addr) 
     )]
-    pub fn read(&self, address: u32) -> u32 {
+    pub fn read(&self, address: u32) -> B32 {
         match address {
             PPB_START..=PPB_END => {
                 if !(is_valid_mpu_read_addr(address)
@@ -91,11 +91,11 @@ impl Memory {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Memory[@old_mem], u32[@addr], u32[@val]) 
+        fn (self: &strg Memory[@old_mem], u32[@addr], B32[@val]) 
             requires is_valid_write_addr(addr)
             ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, val) }
     )]
-    pub fn write(&mut self, address: u32, value: u32) {
+    pub fn write(&mut self, address: u32, value: B32) {
         match address {
             PPB_START..=PPB_END => {
                 if !(is_valid_mpu_write_addr(address)

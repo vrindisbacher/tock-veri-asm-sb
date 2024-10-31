@@ -1,6 +1,6 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
+use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
-use super::{super::Armv7m, utils::sub};
+use super::super::Armv7m;
 impl Armv7m {
     // Sub Immediate (see p. A7-402 of the manual)
     //
@@ -17,13 +17,11 @@ impl Armv7m {
     //      APSR.C = carry;
     //      APSR.V = overflow;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@val1], u32[@val2]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@val1], B32[@val2]) 
         ensures self: Armv7m 
             { 
                  new_cpu: 
-                     general_purpose_register_updated(reg, old_cpu, new_cpu, 
-                                                           //wrapping_add_u32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
-                                                           wrapping_add_u32(get_general_purpose_reg(val1, old_cpu), negated(val2)))
+                     general_purpose_register_updated(reg, old_cpu, new_cpu, bv_sub(get_general_purpose_reg(val1, old_cpu), val2))
                      &&
                      old_cpu.special_regs == new_cpu.special_regs
                      &&
@@ -34,7 +32,7 @@ impl Armv7m {
         &mut self,
         register: GeneralPurposeRegister,
         value1: GeneralPurposeRegister,
-        value2: u32,
+        value2: B32,
     ) {
         // Corresponds to encoding T3 of Sub immediate:
         //
@@ -49,7 +47,7 @@ impl Armv7m {
 
         // VTOCK TODO: Inspect ThumbExpandImm (same as ThumbExpandImm_C ignoring the carry flag)
         let val1 = self.get_value_from_general_reg(&value1);
-        let res = sub(val1, value2, 1);
-        self.update_general_reg_with_u32(register, res);
+        let res = val1 - value2;
+        self.update_general_reg_with_b32(register, res);
     }
 }

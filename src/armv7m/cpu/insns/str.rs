@@ -1,6 +1,4 @@
-use crate::armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister};
-
-use super::utils::shift_left;
+use crate::{armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister}, flux_support::b32::B32};
 
 impl Armv7m {
     // Str (register) (w) with a LSL (see p. A7-388 in the manual)
@@ -24,23 +22,34 @@ impl Armv7m {
             GeneralPurposeRegister[@reg_to_store], 
             GeneralPurposeRegister[@reg_base], 
             GeneralPurposeRegister[@reg_offset], 
-            u32[@shift]
+            B32[@shift]
         ) 
         requires 
             is_valid_write_addr(
-                get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                to_int(
+                    bv_add(
+                        get_general_purpose_reg(reg_base, old_cpu), 
+                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                    )
+                )
             )
         ensures self: Armv7m { 
-            new_cpu: mem_value_updated(
-                        get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                        old_cpu.mem,
-                        new_cpu.mem, 
-                        get_general_purpose_reg(reg_to_store, old_cpu)
-                     )
-                    &&
-                    old_cpu.special_regs == new_cpu.special_regs
-                    &&
-                    old_cpu.general_regs == new_cpu.general_regs
+            new_cpu: 
+                mem_value_updated(
+                    to_int(
+                        bv_add(
+                            get_general_purpose_reg(reg_base, old_cpu),
+                            left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                        )
+                    ),
+                    old_cpu.mem,
+                    new_cpu.mem, 
+                    get_general_purpose_reg(reg_to_store, old_cpu)
+                 )
+                &&
+                old_cpu.special_regs == new_cpu.special_regs
+                &&
+                old_cpu.general_regs == new_cpu.general_regs
         }
     )]
     pub fn strw_lsl_reg(
@@ -48,7 +57,7 @@ impl Armv7m {
         register_to_str: GeneralPurposeRegister,
         base_reg: GeneralPurposeRegister,
         offset_reg: GeneralPurposeRegister,
-        shift: u32,
+        shift: B32,
     ) {
         // Corresponds to encoding T2 of Str (register)
         //
@@ -59,21 +68,21 @@ impl Armv7m {
         //  index = TRUE; add = TRUE; wback = FALSE;
         //  (shift_t, shift_n) = (SRType_LSL, UInt(imm2));
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
-        let offset = shift_left(self.get_value_from_general_reg(&offset_reg), shift);
-        let addr = self.get_value_from_general_reg(&base_reg) + offset;
+        let offset = self.get_value_from_general_reg(&offset_reg) << shift;
+        let addr = (self.get_value_from_general_reg(&base_reg) + offset).into();
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
     }
 
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
-            u32[@val],
+            B32[@val],
             GeneralPurposeRegister[@reg_base], 
         ) 
-        requires is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
+        requires is_valid_write_addr(to_int(get_general_purpose_reg(reg_base, old_cpu)))
         ensures self: Armv7m { 
             new_cpu: mem_value_updated(
-                        get_general_purpose_reg(reg_base, old_cpu),
+                        to_int(get_general_purpose_reg(reg_base, old_cpu)),
                         old_cpu.mem,
                         new_cpu.mem, 
                         val
@@ -83,8 +92,8 @@ impl Armv7m {
 
         }
     )]
-    pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {
-        let addr = self.get_value_from_general_reg(&addr);
+    pub fn str_direct(&mut self, value: B32, addr: GeneralPurposeRegister) {
+        let addr = self.get_value_from_general_reg(&addr).into();
         self.mem.write(addr, value);
     }
 }

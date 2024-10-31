@@ -1,6 +1,6 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
+use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
-use super::{super::Armv7m, utils::and};
+use super::super::Armv7m;
 
 impl Armv7m {
     // And Immediate (see p. A7-200 of the manual)
@@ -20,7 +20,7 @@ impl Armv7m {
     //          APSR.C = carry;
     //          // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
                 general_purpose_register_updated(reg, old_cpu, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
@@ -30,7 +30,7 @@ impl Armv7m {
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn and_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
+    pub fn and_imm(&mut self, register: GeneralPurposeRegister, value: B32) {
         // Corresponds to encoding T1 of And immediate (VTOCK TODO: Inspect why there is no .W
         // option?)
         //
@@ -46,7 +46,7 @@ impl Armv7m {
         // VTOCK TODO:
         // Look at ThumbExpandImm_C
         let val1 = self.get_value_from_general_reg(&register);
-        let res = and(val1, value);
-        self.update_general_reg_with_u32(register, res);
+        let res = val1 & value; 
+        self.update_general_reg_with_b32(register, res);
     }
 }
