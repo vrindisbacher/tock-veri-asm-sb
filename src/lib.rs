@@ -104,7 +104,7 @@ mod arm_isr {
         armv7m.and_imm(GeneralPurposeRegister::R0, B32::from(31));
         // r0 = r3 << r0
         //      -     -
-        //      1     (ipsr & 31)
+        //      1     (ipsr - 16 & 31)
         armv7m.lslw_reg(
             GeneralPurposeRegister::R0,
             GeneralPurposeRegister::R3,
@@ -115,9 +115,9 @@ mod arm_isr {
         //
         // Gonna encode this as a pseudo instruction for now
         armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e180));
-        // r0 = 1 << (ipsr & 31)
+        // r0 = 1 << (ipsr - 16 & 31)
         // r3 = 0xe000_e180
-        // r2 = (ipsr >> 5) 
+        // r2 = (ipsr - 16 >> 5) 
         armv7m.strw_lsl_reg(
             GeneralPurposeRegister::R0,
             GeneralPurposeRegister::R3,
@@ -129,11 +129,11 @@ mod arm_isr {
         //
         // Gonna encode this as a pseudo instruction for now
         armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e200));
-        // r0 = 1 << (ipsr & 31)
+        // r0 = 1 << (ipsr - 16 & 31)
         // r3 = 0xe000_e200
-        // r2 = (ipsr >> 5) << 2
+        // r2 = (ipsr - 16 >> 5) << 2
         //
-        // mem[0xe000_e200] + ((ipsr >> 5) << 2) = (1 << ipsr & 31) i.e. "bit for the ipsr # is set"
+        // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << ipsr - 16 & 31) i.e. "bit for the ipsr # is set"
         armv7m.strw_lsl_reg(
             GeneralPurposeRegister::R0,
             GeneralPurposeRegister::R3,
