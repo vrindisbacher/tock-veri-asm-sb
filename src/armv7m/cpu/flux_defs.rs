@@ -92,9 +92,9 @@ flux_rs::defs! {
         18
     }
 
-    fn nth_bit(val: B32, n: B32) -> B32 {
+    fn nth_bit_is_set(val: B32, n: B32) -> bool {
         // val & (1 << n)
-        bv_and(val, left_shift(bv32(1), n))
+        bv_and(val, left_shift(bv32(1), n)) != bv32(0)
     }
 
     fn right_shift(val: B32, n: B32) -> B32 {
