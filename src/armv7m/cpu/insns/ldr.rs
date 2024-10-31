@@ -20,7 +20,7 @@ impl Armv7m {
     //   else
     //      R[t] = data;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val)
             &&

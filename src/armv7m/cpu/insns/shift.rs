@@ -2,7 +2,6 @@ use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
 use super::{
     super::Armv7m,
-    utils::{get_nth_bit, shift_left, shift_right},
 };
 
 impl Armv7m {

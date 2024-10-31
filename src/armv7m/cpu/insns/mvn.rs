@@ -1,6 +1,6 @@
 use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
-use super::{super::Armv7m, utils::negate};
+use super::super::Armv7m;
 
 impl Armv7m {
     // Move (not) Immediate (word) (see p. A7-304 of the manual)
@@ -21,7 +21,7 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, negated(val))
+                general_purpose_register_updated(reg, old_cpu, new_cpu, bv_not(val))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&

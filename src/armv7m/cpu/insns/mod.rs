@@ -9,4 +9,3 @@ mod mvn;
 mod shift;
 mod str;
 mod sub;
-pub(crate) mod utils;

@@ -23,11 +23,15 @@ flux_rs::defs! {
 #[flux_rs::refined_by(x: bitvec<32>)]
 pub struct B32(u32);
 
+#[flux_rs::trusted]
+#[flux_rs::sig(fn (u32[@x]) -> B32[bv32(x)])]
 pub const fn from(x: u32) -> B32 {
     B32(x)
 }
 
 impl B32 {
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (B32[@x], B32[@y]) -> B32[bv_add(x, y)])]
     pub fn wrapping_add(self, other: B32) -> B32 {
         B32(self.0.wrapping_add(other.0))
     }
@@ -53,7 +57,7 @@ impl Not for B32 {
     type Output = B32;
 
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (B32[@x]) -> B32[not(x)])]
+    #[flux_rs::sig(fn (B32[@x]) -> B32[bv_not(x)])]
     fn not(self) -> B32 {
         B32(!self.0)
     }
@@ -102,6 +106,8 @@ impl Shr for B32 {
 impl Add for B32 {
     type Output = B32;
 
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (B32[@val1], B32[@val2]) -> B32[bv_add(val1, val2)])]
     fn add(self, rhs: Self) -> B32 {
         B32(self.0 + rhs.0)
     }
@@ -110,20 +116,19 @@ impl Add for B32 {
 impl Sub for B32 {
     type Output = B32;
 
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (B32[@val1], B32[@val2]) -> B32[bv_sub(val1, val2)])]
     fn sub(self, rhs: Self) -> B32 {
-        B32(self.0 - rhs.0)
+        B32(self.0.wrapping_add(!rhs.0))
     }
 }
 
 impl Rem for B32 {
     type Output = B32;
 
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (B32[@val1], B32[@val2]) -> B32[bv_urem(val1, val2)])]
     fn rem(self, rhs: Self) -> B32 {
-        B32(self.0 % rhs.0)
+        B32(self.0 & rhs.0)
     }
-}
-
-#[flux_rs::sig(fn (u32[@x], u32[@y]) -> u32[int(not(and(bv32(x), bv32(y))))])]
-fn some_bitwise_op(x: u32, y: u32) -> u32 {
-    (!(B32::from(x) & B32::from(y))).into()
 }

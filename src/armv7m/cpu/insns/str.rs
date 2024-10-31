@@ -1,7 +1,5 @@
 use crate::{armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister}, flux_support::b32::B32};
 
-use super::utils::shift_left;
-
 impl Armv7m {
     // Str (register) (w) with a LSL (see p. A7-388 in the manual)
     //
@@ -28,19 +26,26 @@ impl Armv7m {
         ) 
         requires 
             is_valid_write_addr(
-                get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                bv_add(
+                    get_general_purpose_reg(reg_base, old_cpu), 
+                    left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                )
             )
         ensures self: Armv7m { 
-            new_cpu: mem_value_updated(
-                        get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                        old_cpu.mem,
-                        new_cpu.mem, 
-                        get_general_purpose_reg(reg_to_store, old_cpu)
-                     )
-                    &&
-                    old_cpu.special_regs == new_cpu.special_regs
-                    &&
-                    old_cpu.general_regs == new_cpu.general_regs
+            new_cpu: 
+                mem_value_updated(
+                    bv_add(
+                        get_general_purpose_reg(reg_base, old_cpu),
+                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                    ), 
+                    old_cpu.mem,
+                    new_cpu.mem, 
+                    get_general_purpose_reg(reg_to_store, old_cpu)
+                 )
+                &&
+                old_cpu.special_regs == new_cpu.special_regs
+                &&
+                old_cpu.general_regs == new_cpu.general_regs
         }
     )]
     pub fn strw_lsl_reg(

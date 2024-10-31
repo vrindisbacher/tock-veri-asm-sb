@@ -1,6 +1,6 @@
 use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
-use super::{super::Armv7m, utils::and};
+use super::super::Armv7m;
 
 impl Armv7m {
     // And Immediate (see p. A7-200 of the manual)

@@ -1,3 +1,5 @@
+use crate::flux_support::b32::*;
+
 use super::mpu;
 use super::nvic;
 use super::sys_control;
@@ -10,6 +12,7 @@ use super::{
 };
 
 pub mod mpu_defs {
+    use crate::flux_support::b32::*;
     use super::mpu::{
         MPU_CTRL_ADDR, MPU_RASR_A1_ADDR, MPU_RASR_A2_ADDR, MPU_RASR_A3_ADDR, MPU_RASR_ADDR,
         MPU_RBAR_A1_ADDR, MPU_RBAR_A2_ADDR, MPU_RBAR_A3_ADDR, MPU_RBAR_ADDR, MPU_RNR_ADDR,
@@ -50,6 +53,7 @@ pub mod mpu_defs {
 
 pub mod sys_tick_defs {
 
+    use crate::flux_support::b32::*;
     use super::sys_tick::{SYST_CALIB_ADDR, SYST_CSR_ADDR, SYST_CVR_ADDR, SYST_RVR_ADDR};
 
     flux_rs::defs! {
@@ -72,6 +76,8 @@ pub mod sys_tick_defs {
 }
 
 pub mod sys_control_block_defs {
+
+    use crate::flux_support::b32::*;
     use super::sys_control::{
         AFSR_ADDR, AIRCR_ADDR, BFAR_ADDR, CCR_ADDR, CFSR_ADDR, CPACR_ADDR, CPUID_ADDR, DFSR_ADDR,
         HFSR_ADDR, ICSR_ADDR, MMFAR_ADDR, SCR_ADDR, SHCSR_ADDR, SHPR1_ADDR, SHPR2_ADDR, SHPR3_ADDR,
@@ -123,6 +129,8 @@ pub mod sys_control_block_defs {
 }
 
 pub mod sys_control_id_reg_defs {
+
+    use crate::flux_support::b32::*;
     use super::sys_control::{
         ACTLR_ADDR, CID0_ADDR, CID1_ADDR, CID2_ADDR, CID3_ADDR, ICTR_ADDR, PID0_ADDR, PID1_ADDR,
         PID2_ADDR, PID3_ADDR, PID4_ADDR, PID5_ADDR, PID6_ADDR, PID7_ADDR, STIR_ADDR,
@@ -155,6 +163,8 @@ pub mod sys_control_id_reg_defs {
 }
 
 pub mod sys_control_space_defs {
+
+    use crate::flux_support::b32::*;
     use super::sys_control::{
         ACTLR_ADDR, AFSR_ADDR, AIRCR_ADDR, BFAR_ADDR, CCR_ADDR, CFSR_ADDR, CID0_ADDR, CID1_ADDR,
         CID2_ADDR, CID3_ADDR, CPACR_ADDR, CPUID_ADDR, DFSR_ADDR, HFSR_ADDR, ICSR_ADDR, ICTR_ADDR,
@@ -176,6 +186,8 @@ pub mod sys_control_space_defs {
 }
 
 pub mod nvic_defs {
+
+    use crate::flux_support::b32::*;
     use super::nvic::{
         IABR_END, IABR_START, ICER_END, ICER_START, ICPR_END, ICPR_START, IPR_END, IPR_START,
         ISER_END, ISER_START, ISPR_END, ISPR_START,
@@ -188,17 +200,17 @@ pub mod nvic_defs {
             // all addresses are read / write as long as they are 4 byte aligned
             fn is_valid_nvic_addr(address: B32) -> bool {
                 if (address >= ISER_START && address <= ISER_END) {
-                   (address - ISER_START) % bv32(4) == 0
+                   bv_urem(address - ISER_START, bv32(4)) == bv32(0)
                 } else if (address >= ICER_START && address <= ICER_END) {
-                    (address - ICER_START) % bv32(4) == 0
+                    bv_urem(address - ICER_START, bv32(4)) == bv32(0)
                 } else if (address >= ISPR_START && address <= ISPR_END) {
-                    (address - ISPR_START) % bv32(4) == 0
+                    bv_urem(address - ISPR_START, bv32(4)) == bv32(0)
                 } else if (address >= ICPR_START && address <= ICPR_END) {
-                    (address - ICPR_START) % bv32(4) == 0
+                    bv_urem(address - ICPR_START, bv32(4)) == bv32(0)
                 } else if (address >= IABR_START && address <= IABR_END) {
-                    (address - IABR_START) % bv32(4) == 0
+                    bv_urem(address - IABR_START, bv32(4)) == bv32(0)
                 } else if (address >= IPR_START && address <= IPR_END) {
-                    (address - IPR_START) % bv32(4) == 0
+                    bv_urem(address - IPR_START, bv32(4)) == bv32(0)
                 } else {
                     false
                 }

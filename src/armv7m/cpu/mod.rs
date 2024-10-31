@@ -7,7 +7,6 @@ use super::mem::Memory;
 use crate::flux_support::b32::B32;
 use crate::flux_support::rmap::Regs;
 use flux_defs::*;
-use insns::utils::get_nth_bit;
 
 pub type ArmGeneralRegs = Regs<GeneralPurposeRegister, B32>;
 pub type ArmSpecialRegs = Regs<SpecialRegister, B32>;

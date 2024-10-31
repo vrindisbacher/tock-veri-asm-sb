@@ -1,6 +1,6 @@
 use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
-use super::{super::Armv7m, utils::sub};
+use super::super::Armv7m;
 impl Armv7m {
     // Sub Immediate (see p. A7-402 of the manual)
     //
@@ -21,9 +21,7 @@ impl Armv7m {
         ensures self: Armv7m 
             { 
                  new_cpu: 
-                     general_purpose_register_updated(reg, old_cpu, new_cpu, 
-                                                           //wrapping_add_B32_with_carry(get_general_purpose_reg(val1, old_cpu), negated(val2), 1))
-                                                           wrapping_add_B32(get_general_purpose_reg(val1, old_cpu), negated(val2)))
+                     general_purpose_register_updated(reg, old_cpu, new_cpu, bv_sub(get_general_purpose_reg(val1, old_cpu), val2))
                      &&
                      old_cpu.special_regs == new_cpu.special_regs
                      &&
@@ -49,7 +47,7 @@ impl Armv7m {
 
         // VTOCK TODO: Inspect ThumbExpandImm (same as ThumbExpandImm_C ignoring the carry flag)
         let val1 = self.get_value_from_general_reg(&value1);
-        let res = sub(val1, value2, B32::from(1));
+        let res = val1 - value2;
         self.update_general_reg_with_b32(register, res);
     }
 }

@@ -1,21 +1,28 @@
 use super::Armv7m;
 use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
+use crate::flux_support::b32::*;
 use crate::flux_support::rmap::*;
 
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
-    fn get_general_purpose_reg(reg: B32, cpu: Armv7m) -> B32 {
+    fn bv32(x: int) -> B32 { 
+        bv_int_to_bv32(x) 
+    }
+    
+    fn to_int(x: B32) -> int { bv_bv32_to_int(x) }
+
+    fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> B32 {
         map_get(cpu.general_regs, reg)
     }
 
-    fn general_purpose_register_updated(reg: B32, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
+    fn general_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
         map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
     }
 
-    fn get_special_reg(reg: B32, cpu: Armv7m) -> B32 {
+    fn get_special_reg(reg: int, cpu: Armv7m) -> B32 {
         if is_ipsr(reg) {
-            bv_bv32_to_B32(bv_and(bv32(map_get(cpu.special_regs, psr())), bv32(0xff)))
+            bv_and(map_get(cpu.special_regs, psr()), bv32(0xff))
         } else {
             map_get(cpu.special_regs, reg)
         }
@@ -25,114 +32,83 @@ flux_rs::defs! {
         get_special_reg(psr(), cpu)
     }
 
-    fn special_purpose_register_updated(reg: B32, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
+    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
         map_set(old_cpu.special_regs, reg, val) == new_cpu.special_regs
     }
 
-    fn is_ipsr(reg: B32) -> bool {
+    fn is_ipsr(reg: int) -> bool {
         reg == 18
     }
 
-    fn is_pc(reg: B32) -> bool {
+    fn is_pc(reg: int) -> bool {
         reg == 15
     }
 
-    fn is_lr(reg: B32) -> bool {
+    fn is_lr(reg: int) -> bool {
         reg == 14
     }
 
-    fn is_sp(reg: B32) -> bool {
+    fn is_sp(reg: int) -> bool {
         reg == 13
     }
 
-    fn is_control(reg: B32) -> bool {
+    fn is_control(reg: int) -> bool {
         reg == 16
     }
 
-    fn r0() -> B32 {
+    fn r0() -> int {
         0
     }
 
-    fn r1() -> B32 {
+    fn r1() -> int {
         1
     }
 
-    fn r2() -> B32 {
+    fn r2() -> int {
         2
     }
 
-    fn r3() -> B32 {
+    fn r3() -> int {
         3
     }
 
-    fn r4() -> B32 {
+    fn r4() -> int {
         4
     }
 
-    fn lr() -> B32 {
+    fn lr() -> int {
         14
     }
 
-    fn control() -> B32 {
+    fn control() -> int {
         16
     }
 
-    fn psr() -> B32 {
+    fn psr() -> int {
         17
     }
 
-    fn ipsr() -> B32 {
+    fn ipsr() -> int {
         18
     }
 
-    fn bv32(x:B32) -> bitvec<32> { bv_B32_to_bv32(x) }
-
     fn nth_bit(val: B32, n: B32) -> B32 {
         // val & (1 << n)
-        bv_bv32_to_B32(bv_and(bv32(val), left_shift_bv32(1, n)))
-    }
-
-    fn right_shift_bv32(val: B32, n: B32) -> bitvec<32> {
-        bv_lshr(bv32(val), bv32(n))
+        bv_and(val, left_shift(bv32(1), n))
     }
 
     fn right_shift(val: B32, n: B32) -> B32 {
         // right shift
-        bv_bv32_to_B32(right_shift_bv32(val, n))
-    }
-
-    fn left_shift_bv32(val: B32, n: B32) -> bitvec<32> {
-        bv_shl(bv32(val), bv32(n))
+        bv_lshr(val, n)
     }
 
     fn left_shift(val: B32, n: B32) -> B32 {
         // shift left
-        bv_bv32_to_B32(left_shift_bv32(val, n))
+        bv_shl(val, n)
     }
 
-    // 0 being the least significant bit, 31 the most significant
-    fn nth_bit_is_set(val: B32, n: B32) -> bool {
-        nth_bit(val, n) == 1
-    }
-
-    fn nth_bit_is_unset(val: B32, n: B32) -> bool {
-        nth_bit(val, n) == 0
-    }
-
-    fn negated(val: B32) -> B32 {
-        bv_bv32_to_B32(bv_not(bv32(val)))
-    }
-
-    fn and(val1: B32, val2: B32) -> B32 {
-        bv_bv32_to_B32(bv_and(bv32(val1), bv32(val2)))
-    }
-
-    fn or(val1: B32, val2: B32) -> B32 {
-        bv_bv32_to_B32(bv_or(bv32(val1), bv32(val2)))
-    }
-
-    fn wrapping_add_u32(val1: B32, val2: B32) -> B32 {
-        if bv_add(val1, val2) > U32_MAX {
+    fn wrapping_add_u32(val1: int, val2: int) -> int {
+        if val1 + val2 > U32_MAX {
             val1 + val2 % U32_MAX
         } else {
             val1 + val2
