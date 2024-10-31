@@ -23,28 +23,28 @@
 // NVIC	0xE000E100-0xE000ECFF	External interrupt controller, see Nested Vectored Interrupt Controller, NVIC
 // MPU	0xE000ED90-0xE000EDEF	Memory Protection Unit, see Protected Memory System Architecture, PMSAv7
 
-pub type Mem = Regs<B32, B32>;
+pub type Mem = Regs<u32, B32>;
 
-const PPB_START: B32 = from(0xE000_0000);
-const PPB_END: B32 = from(0xE00F_FFFF);
+const PPB_START: u32 = 0xE000_0000;
+const PPB_END: u32 = 0xE00F_FFFF;
 
-const INTERRUPT_AUXILIARY_CONTROL_REGISTER_START: B32 = from(0xE000_E000);
-const INTERRUPT_AUXILIARY_CONTROL_REGISTER_END: B32 = from(0xE000_E00F);
+const INTERRUPT_AUXILIARY_CONTROL_REGISTER_START: u32 = 0xE000_E000;
+const INTERRUPT_AUXILIARY_CONTROL_REGISTER_END: u32 = 0xE000_E00F;
 
-const SYSTEM_CONTROL_BLOCK_START: B32 = from(0xE000_ED00);
-const SYSTEM_CONTROL_BLOCK_END: B32 = from(0xE000_ED8F);
+const SYSTEM_CONTROL_BLOCK_START: u32 = 0xE000_ED00;
+const SYSTEM_CONTROL_BLOCK_END: u32 = 0xE000_ED8F;
 
-const SW_TRIGGER_INTERRUPT_REG_START: B32 = from(0xE000EF00);
-const SW_TRIGGER_INTERRUPT_REG_END: B32 = from(0xE000EF8F);
+const SW_TRIGGER_INTERRUPT_REG_START: u32 = 0xE000EF00;
+const SW_TRIGGER_INTERRUPT_REG_END: u32 = 0xE000EF8F;
 
-const SYS_TICK_START: B32 = from(0xE000E010);
-const SYS_TICK_END: B32 = from(0xE000E0FF);
+const SYS_TICK_START: u32 = 0xE000E010;
+const SYS_TICK_END: u32 = 0xE000E0FF;
 
-const NVIC_START: B32 = from(0xE000E100);
-const NVIC_END: B32 = from(0xE000ECFF);
+const NVIC_START: u32 = 0xE000E100;
+const NVIC_END: u32 = 0xE000ECFF;
 
-const MPU_START: B32 = from(0xE000ED90);
-const MPU_END: B32 = from(0xE000EDEF);
+const MPU_START: u32 = 0xE000ED90;
+const MPU_END: u32 = 0xE000EDEF;
 
 pub mod flux_defs;
 mod mpu;
@@ -58,54 +58,56 @@ use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
 use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
 use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
 
-use crate::flux_support::{b32::{from, B32}, rmap::Regs};
+use crate::flux_support::{b32::B32, rmap::Regs};
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    mem: Map<B32, B32>
+    mem: Map<int, B32>
 )]
 pub struct Memory {
-    #[field(Regs<B32, B32>[mem])]
+    #[field(Regs<u32, B32>[mem])]
     mem: Mem,
 }
 
 impl Memory {
     #[flux_rs::sig(
-        fn (&Memory[@mem], B32[@addr]) -> B32[get_mem_addr(addr, mem)] 
+        fn (&Memory[@mem], u32[@addr]) -> B32[get_mem_addr(addr, mem)] 
             requires is_valid_read_addr(addr) 
     )]
-    pub fn read(&self, address: B32) -> B32 {
-        if address >= PPB_START && address <= PPB_END {
-            if !(is_valid_mpu_read_addr(address)
-                || is_valid_sys_tick_read_addr(address)
-                || is_valid_sys_control_space_read_addr(address)
-                || is_valid_nvic_read_addr(address))
-            {
-                panic!("Read of Invalid PPB address")
+    pub fn read(&self, address: u32) -> B32 {
+        match address {
+            PPB_START..=PPB_END => {
+                if !(is_valid_mpu_read_addr(address)
+                    || is_valid_sys_tick_read_addr(address)
+                    || is_valid_sys_control_space_read_addr(address)
+                    || is_valid_nvic_read_addr(address))
+                {
+                    panic!("Read of Invalid PPB address")
+                }
+                *self.mem.get(&address).unwrap()
             }
-            *self.mem.get(&address).unwrap()
-        } else {
-            panic!("Read of unknown memory address (only ppb is defined)")
+            _ => panic!("Read of unknown memory address (only ppb is defined)"),
         }
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Memory[@old_mem], B32[@addr], B32[@val]) 
+        fn (self: &strg Memory[@old_mem], u32[@addr], B32[@val]) 
             requires is_valid_write_addr(addr)
             ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, val) }
     )]
-    pub fn write(&mut self, address: B32, value: B32) {
-        if address >= PPB_START && address <= PPB_END {
-            if !(is_valid_mpu_write_addr(address)
-                || is_valid_sys_tick_write_addr(address)
-                || is_valid_sys_control_space_write_addr(address)
-                || is_valid_nvic_write_addr(address))
-            {
-                panic!("Write to Invalid PPB address")
+    pub fn write(&mut self, address: u32, value: B32) {
+        match address {
+            PPB_START..=PPB_END => {
+                if !(is_valid_mpu_write_addr(address)
+                    || is_valid_sys_tick_write_addr(address)
+                    || is_valid_sys_control_space_write_addr(address)
+                    || is_valid_nvic_write_addr(address))
+                {
+                    panic!("Write to Invalid PPB address")
+                }
+                self.mem.set(address, value)
             }
-            self.mem.set(address, value)
-        } else {
-            panic!("Write to unknown memory address (only ppb is defined)")
+            _ => panic!("Write to unknown memory address (only ppb is defined)"),
         }
     }
 }

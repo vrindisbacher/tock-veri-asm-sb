@@ -26,18 +26,22 @@ impl Armv7m {
         ) 
         requires 
             is_valid_write_addr(
-                bv_add(
-                    get_general_purpose_reg(reg_base, old_cpu), 
-                    left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                to_int(
+                    bv_add(
+                        get_general_purpose_reg(reg_base, old_cpu), 
+                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                    )
                 )
             )
         ensures self: Armv7m { 
             new_cpu: 
                 mem_value_updated(
-                    bv_add(
-                        get_general_purpose_reg(reg_base, old_cpu),
-                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
-                    ), 
+                    to_int(
+                        bv_add(
+                            get_general_purpose_reg(reg_base, old_cpu),
+                            left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                        )
+                    ),
                     old_cpu.mem,
                     new_cpu.mem, 
                     get_general_purpose_reg(reg_to_store, old_cpu)
@@ -65,7 +69,7 @@ impl Armv7m {
         //  (shift_t, shift_n) = (SRType_LSL, UInt(imm2));
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
         let offset = self.get_value_from_general_reg(&offset_reg) << shift;
-        let addr = self.get_value_from_general_reg(&base_reg) + offset;
+        let addr = (self.get_value_from_general_reg(&base_reg) + offset).into();
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
     }
@@ -75,10 +79,10 @@ impl Armv7m {
             B32[@val],
             GeneralPurposeRegister[@reg_base], 
         ) 
-        requires is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
+        requires is_valid_write_addr(to_int(get_general_purpose_reg(reg_base, old_cpu)))
         ensures self: Armv7m { 
             new_cpu: mem_value_updated(
-                        get_general_purpose_reg(reg_base, old_cpu),
+                        to_int(get_general_purpose_reg(reg_base, old_cpu)),
                         old_cpu.mem,
                         new_cpu.mem, 
                         val
@@ -89,7 +93,7 @@ impl Armv7m {
         }
     )]
     pub fn str_direct(&mut self, value: B32, addr: GeneralPurposeRegister) {
-        let addr = self.get_value_from_general_reg(&addr);
+        let addr = self.get_value_from_general_reg(&addr).into();
         self.mem.write(addr, value);
     }
 }

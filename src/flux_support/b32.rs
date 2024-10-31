@@ -23,12 +23,6 @@ flux_rs::defs! {
 #[flux_rs::refined_by(x: bitvec<32>)]
 pub struct B32(u32);
 
-#[flux_rs::trusted]
-#[flux_rs::sig(fn (u32[@x]) -> B32[bv32(x)])]
-pub const fn from(x: u32) -> B32 {
-    B32(x)
-}
-
 impl B32 {
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (B32[@x], B32[@y]) -> B32[bv_add(x, y)])]
