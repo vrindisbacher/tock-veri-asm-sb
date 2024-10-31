@@ -30,20 +30,17 @@ impl Armv7m {
             is_valid_write_addr(
                 get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
             )
-            && 
-            (
-                is_valid_nvic_addr(
-                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                ) => is_four_byte_aligned(
-                    get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
-                )
-            )
         ensures self: Armv7m { 
-            new_cpu: check_mem_value_write(
+            new_cpu: mem_value_updated(
                         get_general_purpose_reg(reg_base, old_cpu) + left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift), 
+                        old_cpu.mem,
                         new_cpu.mem, 
                         get_general_purpose_reg(reg_to_store, old_cpu)
                      )
+                    &&
+                    old_cpu.special_regs == new_cpu.special_regs
+                    &&
+                    old_cpu.general_regs == new_cpu.general_regs
         }
     )]
     pub fn strw_lsl_reg(
@@ -73,16 +70,17 @@ impl Armv7m {
             u32[@val],
             GeneralPurposeRegister[@reg_base], 
         ) 
-        requires 
-            is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
-            && 
-            (is_valid_nvic_addr(get_general_purpose_reg(reg_base, old_cpu)) => is_four_byte_aligned(get_general_purpose_reg(reg_base, old_cpu)))
+        requires is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
         ensures self: Armv7m { 
-            new_cpu: check_mem_value_write(
+            new_cpu: mem_value_updated(
                         get_general_purpose_reg(reg_base, old_cpu),
+                        old_cpu.mem,
                         new_cpu.mem, 
                         val
-                     )
+                     ) 
+                    && new_cpu.general_regs == old_cpu.general_regs
+                    && new_cpu.special_regs == old_cpu.special_regs
+
         }
     )]
     pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {

@@ -23,6 +23,8 @@
 // NVIC	0xE000E100-0xE000ECFF	External interrupt controller, see Nested Vectored Interrupt Controller, NVIC
 // MPU	0xE000ED90-0xE000EDEF	Memory Protection Unit, see Protected Memory System Architecture, PMSAv7
 
+pub type Mem = Regs<u32, u32>;
+
 const PPB_START: u32 = 0xE000_0000;
 const PPB_END: u32 = 0xE00F_FFFF;
 
@@ -51,102 +53,60 @@ mod sys_control;
 mod sys_tick;
 
 use flux_defs::*;
-use mpu::{is_valid_mpu_read_addr, is_valid_mpu_write_addr, Mpu};
-use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr, Nvic};
-use sys_control::{
-    is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr, SysControlSpace,
-};
-use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr, SysTick};
+use mpu::{is_valid_mpu_read_addr, is_valid_mpu_write_addr};
+use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
+use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
+use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
+
+use crate::flux_support::rmap::Regs;
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    sys_control: SysControlSpace,
-    sys_tick: SysTick,
-    nvic: Nvic,
-    mpu: Mpu
+    mem: Map<int, int>
 )]
-pub struct Ppb {
-    #[field(SysControlSpace[sys_control])]
-    system_control_space: SysControlSpace,
-
-    #[field(SysTick[sys_tick])]
-    sys_tick: SysTick,
-
-    #[field(Nvic[nvic])]
-    nvic: Nvic,
-
-    #[field(Mpu[mpu])]
-    mpu: Mpu,
-}
-
-impl Ppb {
-    #[flux_rs::sig(
-        fn (&Ppb[@ppb], u32[@addr]) -> u32 {v: check_ppb_value_read(addr, ppb, v) } 
-               requires is_valid_read_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
-    )]
-    pub fn read(&self, address: u32) -> u32 {
-        if is_valid_mpu_read_addr(address) {
-            self.mpu.read(address)
-        } else if is_valid_sys_tick_read_addr(address) {
-            self.sys_tick.read(address)
-        } else if is_valid_sys_control_space_read_addr(address) {
-            self.system_control_space.read(address)
-        } else if is_valid_nvic_read_addr(address) {
-            self.nvic.read(address)
-        } else {
-            panic!("Read of invalid addr")
-        }
-    }
-
-    #[flux_rs::sig(
-        fn (self: &strg Ppb[@ppb], u32[@addr], u32[@val]) 
-            requires is_valid_write_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
-            ensures self: Ppb { new_ppb: check_ppb_value_write(addr, new_ppb, val) }
-    )]
-    pub fn write(&mut self, address: u32, value: u32) {
-        if is_valid_mpu_write_addr(address) {
-            self.mpu.write(address, value);
-        } else if is_valid_sys_tick_write_addr(address) {
-            self.sys_tick.write(address, value);
-        } else if is_valid_sys_control_space_write_addr(address) {
-            self.system_control_space.write(address, value);
-        } else if is_valid_nvic_write_addr(address) {
-            self.nvic.write(address, value);
-        } else {
-            panic!("Read of invalid addr")
-        }
-    }
-}
-
-// VTOCK TODO: Update to use maps so that state is preserved across ops
-
-#[derive(Debug)]
-#[flux_rs::refined_by(ppb: Ppb)]
 pub struct Memory {
-    #[field(Ppb[ppb])]
-    ppb: Ppb,
+    #[field(Regs<u32, u32>[mem])]
+    mem: Mem,
 }
 
 impl Memory {
     #[flux_rs::sig(
-        fn (&Memory[@mem], u32[@addr]) -> u32 { v: check_mem_value_read(addr, mem, v) } 
-            requires is_valid_read_addr(addr) && is_valid_nvic_addr(addr) => is_four_byte_aligned(addr)
+        fn (&Memory[@mem], u32[@addr]) -> u32[get_mem_addr(addr, mem)] 
+            requires is_valid_read_addr(addr) 
     )]
     pub fn read(&self, address: u32) -> u32 {
         match address {
-            PPB_START..=PPB_END => self.ppb.read(address),
+            PPB_START..=PPB_END => {
+                if !(is_valid_mpu_read_addr(address)
+                    || is_valid_sys_tick_read_addr(address)
+                    || is_valid_sys_control_space_read_addr(address)
+                    || is_valid_nvic_read_addr(address))
+                {
+                    panic!("Read of Invalid PPB address")
+                }
+                *self.mem.get(&address).unwrap()
+            }
             _ => panic!("Read of unknown memory address (only ppb is defined)"),
         }
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Memory[@mem], u32[@addr], u32[@val]) 
-            requires is_valid_write_addr(addr) && (is_valid_nvic_addr(addr) => is_four_byte_aligned(addr))
-            ensures self: Memory { new_mem: check_mem_value_write(addr, new_mem, val) }
+        fn (self: &strg Memory[@old_mem], u32[@addr], u32[@val]) 
+            requires is_valid_write_addr(addr)
+            ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, val) }
     )]
     pub fn write(&mut self, address: u32, value: u32) {
         match address {
-            PPB_START..=PPB_END => self.ppb.write(address, value),
+            PPB_START..=PPB_END => {
+                if !(is_valid_mpu_write_addr(address)
+                    || is_valid_sys_tick_write_addr(address)
+                    || is_valid_sys_control_space_write_addr(address)
+                    || is_valid_nvic_write_addr(address))
+                {
+                    panic!("Write to Invalid PPB address")
+                }
+                self.mem.set(address, value)
+            }
             _ => panic!("Write to unknown memory address (only ppb is defined)"),
         }
     }

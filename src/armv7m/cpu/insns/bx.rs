@@ -1,4 +1,4 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
+use crate::armv7m::lang::SpecialRegister;
 
 use super::super::Armv7m;
 
@@ -28,12 +28,12 @@ impl Armv7m {
     }
 
     // #[flux_rs::trusted]
-    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], GeneralPurposeRegister[@reg]) ensures self: Armv7m)]
-    pub fn bx(&mut self, register: GeneralPurposeRegister) {
+    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], SpecialRegister[@reg]) ensures self: Armv7m)]
+    pub fn bx(&mut self, register: SpecialRegister) {
         // Corresponds to Encoding T1
         //
         // Which is simply as BxWritePc op
-        let addr = self.get_value_from_general_reg(&register);
+        let addr = self.get_value_from_special_reg(&register);
         self.bx_write_pc(addr);
     }
 }

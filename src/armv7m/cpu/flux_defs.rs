@@ -57,6 +57,26 @@ flux_rs::defs! {
         1
     }
 
+    fn r2() -> int {
+        2
+    }
+
+    fn r3() -> int {
+        3
+    }
+
+    fn r4() -> int {
+        4
+    }
+
+    fn lr() -> int {
+        14
+    }
+
+    fn control() -> int {
+        16
+    }
+
     fn psr() -> int {
         17
     }

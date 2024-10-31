@@ -22,7 +22,12 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
+            new_cpu: 
+                general_purpose_register_updated(reg, old_cpu, new_cpu, and(get_general_purpose_reg(reg, old_cpu), val))
+                &&
+                old_cpu.special_regs == new_cpu.special_regs
+                &&
+                old_cpu.mem == new_cpu.mem
         }
     )]
     pub fn and_imm(&mut self, register: GeneralPurposeRegister, value: u32) {

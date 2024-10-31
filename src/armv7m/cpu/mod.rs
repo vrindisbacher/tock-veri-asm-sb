@@ -57,7 +57,7 @@ pub struct Armv7m {
     pub special_regs: ArmSpecialRegs,
     // Memory
     #[field(Memory[mem])]
-    mem: Memory,
+    pub mem: Memory,
 }
 
 impl Armv7m {
@@ -69,7 +69,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], u32[@val])
-            ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) }
+            ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.general_regs == old_cpu.general_regs && new_cpu.mem == old_cpu.mem }
     )]
     fn update_special_reg_with_u32(&mut self, register: SpecialRegister, value: u32) {
         self.special_regs.set(register, value);
@@ -77,7 +77,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
-            ensures self: Armv7m { new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) }
+            ensures self: Armv7m { new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
     )]
     fn update_general_reg_with_u32(&mut self, register: GeneralPurposeRegister, value: u32) {
         self.general_regs.set(register, value);
