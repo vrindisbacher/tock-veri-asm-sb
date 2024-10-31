@@ -19,47 +19,50 @@
 // 0xE000EDF0 - 0xE000EEFC	-	-	-	See Debug register support in the SCS
 //
 
+use crate::flux_support::b32::from;
+use crate::flux_support::b32::B32;
+
 use super::flux_defs::sys_control_block_defs::*;
 use super::flux_defs::sys_control_id_reg_defs::*;
 
 // System Control Block Addresses
-pub const CPUID_ADDR: u32 = 0xE000ED00;
-pub const ICSR_ADDR: u32 = 0xE000ED04;
-pub const VTOR_ADDR: u32 = 0xE000ED08;
-pub const AIRCR_ADDR: u32 = 0xE000ED0C;
-pub const SCR_ADDR: u32 = 0xE000ED10;
-pub const CCR_ADDR: u32 = 0xE000ED14;
-pub const SHPR1_ADDR: u32 = 0xE000ED18;
-pub const SHPR2_ADDR: u32 = 0xE000ED1C;
-pub const SHPR3_ADDR: u32 = 0xE000ED20;
-pub const SHCSR_ADDR: u32 = 0xE000ED24;
-pub const CFSR_ADDR: u32 = 0xE000ED28;
-pub const HFSR_ADDR: u32 = 0xE000ED2C;
-pub const DFSR_ADDR: u32 = 0xE000ED30;
-pub const MMFAR_ADDR: u32 = 0xE000ED34;
-pub const BFAR_ADDR: u32 = 0xE000ED38;
-pub const AFSR_ADDR: u32 = 0xE000ED3C;
-pub const CPACR_ADDR: u32 = 0xE000ED88;
+pub const CPUID_ADDR: B32 = from(0xE000ED00);
+pub const ICSR_ADDR: B32 = from(0xE000ED04);
+pub const VTOR_ADDR: B32 = from(0xE000ED08);
+pub const AIRCR_ADDR: B32 = from(0xE000ED0C);
+pub const SCR_ADDR: B32 = from(0xE000ED10);
+pub const CCR_ADDR: B32 = from(0xE000ED14);
+pub const SHPR1_ADDR: B32 = from(0xE000ED18);
+pub const SHPR2_ADDR: B32 = from(0xE000ED1C);
+pub const SHPR3_ADDR: B32 = from(0xE000ED20);
+pub const SHCSR_ADDR: B32 = from(0xE000ED24);
+pub const CFSR_ADDR: B32 = from(0xE000ED28);
+pub const HFSR_ADDR: B32 = from(0xE000ED2C);
+pub const DFSR_ADDR: B32 = from(0xE000ED30);
+pub const MMFAR_ADDR: B32 = from(0xE000ED34);
+pub const BFAR_ADDR: B32 = from(0xE000ED38);
+pub const AFSR_ADDR: B32 = from(0xE000ED3C);
+pub const CPACR_ADDR: B32 = from(0xE000ED88);
 
 // ID Reg
-pub const ICTR_ADDR: u32 = 0xE000E004;
-pub const ACTLR_ADDR: u32 = 0xE000E008;
-pub const STIR_ADDR: u32 = 0xE000EF00;
-pub const PID4_ADDR: u32 = 0xE000EFD0;
-pub const PID5_ADDR: u32 = 0xE000EFD4;
-pub const PID6_ADDR: u32 = 0xE000EFD8;
-pub const PID7_ADDR: u32 = 0xE000EFDC;
-pub const PID0_ADDR: u32 = 0xE000EFE0;
-pub const PID1_ADDR: u32 = 0xE000EFE4;
-pub const PID2_ADDR: u32 = 0xE000EFE8;
-pub const PID3_ADDR: u32 = 0xE000EFEC;
-pub const CID0_ADDR: u32 = 0xE000EFF0;
-pub const CID1_ADDR: u32 = 0xE000EFF4;
-pub const CID2_ADDR: u32 = 0xE000EFF8;
-pub const CID3_ADDR: u32 = 0xE000EFFC;
+pub const ICTR_ADDR: B32 = from(0xE000E004);
+pub const ACTLR_ADDR: B32 = from(0xE000E008);
+pub const STIR_ADDR: B32 = from(0xE000EF00);
+pub const PID4_ADDR: B32 = from(0xE000EFD0);
+pub const PID5_ADDR: B32 = from(0xE000EFD4);
+pub const PID6_ADDR: B32 = from(0xE000EFD8);
+pub const PID7_ADDR: B32 = from(0xE000EFDC);
+pub const PID0_ADDR: B32 = from(0xE000EFE0);
+pub const PID1_ADDR: B32 = from(0xE000EFE4);
+pub const PID2_ADDR: B32 = from(0xE000EFE8);
+pub const PID3_ADDR: B32 = from(0xE000EFEC);
+pub const CID0_ADDR: B32 = from(0xE000EFF0);
+pub const CID1_ADDR: B32 = from(0xE000EFF4);
+pub const CID2_ADDR: B32 = from(0xE000EFF8);
+pub const CID3_ADDR: B32 = from(0xE000EFFC);
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_block_read_addr(addr)])]
-fn is_valid_sys_control_block_read_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_block_read_addr(addr)])]
+fn is_valid_sys_control_block_read_addr(address: B32) -> bool {
     // all addresses are read
     address == CPUID_ADDR
         || address == ICSR_ADDR
@@ -80,8 +83,8 @@ fn is_valid_sys_control_block_read_addr(address: u32) -> bool {
         || address == CPACR_ADDR
 }
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_block_write_addr(addr)])]
-fn is_valid_sys_control_block_write_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_block_write_addr(addr)])]
+fn is_valid_sys_control_block_write_addr(address: B32) -> bool {
     // all addresses but CPUID are write
     address == ICSR_ADDR
         || address == VTOR_ADDR
@@ -101,8 +104,8 @@ fn is_valid_sys_control_block_write_addr(address: u32) -> bool {
         || address == CPACR_ADDR
 }
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_read_addr(addr)])]
-fn is_valid_sys_control_id_reg_read_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_id_reg_read_addr(addr)])]
+fn is_valid_sys_control_id_reg_read_addr(address: B32) -> bool {
     // all but STIR are read
     address == ICTR_ADDR
         || address == ACTLR_ADDR
@@ -120,19 +123,19 @@ fn is_valid_sys_control_id_reg_read_addr(address: u32) -> bool {
         || address == CID3_ADDR
 }
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_id_reg_write_addr(addr)])]
-fn is_valid_sys_control_id_reg_write_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_id_reg_write_addr(addr)])]
+fn is_valid_sys_control_id_reg_write_addr(address: B32) -> bool {
     // only actlr && stir are write
     address == ACTLR_ADDR || address == STIR_ADDR
 }
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_space_read_addr(addr)])]
-pub fn is_valid_sys_control_space_read_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_space_read_addr(addr)])]
+pub fn is_valid_sys_control_space_read_addr(address: B32) -> bool {
     is_valid_sys_control_block_read_addr(address) || is_valid_sys_control_id_reg_read_addr(address)
 }
 
-#[flux_rs::sig(fn (u32[@addr]) -> bool[is_valid_sys_control_space_write_addr(addr)])]
-pub fn is_valid_sys_control_space_write_addr(address: u32) -> bool {
+#[flux_rs::sig(fn (B32[@addr]) -> bool[is_valid_sys_control_space_write_addr(addr)])]
+pub fn is_valid_sys_control_space_write_addr(address: B32) -> bool {
     is_valid_sys_control_block_write_addr(address)
         || is_valid_sys_control_id_reg_write_addr(address)
 }

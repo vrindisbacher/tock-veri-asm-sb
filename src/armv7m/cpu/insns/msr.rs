@@ -64,6 +64,6 @@ impl Armv7m {
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {
         // This is a monster op
-        self.update_special_reg_with_u32(register, self.get_value_from_general_reg(&value));
+        self.update_special_reg_with_b32(register, self.get_value_from_general_reg(&value));
     }
 }

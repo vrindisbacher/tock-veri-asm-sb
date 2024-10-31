@@ -17,7 +17,7 @@ pub mod mpu_defs {
     };
 
     flux_rs::defs! {
-        fn is_valid_mpu_read_addr(address: int) -> bool {
+        fn is_valid_mpu_read_addr(address: B32) -> bool {
             // all address are read
             address == MPU_TYPE_ADDR
                 || address == MPU_CTRL_ADDR
@@ -32,7 +32,7 @@ pub mod mpu_defs {
                 || address == MPU_RASR_A3_ADDR
         }
 
-        fn is_valid_mpu_write_addr(address: int) -> bool {
+        fn is_valid_mpu_write_addr(address: B32) -> bool {
             // all address except MPU_TYPE are write
             address == MPU_CTRL_ADDR
                 || address == MPU_RNR_ADDR
@@ -54,7 +54,7 @@ pub mod sys_tick_defs {
 
     flux_rs::defs! {
 
-        fn is_valid_sys_tick_read_addr(address: int) -> bool {
+        fn is_valid_sys_tick_read_addr(address: B32) -> bool {
             // all addresses are read
             address == SYST_CSR_ADDR ||
             address == SYST_RVR_ADDR ||
@@ -62,7 +62,7 @@ pub mod sys_tick_defs {
             address == SYST_CALIB_ADDR
         }
 
-        fn is_valid_sys_tick_write_addr(address: int) -> bool {
+        fn is_valid_sys_tick_write_addr(address: B32) -> bool {
             // all addresses but SYS_CALIB are write
             address == SYST_CSR_ADDR ||
             address == SYST_RVR_ADDR ||
@@ -79,7 +79,7 @@ pub mod sys_control_block_defs {
     };
 
     flux_rs::defs! {
-        fn is_valid_sys_control_block_read_addr(address: int) -> bool {
+        fn is_valid_sys_control_block_read_addr(address: B32) -> bool {
             // all addresses are read
             address == CPUID_ADDR ||
                 address == ICSR_ADDR ||
@@ -100,7 +100,7 @@ pub mod sys_control_block_defs {
                 address == CPACR_ADDR
         }
 
-        fn is_valid_sys_control_block_write_addr(address: int) -> bool {
+        fn is_valid_sys_control_block_write_addr(address: B32) -> bool {
             // all addresses but CPUID are write
             address == ICSR_ADDR ||
                 address == VTOR_ADDR ||
@@ -129,7 +129,7 @@ pub mod sys_control_id_reg_defs {
     };
 
     flux_rs::defs! {
-            fn is_valid_sys_control_id_reg_read_addr(address: int) -> bool {
+            fn is_valid_sys_control_id_reg_read_addr(address: B32) -> bool {
                 // all but STIR are read
                 address == ICTR_ADDR ||
                     address == ACTLR_ADDR ||
@@ -147,7 +147,7 @@ pub mod sys_control_id_reg_defs {
                     address == CID3_ADDR
             }
 
-            fn is_valid_sys_control_id_reg_write_addr(address: int) -> bool {
+            fn is_valid_sys_control_id_reg_write_addr(address: B32) -> bool {
                 // only actlr && stir are write
                 address == ACTLR_ADDR || address == STIR_ADDR
             }
@@ -165,11 +165,11 @@ pub mod sys_control_space_defs {
     use super::sys_control_block_defs::*;
 
     flux_rs::defs! {
-        fn is_valid_sys_control_space_read_addr(address: int) -> bool {
+        fn is_valid_sys_control_space_read_addr(address: B32) -> bool {
             is_valid_sys_control_block_read_addr(address) || is_valid_sys_control_id_reg_read_addr(address)
         }
 
-        fn is_valid_sys_control_space_write_addr(address: int) -> bool {
+        fn is_valid_sys_control_space_write_addr(address: B32) -> bool {
             is_valid_sys_control_block_write_addr(address) || is_valid_sys_control_id_reg_write_addr(address)
         }
     }
@@ -183,31 +183,33 @@ pub mod nvic_defs {
     use crate::flux_support::*;
 
     flux_rs::defs! {
+            fn bv32(x:int) -> bitvec<32> { bv_int_to_bv32(x) }
+
             // all addresses are read / write as long as they are 4 byte aligned
-            fn is_valid_nvic_addr(address: int) -> bool {
+            fn is_valid_nvic_addr(address: B32) -> bool {
                 if (address >= ISER_START && address <= ISER_END) {
-                   (address - ISER_START) % 4 == 0
+                   (address - ISER_START) % bv32(4) == 0
                 } else if (address >= ICER_START && address <= ICER_END) {
-                    (address - ICER_START) % 4 == 0
+                    (address - ICER_START) % bv32(4) == 0
                 } else if (address >= ISPR_START && address <= ISPR_END) {
-                    (address - ISPR_START) % 4 == 0
+                    (address - ISPR_START) % bv32(4) == 0
                 } else if (address >= ICPR_START && address <= ICPR_END) {
-                    (address - ICPR_START) % 4 == 0
+                    (address - ICPR_START) % bv32(4) == 0
                 } else if (address >= IABR_START && address <= IABR_END) {
-                    (address - IABR_START) % 4 == 0
+                    (address - IABR_START) % bv32(4) == 0
                 } else if (address >= IPR_START && address <= IPR_END) {
-                    (address - IPR_START) % 4 == 0
+                    (address - IPR_START) % bv32(4) == 0
                 } else {
                     false
                 }
             }
 
-            fn is_valid_nvic_read_addr(address: int) -> bool {
+            fn is_valid_nvic_read_addr(address: B32) -> bool {
                 // all read
                 is_valid_nvic_addr(address)
             }
 
-            fn is_valid_nvic_write_addr(address: int) -> bool {
+            fn is_valid_nvic_write_addr(address: B32) -> bool {
                 // all write
                 is_valid_nvic_addr(address)
             }
@@ -220,7 +222,7 @@ use sys_control_space_defs::*;
 use sys_tick_defs::*;
 
 flux_rs::defs! {
-    fn is_valid_read_addr(address: int) -> bool {
+    fn is_valid_read_addr(address: B32) -> bool {
         is_valid_sys_control_space_read_addr(address)
         ||
         is_valid_nvic_read_addr(address)
@@ -230,7 +232,7 @@ flux_rs::defs! {
         is_valid_sys_tick_read_addr(address)
     }
 
-    fn is_valid_write_addr(address: int) -> bool {
+    fn is_valid_write_addr(address: B32) -> bool {
         is_valid_sys_control_space_write_addr(address)
         ||
         is_valid_nvic_write_addr(address)
@@ -240,11 +242,11 @@ flux_rs::defs! {
         is_valid_sys_tick_write_addr(address)
     }
 
-    fn get_mem_addr(address: int, mem: Memory) -> int {
+    fn get_mem_addr(address: B32, mem: Memory) -> B32 {
         map_get(mem, address)
     }
 
-    fn mem_value_updated(address: int, old_mem: Memory, new_mem: Memory, value: int) -> bool {
+    fn mem_value_updated(address: B32, old_mem: Memory, new_mem: Memory, value: B32) -> bool {
         map_set(old_mem, address, value) == new_mem
     }
 }

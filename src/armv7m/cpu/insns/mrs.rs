@@ -59,6 +59,6 @@ impl Armv7m {
 
         // for now just move the value
         let value = self.get_value_from_special_reg(&value);
-        self.update_general_reg_with_u32(register, value);
+        self.update_general_reg_with_b32(register, value);
     }
 }

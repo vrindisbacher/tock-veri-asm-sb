@@ -1,4 +1,4 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
+use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
 use super::{super::Armv7m, utils::negate};
 
@@ -18,7 +18,7 @@ impl Armv7m {
     //   APSR.C = carry;
     //   APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
                 general_purpose_register_updated(reg, old_cpu, new_cpu, negated(val))
@@ -28,7 +28,7 @@ impl Armv7m {
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn mvn_imm(&mut self, register: GeneralPurposeRegister, value: u32) {
+    pub fn mvn_imm(&mut self, register: GeneralPurposeRegister, value: B32) {
         // Corresponds to encoding T1 of Mvn Immediate
         //
         // Specific encoding ops are:
@@ -40,6 +40,6 @@ impl Armv7m {
         // We already know d (register above), setflags is false because no S bit
 
         // VTOCK TODO: Look at ThumbExpandImm_C
-        self.update_general_reg_with_u32(register, negate(value));
+        self.update_general_reg_with_b32(register, !value);
     }
 }

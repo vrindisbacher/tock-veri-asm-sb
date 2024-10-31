@@ -1,4 +1,4 @@
-use crate::armv7m::lang::SpecialRegister;
+use crate::{armv7m::lang::SpecialRegister, flux_support::b32::B32};
 
 use super::super::Armv7m;
 
@@ -16,7 +16,7 @@ impl Armv7m {
     //      EncodingSpecificOperations();
     //      BXWritePC(R[m]);
 
-    fn bx_write_pc(&mut self, address: u32) {
+    fn bx_write_pc(&mut self, address: B32) {
         // VTOCK TODO: Implement this with current mode and mode handler etc.
         // BXWritePC(bits(32) address)
         // if CurrentMode == Mode_Handler && address<31:28> == '1111' then

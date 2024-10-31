@@ -1,4 +1,4 @@
-use crate::armv7m::lang::GeneralPurposeRegister;
+use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
 
 use super::{
     super::Armv7m,
@@ -19,7 +19,7 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], u32[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], B32[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
                 general_purpose_register_updated(reg, old_cpu, new_cpu, right_shift(get_general_purpose_reg(reg_val, old_cpu), shift))
@@ -34,7 +34,7 @@ impl Armv7m {
         &mut self,
         register: GeneralPurposeRegister,
         value: GeneralPurposeRegister,
-        shift: u32,
+        shift: B32,
     ) {
         // Corresponds to encoding T1 of LSR
         //
@@ -58,7 +58,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_u32(register, res);
+        // self.update_general_reg_with_B32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values
@@ -71,8 +71,8 @@ impl Armv7m {
         //     }
         // }
         let value1 = self.get_value_from_general_reg(&value);
-        let res = shift_right(value1, shift);
-        self.update_general_reg_with_u32(register, res);
+        let res = value1 >> shift;
+        self.update_general_reg_with_b32(register, res);
     }
 
     // LSL Register (see p. A7-283 of the manual)
@@ -131,7 +131,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_u32(register, res);
+        // self.update_general_reg_with_B32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values
@@ -145,7 +145,7 @@ impl Armv7m {
         // }
         let shift = self.get_value_from_general_reg(&shift);
         let value = self.get_value_from_general_reg(&value);
-        let res = shift_left(value, shift);
-        self.update_general_reg_with_u32(register, res);
+        let res = value << shift;
+        self.update_general_reg_with_b32(register, res);
     }
 }

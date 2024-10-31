@@ -1,4 +1,4 @@
-use crate::armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister};
+use crate::{armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister}, flux_support::b32::B32};
 
 use super::utils::shift_left;
 
@@ -24,7 +24,7 @@ impl Armv7m {
             GeneralPurposeRegister[@reg_to_store], 
             GeneralPurposeRegister[@reg_base], 
             GeneralPurposeRegister[@reg_offset], 
-            u32[@shift]
+            B32[@shift]
         ) 
         requires 
             is_valid_write_addr(
@@ -48,7 +48,7 @@ impl Armv7m {
         register_to_str: GeneralPurposeRegister,
         base_reg: GeneralPurposeRegister,
         offset_reg: GeneralPurposeRegister,
-        shift: u32,
+        shift: B32,
     ) {
         // Corresponds to encoding T2 of Str (register)
         //
@@ -59,7 +59,7 @@ impl Armv7m {
         //  index = TRUE; add = TRUE; wback = FALSE;
         //  (shift_t, shift_n) = (SRType_LSL, UInt(imm2));
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
-        let offset = shift_left(self.get_value_from_general_reg(&offset_reg), shift);
+        let offset = self.get_value_from_general_reg(&offset_reg) << shift;
         let addr = self.get_value_from_general_reg(&base_reg) + offset;
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
@@ -67,7 +67,7 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
-            u32[@val],
+            B32[@val],
             GeneralPurposeRegister[@reg_base], 
         ) 
         requires is_valid_write_addr(get_general_purpose_reg(reg_base, old_cpu))
@@ -83,7 +83,7 @@ impl Armv7m {
 
         }
     )]
-    pub fn str_direct(&mut self, value: u32, addr: GeneralPurposeRegister) {
+    pub fn str_direct(&mut self, value: B32, addr: GeneralPurposeRegister) {
         let addr = self.get_value_from_general_reg(&addr);
         self.mem.write(addr, value);
     }
