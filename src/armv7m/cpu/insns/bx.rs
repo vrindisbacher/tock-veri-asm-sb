@@ -16,7 +16,8 @@ impl Armv7m {
     //      EncodingSpecificOperations();
     //      BXWritePC(R[m]);
 
-    fn bx_write_pc(&mut self, address: B32) {
+    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], u32[@addr]) ensures self: Armv7m[cpu])]
+    fn bx_write_pc(&mut self, address: u32) {
         // VTOCK TODO: Implement this with current mode and mode handler etc.
         // BXWritePC(bits(32) address)
         // if CurrentMode == Mode_Handler && address<31:28> == '1111' then
@@ -28,12 +29,12 @@ impl Armv7m {
     }
 
     // #[flux_rs::trusted]
-    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], SpecialRegister[@reg]) ensures self: Armv7m)]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], SpecialRegister[@reg]) ensures self: Armv7m[cpu])]
     pub fn bx(&mut self, register: SpecialRegister) {
         // Corresponds to Encoding T1
         //
         // Which is simply as BxWritePc op
-        let addr = self.get_value_from_special_reg(&register);
+        let addr = self.get_value_from_special_reg(&register).into();
         self.bx_write_pc(addr);
     }
 }
