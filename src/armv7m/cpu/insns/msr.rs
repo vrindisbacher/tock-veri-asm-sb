@@ -1,4 +1,4 @@
-use crate::armv7m::lang::{GPR, SpecialRegister};
+use crate::armv7m::lang::{SpecialRegister, GPR};
 
 use super::super::Armv7m;
 

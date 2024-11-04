@@ -1,15 +1,15 @@
 use super::Armv7m;
-use crate::armv7m::lang::{GPR, SpecialRegister};
+use crate::armv7m::lang::{SpecialRegister, GPR};
 use crate::flux_support::b32::*;
 use crate::flux_support::rmap::*;
 
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
-    fn bv32(x: int) -> B32 { 
-        bv_int_to_bv32(x) 
+    fn bv32(x: int) -> B32 {
+        bv_int_to_bv32(x)
     }
-    
+
     fn to_int(x: B32) -> int { bv_bv32_to_int(x) }
 
     fn get_gpr(reg: int, cpu: Armv7m) -> B32 {

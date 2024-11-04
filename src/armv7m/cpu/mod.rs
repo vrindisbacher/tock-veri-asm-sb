@@ -2,7 +2,7 @@ mod flux_defs;
 mod insns;
 mod psr;
 
-use super::lang::{GPR, SpecialRegister};
+use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
 use crate::flux_support::b32::B32;
 use crate::flux_support::rmap::Regs;

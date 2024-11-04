@@ -46,7 +46,7 @@ impl Armv7m {
         // VTOCK TODO:
         // Look at ThumbExpandImm_C
         let val1 = self.get_value_from_general_reg(&register);
-        let res = val1 & value; 
+        let res = val1 & value;
         self.update_general_reg_with_b32(register, res);
     }
 }

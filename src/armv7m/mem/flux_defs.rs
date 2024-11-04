@@ -214,11 +214,11 @@ pub mod nvic_defs {
     }
 }
 
+use crate::flux_support::b32::B32;
 use mpu_defs::*;
 use nvic_defs::*;
 use sys_control_space_defs::*;
 use sys_tick_defs::*;
-use crate::flux_support::b32::B32;
 
 flux_rs::defs! {
     fn is_valid_read_addr(address: int) -> bool {

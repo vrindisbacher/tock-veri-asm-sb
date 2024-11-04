@@ -28,12 +28,7 @@ impl Armv7m {
                      old_cpu.mem == new_cpu.mem
             }
     )]
-    pub fn subw_imm(
-        &mut self,
-        register: GPR,
-        value1: GPR,
-        value2: B32,
-    ) {
+    pub fn subw_imm(&mut self, register: GPR, value1: GPR, value2: B32) {
         // Corresponds to encoding T3 of Sub immediate:
         //
         // Specific encoding ops are:

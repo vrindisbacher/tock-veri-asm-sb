@@ -1,4 +1,7 @@
-use crate::{armv7m::{cpu::Armv7m, lang::GPR}, flux_support::b32::B32};
+use crate::{
+    armv7m::{cpu::Armv7m, lang::GPR},
+    flux_support::b32::B32,
+};
 
 impl Armv7m {
     // Str (register) (w) with a LSL (see p. A7-388 in the manual)

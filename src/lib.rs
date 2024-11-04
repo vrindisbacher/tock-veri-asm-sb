@@ -4,17 +4,23 @@ pub mod armv7m;
 mod flux_support;
 
 mod arm_isr {
-    use crate::{armv7m::{cpu::Armv7m, lang::{GPR, IsbOpt, SpecialRegister}}, flux_support::b32::B32};
+    use crate::{
+        armv7m::{
+            cpu::Armv7m,
+            lang::{IsbOpt, SpecialRegister, GPR},
+        },
+        flux_support::b32::B32,
+    };
 
     flux_rs::defs! {
-    
+
         fn isr_bit_loc(old_cpu: Armv7m) -> B32 {
             bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) % 32)
         }
-        
+
         fn isr_r0(old_cpu: Armv7m) -> B32 {
             left_shift(
-                bv32(1), 
+                bv32(1),
                 isr_bit_loc(old_cpu)
             )
         }
@@ -105,11 +111,7 @@ mod arm_isr {
         // r0 = r3 << r0
         //      -     -
         //      1     (ipsr - 16 & 31)
-        armv7m.lslw_reg(
-            GPR::R0,
-            GPR::R3,
-            GPR::R0,
-        );
+        armv7m.lslw_reg(GPR::R0, GPR::R3, GPR::R0);
         // Note: Ignoring the dissasembled version of this because dealing with program counter is
         // annoying
         //
@@ -117,13 +119,8 @@ mod arm_isr {
         armv7m.pseudo_ldr(GPR::R3, B32::from(0xe000_e180));
         // r0 = 1 << (ipsr - 16 & 31)
         // r3 = 0xe000_e180
-        // r2 = (ipsr - 16 >> 5) 
-        armv7m.strw_lsl_reg(
-            GPR::R0,
-            GPR::R3,
-            GPR::R2,
-            B32::from(2),
-        );
+        // r2 = (ipsr - 16 >> 5)
+        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R2, B32::from(2));
         // Note: Ignoring the dissasembled version of this because dealing with program counter is
         // annoying
         //
@@ -134,22 +131,20 @@ mod arm_isr {
         // r2 = (ipsr - 16 >> 5) << 2
         //
         // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << ipsr - 16 & 31) i.e. "bit for the ipsr # is set"
-        armv7m.strw_lsl_reg(
-            GPR::R0,
-            GPR::R3,
-            GPR::R2,
-            B32::from(2),
-        );
+        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R2, B32::from(2));
         armv7m.bx(SpecialRegister::Lr);
     }
 }
 
 mod arm_test {
-    use crate::{armv7m::{
-        cpu::Armv7m,
-        lang::{GPR, SpecialRegister},
-        mem::Memory,
-    }, flux_support::b32::B32};
+    use crate::{
+        armv7m::{
+            cpu::Armv7m,
+            lang::{SpecialRegister, GPR},
+            mem::Memory,
+        },
+        flux_support::b32::B32,
+    };
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
         grp_updated(
@@ -213,12 +208,7 @@ mod arm_test {
         armv7m.pseudo_ldr(GPR::R3, B32::from(0xE000_E180));
         armv7m.movw_imm(GPR::R0, B32::from(1));
         armv7m.movw_imm(GPR::R1, B32::from(1));
-        armv7m.strw_lsl_reg(
-            GPR::R0,
-            GPR::R3,
-            GPR::R1,
-            B32::from(2),
-        );
+        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R1, B32::from(2));
     }
 
     #[flux_rs::should_fail]
@@ -231,12 +221,7 @@ mod arm_test {
         armv7m.pseudo_ldr(GPR::R3, B32::from(0xE000_E180));
         armv7m.movw_imm(GPR::R0, B32::from(1));
         armv7m.movw_imm(GPR::R1, B32::from(1));
-        armv7m.strw_lsl_reg(
-            GPR::R0,
-            GPR::R3,
-            GPR::R1,
-            B32::from(2),
-        );
+        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R1, B32::from(2));
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 

@@ -1,4 +1,7 @@
-use crate::{armv7m::lang::{GPR, SpecialRegister}, flux_support::b32::B32};
+use crate::{
+    armv7m::lang::{SpecialRegister, GPR},
+    flux_support::b32::B32,
+};
 
 use super::super::Armv7m;
 
