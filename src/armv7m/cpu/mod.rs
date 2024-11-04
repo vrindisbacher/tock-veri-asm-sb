@@ -83,7 +83,7 @@ impl Armv7m {
         self.general_regs.set(register, value);
     }
 
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> B32[get_general_purpose_reg(reg, cpu)])]
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> B32[get_gpr(reg, cpu)])]
     fn get_value_from_general_reg(&self, register: &GPR) -> B32 {
         *self.general_regs.get(register).unwrap()
     }

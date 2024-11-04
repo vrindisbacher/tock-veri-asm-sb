@@ -28,8 +28,8 @@ impl Armv7m {
             is_valid_write_addr(
                 to_int(
                     bv_add(
-                        get_general_purpose_reg(reg_base, old_cpu), 
-                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                        get_gpr(reg_base, old_cpu), 
+                        left_shift(get_gpr(reg_offset, old_cpu), shift)
                     )
                 )
             )
@@ -38,13 +38,13 @@ impl Armv7m {
                 mem_value_updated(
                     to_int(
                         bv_add(
-                            get_general_purpose_reg(reg_base, old_cpu),
-                            left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                            get_gpr(reg_base, old_cpu),
+                            left_shift(get_gpr(reg_offset, old_cpu), shift)
                         )
                     ),
                     old_cpu.mem,
                     new_cpu.mem, 
-                    get_general_purpose_reg(reg_to_store, old_cpu)
+                    get_gpr(reg_to_store, old_cpu)
                  )
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
@@ -79,10 +79,10 @@ impl Armv7m {
             B32[@val],
             GPR[@reg_base], 
         ) 
-        requires is_valid_write_addr(to_int(get_general_purpose_reg(reg_base, old_cpu)))
+        requires is_valid_write_addr(to_int(get_gpr(reg_base, old_cpu)))
         ensures self: Armv7m { 
             new_cpu: mem_value_updated(
-                        to_int(get_general_purpose_reg(reg_base, old_cpu)),
+                        to_int(get_gpr(reg_base, old_cpu)),
                         old_cpu.mem,
                         new_cpu.mem, 
                         val

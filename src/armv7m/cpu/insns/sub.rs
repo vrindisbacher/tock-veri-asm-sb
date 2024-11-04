@@ -21,7 +21,7 @@ impl Armv7m {
         ensures self: Armv7m 
             { 
                  new_cpu: 
-                     general_purpose_register_updated(reg, old_cpu, new_cpu, bv_sub(get_general_purpose_reg(val1, old_cpu), val2))
+                     general_purpose_register_updated(reg, old_cpu, new_cpu, bv_sub(get_gpr(val1, old_cpu), val2))
                      &&
                      old_cpu.special_regs == new_cpu.special_regs
                      &&

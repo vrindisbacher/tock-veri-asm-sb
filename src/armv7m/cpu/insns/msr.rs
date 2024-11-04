@@ -55,7 +55,7 @@ impl Armv7m {
             requires is_control(reg)
             ensures self: Armv7m {
                 new_cpu: 
-                    special_purpose_register_updated(reg, old_cpu, new_cpu, get_general_purpose_reg(val, old_cpu))
+                    special_purpose_register_updated(reg, old_cpu, new_cpu, get_gpr(val, old_cpu))
                     &&
                     old_cpu.general_regs == new_cpu.general_regs
                     &&

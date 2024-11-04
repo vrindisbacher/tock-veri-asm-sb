@@ -59,9 +59,9 @@ mod arm_isr {
         // probably formalize that somehow
         requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 
         ensures self: Armv7m { new_cpu:
-            get_general_purpose_reg(r0(), new_cpu) == isr_r0(old_cpu)
+            get_gpr(r0(), new_cpu) == isr_r0(old_cpu)
             &&
-            get_general_purpose_reg(r2(), new_cpu) == isr_r2(old_cpu)
+            get_gpr(r2(), new_cpu) == isr_r2(old_cpu)
             && 
             nth_bit_is_set(
                 get_mem_addr(
@@ -166,7 +166,7 @@ mod arm_test {
         armv7m.and_imm(GPR::R0, B32::from(31));
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_general_purpose_reg(r0(), new_cpu) ==  right_shift(bv32(1 % 32), bv32(5)) })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_gpr(r0(), new_cpu) ==  right_shift(bv32(1 % 32), bv32(5)) })]
     fn simple_shift(armv7m: &mut Armv7m) {
         // r0 = 1
         armv7m.movs_imm(GPR::R0, B32::from(1));
@@ -178,7 +178,7 @@ mod arm_test {
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
         ensures self: Armv7m { new_cpu: 
-            get_general_purpose_reg(r3(), new_cpu) == bv32(0xE000_E010)
+            get_gpr(r3(), new_cpu) == bv32(0xE000_E010)
         }
     )]
     fn simple_store(armv7m: &mut Armv7m) {
@@ -188,7 +188,7 @@ mod arm_test {
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
         ensures self: Armv7m { new_cpu: 
-            get_general_purpose_reg(r3(), new_cpu) == bv32(0xE000_E010)
+            get_gpr(r3(), new_cpu) == bv32(0xE000_E010)
             &&
             get_special_reg(control(), new_cpu) == bv32(0xE000_E010)
         }
@@ -254,9 +254,9 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        get_general_purpose_reg(r0(), new_cpu) == bv32(0)
+        get_gpr(r0(), new_cpu) == bv32(0)
         &&
-        get_general_purpose_reg(r1(), new_cpu) == bv32(1)
+        get_gpr(r1(), new_cpu) == bv32(1)
     })]
     fn two_movs_by_call(armv7m: &mut Armv7m) {
         movw_r0(armv7m);
@@ -264,9 +264,9 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        get_general_purpose_reg(r0(), new_cpu) == bv32(0)
+        get_gpr(r0(), new_cpu) == bv32(0)
         &&
-        get_general_purpose_reg(r1(), new_cpu) == bv32(1)
+        get_gpr(r1(), new_cpu) == bv32(1)
     })]
     fn two_movs(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R0, B32::from(0));

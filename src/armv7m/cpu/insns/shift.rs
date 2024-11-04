@@ -21,7 +21,7 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], B32[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, right_shift(get_general_purpose_reg(reg_val, old_cpu), shift))
+                general_purpose_register_updated(reg, old_cpu, new_cpu, right_shift(get_gpr(reg_val, old_cpu), shift))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
@@ -90,13 +90,13 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], GPR[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, left_shift(get_general_purpose_reg(reg_val, old_cpu), get_general_purpose_reg(shift, old_cpu)))
+                general_purpose_register_updated(reg, old_cpu, new_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu)))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
-                // get_general_purpose_reg(shift, old_cpu) != 0 
-                //   => general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_general_purpose_reg(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_general_purpose_reg(shift, old_cpu))
+                // get_gpr(shift, old_cpu) != 0 
+                //   => general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_gpr(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_gpr(shift, old_cpu))
         }
     )]
     pub fn lslw_reg(

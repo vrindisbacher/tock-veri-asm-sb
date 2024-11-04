@@ -12,7 +12,7 @@ flux_rs::defs! {
     
     fn to_int(x: B32) -> int { bv_bv32_to_int(x) }
 
-    fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> B32 {
+    fn get_gpr(reg: int, cpu: Armv7m) -> B32 {
         map_get(cpu.general_regs, reg)
     }
 
@@ -140,26 +140,26 @@ flux_rs::defs! {
 
     // fn right_shift_immediate_computation(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshr(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
     //         0
     //     } else {
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift)
+    //         lshr(get_gpr(reg, old_cpu), shift)
     //     }
     // }
 
     // fn right_shift_immediate_carry_flag(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshr(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
-    //         nth_bit(get_general_purpose_reg(reg, old_cpu), 31)
+    //         nth_bit(get_gpr(reg, old_cpu), 31)
     //     } else {
     //         if shift >= 1 && shift <= 31 {
-    //             nth_bit(get_general_purpose_reg(reg, old_cpu), shift - 1)
+    //             nth_bit(get_gpr(reg, old_cpu), shift - 1)
     //         } else {
     //             0
     //         }
@@ -190,26 +190,26 @@ flux_rs::defs! {
 
     // fn left_shift_reg_computation(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshl(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
     //         0
     //     } else {
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift)
+    //         lshl(get_gpr(reg, old_cpu), shift)
     //     }
     // }
 
     // fn left_shift_reg_carry_flag(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshl(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
-    //         nth_bit(get_general_purpose_reg(reg, old_cpu), 31)
+    //         nth_bit(get_gpr(reg, old_cpu), 31)
     //     } else {
     //         if shift >= 1 && shift <= 31 {
-    //             nth_bit(get_general_purpose_reg(reg, old_cpu), shift - 1)
+    //             nth_bit(get_gpr(reg, old_cpu), shift - 1)
     //         } else {
     //             0
     //         }
