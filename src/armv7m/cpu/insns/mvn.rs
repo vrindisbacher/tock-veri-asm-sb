@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GPR, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::b32::BV32};
 
 use super::super::Armv7m;
 
@@ -28,7 +28,7 @@ impl Armv7m {
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn mvn_imm(&mut self, register: GPR, value: B32) {
+    pub fn mvn_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T1 of Mvn Immediate
         //
         // Specific encoding ops are:

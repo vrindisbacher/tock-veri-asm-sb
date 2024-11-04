@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GPR, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::b32::BV32};
 
 use super::super::Armv7m;
 impl Armv7m {
@@ -28,7 +28,7 @@ impl Armv7m {
                      old_cpu.mem == new_cpu.mem
             }
     )]
-    pub fn subw_imm(&mut self, register: GPR, value1: GPR, value2: B32) {
+    pub fn subw_imm(&mut self, register: GPR, value1: GPR, value2: BV32) {
         // Corresponds to encoding T3 of Sub immediate:
         //
         // Specific encoding ops are:

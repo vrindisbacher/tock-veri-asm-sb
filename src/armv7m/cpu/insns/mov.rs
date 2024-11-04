@@ -1,7 +1,7 @@
 use super::super::flux_defs::*;
 use super::super::Armv7m;
 use crate::armv7m::lang::GPR;
-use crate::flux_support::b32::B32;
+use crate::flux_support::b32::BV32;
 
 impl Armv7m {
     // Move Immediate (see p. A7-291 of the manual)
@@ -27,7 +27,7 @@ impl Armv7m {
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn movw_imm(&mut self, register: GPR, value: B32) {
+    pub fn movw_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T2 of Mov immediate
         //
         // Specific encoding ops are:
@@ -52,7 +52,7 @@ impl Armv7m {
                     old_cpu.mem == new_cpu.mem
             }
     )]
-    pub fn movs_imm(&mut self, register: GPR, value: B32) {
+    pub fn movs_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T1 of Mov immediate:
         //
         // Specific encoding ops are:

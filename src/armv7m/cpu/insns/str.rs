@@ -1,6 +1,6 @@
 use crate::{
     armv7m::{cpu::Armv7m, lang::GPR},
-    flux_support::b32::B32,
+    flux_support::b32::BV32,
 };
 
 impl Armv7m {
@@ -60,7 +60,7 @@ impl Armv7m {
         register_to_str: GPR,
         base_reg: GPR,
         offset_reg: GPR,
-        shift: B32,
+        shift: BV32,
     ) {
         // Corresponds to encoding T2 of Str (register)
         //
@@ -95,7 +95,7 @@ impl Armv7m {
 
         }
     )]
-    pub fn str_direct(&mut self, value: B32, addr: GPR) {
+    pub fn str_direct(&mut self, value: BV32, addr: GPR) {
         let addr = self.get_value_from_general_reg(&addr).into();
         self.mem.write(addr, value);
     }

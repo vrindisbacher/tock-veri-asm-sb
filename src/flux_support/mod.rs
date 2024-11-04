@@ -1,2 +1,2 @@
-pub mod b32;
+pub mod bv32;
 pub mod rmap;

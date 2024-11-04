@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GPR, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::b32::BV32};
 
 use super::super::Armv7m;
 
@@ -27,7 +27,7 @@ impl Armv7m {
                 // shift != 0 => grp_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
         }
     )]
-    pub fn lsrs_imm(&mut self, register: GPR, value: GPR, shift: B32) {
+    pub fn lsrs_imm(&mut self, register: GPR, value: GPR, shift: BV32) {
         // Corresponds to encoding T1 of LSR
         //
         // Specific encoding ops are:

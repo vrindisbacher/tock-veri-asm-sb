@@ -4,12 +4,12 @@ mod psr;
 
 use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
-use crate::flux_support::b32::B32;
+use crate::flux_support::b32::BV32;
 use crate::flux_support::rmap::Regs;
 use flux_defs::*;
 
-pub type ArmGeneralRegs = Regs<GPR, B32>;
-pub type ArmSpecialRegs = Regs<SpecialRegister, B32>;
+pub type ArmGeneralRegs = Regs<GPR, BV32>;
+pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
 
 // The following is a struct that represents the CPU of the ARMv7m processor architecture
 //
@@ -63,7 +63,7 @@ pub struct Armv7m {
 impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> B32[get_special_reg(reg, cpu)])]
-    fn get_value_from_special_reg(&self, register: &SpecialRegister) -> B32 {
+    fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         *self.special_regs.get(register).unwrap()
     }
 
@@ -71,7 +71,7 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], B32[@val])
             ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.general_regs == old_cpu.general_regs && new_cpu.mem == old_cpu.mem }
     )]
-    fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: B32) {
+    fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         self.special_regs.set(register, value);
     }
 
@@ -79,12 +79,12 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
             ensures self: Armv7m { new_cpu: grp_updated(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
     )]
-    fn update_general_reg_with_b32(&mut self, register: GPR, value: B32) {
+    fn update_general_reg_with_b32(&mut self, register: GPR, value: BV32) {
         self.general_regs.set(register, value);
     }
 
     #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> B32[get_gpr(reg, cpu)])]
-    fn get_value_from_general_reg(&self, register: &GPR) -> B32 {
+    fn get_value_from_general_reg(&self, register: &GPR) -> BV32 {
         *self.general_regs.get(register).unwrap()
     }
 

@@ -214,7 +214,7 @@ pub mod nvic_defs {
     }
 }
 
-use crate::flux_support::b32::B32;
+use crate::flux_support::b32::BV32;
 use mpu_defs::*;
 use nvic_defs::*;
 use sys_control_space_defs::*;
