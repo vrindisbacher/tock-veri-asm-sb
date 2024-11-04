@@ -1,29 +1,29 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[flux_rs::refined_by(n: int)]
-pub enum GeneralPurposeRegister {
-    #[variant(GeneralPurposeRegister[0])]
+pub enum GPR {
+    #[variant(GPR[0])]
     R0,
-    #[variant(GeneralPurposeRegister[1])]
+    #[variant(GPR[1])]
     R1,
-    #[variant(GeneralPurposeRegister[2])]
+    #[variant(GPR[2])]
     R2,
-    #[variant(GeneralPurposeRegister[3])]
+    #[variant(GPR[3])]
     R3,
-    #[variant(GeneralPurposeRegister[4])]
+    #[variant(GPR[4])]
     R4,
-    #[variant(GeneralPurposeRegister[5])]
+    #[variant(GPR[5])]
     R5,
-    #[variant(GeneralPurposeRegister[6])]
+    #[variant(GPR[6])]
     R6,
-    #[variant(GeneralPurposeRegister[7])]
+    #[variant(GPR[7])]
     R7,
-    #[variant(GeneralPurposeRegister[8])]
+    #[variant(GPR[8])]
     R8,
-    #[variant(GeneralPurposeRegister[9])]
+    #[variant(GPR[9])]
     R9,
-    #[variant(GeneralPurposeRegister[10])]
+    #[variant(GPR[10])]
     R10,
-    #[variant(GeneralPurposeRegister[11])]
+    #[variant(GPR[11])]
     R11,
 }
 

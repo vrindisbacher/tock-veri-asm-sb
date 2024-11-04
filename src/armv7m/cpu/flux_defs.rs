@@ -1,5 +1,5 @@
 use super::Armv7m;
-use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
+use crate::armv7m::lang::{GPR, SpecialRegister};
 use crate::flux_support::b32::*;
 use crate::flux_support::rmap::*;
 
@@ -138,7 +138,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn right_shift_immediate_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn right_shift_immediate_computation(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
     //         get_general_purpose_reg(reg, old_cpu) > 0
     //         &&
@@ -150,7 +150,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn right_shift_immediate_carry_flag(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn right_shift_immediate_carry_flag(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
     //         get_general_purpose_reg(reg, old_cpu) > 0
     //         &&
@@ -166,7 +166,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn lsrs_imm_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
+    // fn lsrs_imm_flag_updates(reg: GPR, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
     //     if !itstate_0_4_not_all_zero(old_cpu) {
     //         // flag updates
     //         // n flag and z flag are unset and set and carry is computed
@@ -188,7 +188,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn left_shift_reg_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn left_shift_reg_computation(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
     //         get_general_purpose_reg(reg, old_cpu) > 0
     //         &&
@@ -200,7 +200,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn left_shift_reg_carry_flag(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn left_shift_reg_carry_flag(reg: GPR, old_cpu: Armv7m, shift: B32) -> B32 {
     //     if (
     //         get_general_purpose_reg(reg, old_cpu) > 0
     //         &&
@@ -216,7 +216,7 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn lslw_reg_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
+    // fn lslw_reg_flag_updates(reg: GPR, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
     //     if !itstate_0_4_not_all_zero(old_cpu) {
     //         // flag updates
     //         // n flag and z flag are unset and set and carry is computed

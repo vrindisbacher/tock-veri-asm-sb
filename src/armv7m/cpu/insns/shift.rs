@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::b32::B32};
 
 use super::{
     super::Armv7m,
@@ -18,7 +18,7 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], B32[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], B32[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
                 general_purpose_register_updated(reg, old_cpu, new_cpu, right_shift(get_general_purpose_reg(reg_val, old_cpu), shift))
@@ -31,8 +31,8 @@ impl Armv7m {
     )]
     pub fn lsrs_imm(
         &mut self,
-        register: GeneralPurposeRegister,
-        value: GeneralPurposeRegister,
+        register: GPR,
+        value: GPR,
         shift: B32,
     ) {
         // Corresponds to encoding T1 of LSR
@@ -87,7 +87,7 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], GeneralPurposeRegister[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], GPR[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
                 general_purpose_register_updated(reg, old_cpu, new_cpu, left_shift(get_general_purpose_reg(reg_val, old_cpu), get_general_purpose_reg(shift, old_cpu)))
@@ -101,9 +101,9 @@ impl Armv7m {
     )]
     pub fn lslw_reg(
         &mut self,
-        register: GeneralPurposeRegister,
-        value: GeneralPurposeRegister,
-        shift: GeneralPurposeRegister,
+        register: GPR,
+        value: GPR,
+        shift: GPR,
     ) {
         // Corresponds to encoding T2 of LSL
         //

@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::{GeneralPurposeRegister, SpecialRegister}, flux_support::b32::B32};
+use crate::{armv7m::lang::{GPR, SpecialRegister}, flux_support::b32::B32};
 
 use super::super::Armv7m;
 
@@ -20,7 +20,7 @@ impl Armv7m {
     //   else
     //      R[t] = data;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val)
             &&
@@ -29,7 +29,7 @@ impl Armv7m {
             old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn pseudo_ldr(&mut self, register: GeneralPurposeRegister, value: B32) {
+    pub fn pseudo_ldr(&mut self, register: GPR, value: B32) {
         // Note the non pseudo instruction would do this:
         //
         //      fn align(value: B32, alignment: B32) -> B32 {

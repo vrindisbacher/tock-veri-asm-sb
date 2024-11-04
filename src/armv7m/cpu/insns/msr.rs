@@ -1,4 +1,4 @@
-use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
+use crate::armv7m::lang::{GPR, SpecialRegister};
 
 use super::super::Armv7m;
 
@@ -50,7 +50,7 @@ impl Armv7m {
     //                      CONTROL.SPSEL = R[n]<1>;
     //                  if HaveFPExt() then CONTROL.FPCA = R[n]<2>;
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], GeneralPurposeRegister[@val])
+        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], GPR[@val])
             // only updates to CONTROL right now
             requires is_control(reg)
             ensures self: Armv7m {
@@ -62,7 +62,7 @@ impl Armv7m {
                     old_cpu.mem == new_cpu.mem
             }
     )]
-    pub fn msr(&mut self, register: SpecialRegister, value: GeneralPurposeRegister) {
+    pub fn msr(&mut self, register: SpecialRegister, value: GPR) {
         // This is a monster op
         self.update_special_reg_with_b32(register, self.get_value_from_general_reg(&value));
     }
