@@ -1,7 +1,7 @@
 use super::super::flux_defs::*;
 use super::super::Armv7m;
 use crate::armv7m::lang::GPR;
-use crate::flux_support::b32::BV32;
+use crate::flux_support::bv32::BV32;
 
 impl Armv7m {
     // Move Immediate (see p. A7-291 of the manual)
@@ -17,10 +17,10 @@ impl Armv7m {
     //       APSR.C = carry;
     //       // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                grp_updated(reg, old_cpu, new_cpu, val) 
+                gpr_set(reg, old_cpu, new_cpu, val) 
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
@@ -42,10 +42,10 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
+        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
             ensures self: Armv7m {
                 new_cpu: 
-                    grp_updated(reg, old_cpu, new_cpu, val) // &&  movs_flag_updates(new_cpu)
+                    gpr_set(reg, old_cpu, new_cpu, val) // &&  movs_flag_updates(new_cpu)
                     &&
                     old_cpu.special_regs == new_cpu.special_regs
                     &&

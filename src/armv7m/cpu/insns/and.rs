@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GPR, flux_support::b32::BV32};
+use crate::{armv7m::lang::GPR, flux_support::bv32::BV32};
 
 use super::super::Armv7m;
 
@@ -20,10 +20,10 @@ impl Armv7m {
     //          APSR.C = carry;
     //          // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                grp_updated(reg, old_cpu, new_cpu, and(get_gpr(reg, old_cpu), val))
+                gpr_set(reg, old_cpu, new_cpu, and(get_gpr(reg, old_cpu), val))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&

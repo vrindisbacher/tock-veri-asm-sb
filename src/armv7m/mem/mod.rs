@@ -58,20 +58,20 @@ use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
 use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
 use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
 
-use crate::flux_support::{b32::BV32, rmap::Regs};
+use crate::flux_support::{bv32::BV32, rmap::Regs};
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    mem: Map<int, B32>
+    mem: Map<int, BV32>
 )]
 pub struct Memory {
-    #[field(Regs<u32, B32>[mem])]
+    #[field(Regs<u32, BV32>[mem])]
     mem: Mem,
 }
 
 impl Memory {
     #[flux_rs::sig(
-        fn (&Memory[@mem], u32[@addr]) -> B32[get_mem_addr(addr, mem)] 
+        fn (&Memory[@mem], u32[@addr]) -> BV32[get_mem_addr(addr, mem)] 
             requires is_valid_read_addr(addr) 
     )]
     pub fn read(&self, address: u32) -> BV32 {
@@ -91,7 +91,7 @@ impl Memory {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Memory[@old_mem], u32[@addr], B32[@val]) 
+        fn (self: &strg Memory[@old_mem], u32[@addr], BV32[@val]) 
             requires is_valid_write_addr(addr)
             ensures self: Memory { new_mem: mem_value_updated(addr, old_mem, new_mem, val) }
     )]

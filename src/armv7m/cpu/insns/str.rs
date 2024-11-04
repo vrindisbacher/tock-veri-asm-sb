@@ -1,6 +1,6 @@
 use crate::{
     armv7m::{cpu::Armv7m, lang::GPR},
-    flux_support::b32::BV32,
+    flux_support::bv32::BV32,
 };
 
 impl Armv7m {
@@ -25,7 +25,7 @@ impl Armv7m {
             GPR[@reg_to_store], 
             GPR[@reg_base], 
             GPR[@reg_offset], 
-            B32[@shift]
+            BV32[@shift]
         ) 
         requires 
             is_valid_write_addr(
@@ -79,7 +79,7 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
-            B32[@val],
+            BV32[@val],
             GPR[@reg_base], 
         ) 
         requires is_valid_write_addr(to_int(get_gpr(reg_base, old_cpu)))

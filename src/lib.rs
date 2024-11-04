@@ -9,23 +9,23 @@ mod arm_isr {
             cpu::Armv7m,
             lang::{IsbOpt, SpecialRegister, GPR},
         },
-        flux_support::b32::BV32,
+        flux_support::bv32::BV32,
     };
 
     flux_rs::defs! {
 
-        fn isr_bit_loc(old_cpu: Armv7m) -> B32 {
+        fn isr_bit_loc(old_cpu: Armv7m) -> BV32 {
             bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) % 32)
         }
 
-        fn isr_r0(old_cpu: Armv7m) -> B32 {
+        fn isr_r0(old_cpu: Armv7m) -> BV32 {
             left_shift(
                 bv32(1),
                 isr_bit_loc(old_cpu)
             )
         }
 
-        fn isr_r2(old_cpu: Armv7m) -> B32 {
+        fn isr_r2(old_cpu: Armv7m) -> BV32 {
             bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) / 32)
         }
 
@@ -143,11 +143,11 @@ mod arm_test {
             lang::{SpecialRegister, GPR},
             mem::Memory,
         },
-        flux_support::b32::BV32,
+        flux_support::bv32::BV32,
     };
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-        grp_updated(
+        gpr_set(
             r0(), 
             old_cpu,
             new_cpu, 
@@ -225,14 +225,14 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        grp_updated(r0(), old_cpu, new_cpu, bv32(0))
+        gpr_set(r0(), old_cpu, new_cpu, bv32(0))
     })]
     fn movw_r0(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R0, BV32::from(0));
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        grp_updated(r1(), old_cpu, new_cpu, bv32(1))
+        gpr_set(r1(), old_cpu, new_cpu, bv32(1))
     })]
     fn movw_r1(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R1, BV32::from(1));

@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GPR, flux_support::b32::BV32};
+use crate::{armv7m::lang::GPR, flux_support::bv32::BV32};
 
 use super::super::Armv7m;
 
@@ -16,15 +16,15 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], B32[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], BV32[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                grp_updated(reg, old_cpu, new_cpu, right_shift(get_gpr(reg_val, old_cpu), shift))
+                gpr_set(reg, old_cpu, new_cpu, right_shift(get_gpr(reg_val, old_cpu), shift))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
-                // shift != 0 => grp_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
+                // shift != 0 => gpr_set(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
         }
     )]
     pub fn lsrs_imm(&mut self, register: GPR, value: GPR, shift: BV32) {
@@ -50,7 +50,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_B32(register, res);
+        // self.update_general_reg_with_BV32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values
@@ -83,13 +83,13 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], GPR[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                grp_updated(reg, old_cpu, new_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu)))
+                gpr_set(reg, old_cpu, new_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu)))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
                 // get_gpr(shift, old_cpu) != 0 
-                //   => grp_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_gpr(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_gpr(shift, old_cpu))
+                //   => gpr_set(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_gpr(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_gpr(shift, old_cpu))
         }
     )]
     pub fn lslw_reg(&mut self, register: GPR, value: GPR, shift: GPR) {
@@ -118,7 +118,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_B32(register, res);
+        // self.update_general_reg_with_BV32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values
