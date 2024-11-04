@@ -152,7 +152,7 @@ mod arm_test {
     }, flux_support::b32::B32};
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-        general_purpose_register_updated(
+        grp_updated(
             r0(), 
             old_cpu,
             new_cpu, 
@@ -240,14 +240,14 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        general_purpose_register_updated(r0(), old_cpu, new_cpu, bv32(0))
+        grp_updated(r0(), old_cpu, new_cpu, bv32(0))
     })]
     fn movw_r0(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R0, B32::from(0));
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        general_purpose_register_updated(r1(), old_cpu, new_cpu, bv32(1))
+        grp_updated(r1(), old_cpu, new_cpu, bv32(1))
     })]
     fn movw_r1(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R1, B32::from(1));

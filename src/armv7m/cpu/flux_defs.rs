@@ -16,7 +16,7 @@ flux_rs::defs! {
         map_get(cpu.general_regs, reg)
     }
 
-    fn general_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
+    fn grp_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
         map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
     }
 

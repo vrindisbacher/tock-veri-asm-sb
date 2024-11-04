@@ -47,7 +47,7 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], SpecialRegister[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
+                grp_updated(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
