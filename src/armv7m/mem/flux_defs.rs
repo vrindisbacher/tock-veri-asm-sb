@@ -214,11 +214,11 @@ pub mod nvic_defs {
     }
 }
 
+use crate::flux_support::bv32::BV32;
 use mpu_defs::*;
 use nvic_defs::*;
 use sys_control_space_defs::*;
 use sys_tick_defs::*;
-use crate::flux_support::b32::B32;
 
 flux_rs::defs! {
     fn is_valid_read_addr(address: int) -> bool {
@@ -241,11 +241,11 @@ flux_rs::defs! {
         is_valid_sys_tick_write_addr(address)
     }
 
-    fn get_mem_addr(address: int, mem: Memory) -> B32 {
+    fn get_mem_addr(address: int, mem: Memory) -> BV32 {
         map_get(mem, address)
     }
 
-    fn mem_value_updated(address: int, old_mem: Memory, new_mem: Memory, value: B32) -> bool {
+    fn mem_value_updated(address: int, old_mem: Memory, new_mem: Memory, value: BV32) -> bool {
         map_set(old_mem, address, value) == new_mem
     }
 }

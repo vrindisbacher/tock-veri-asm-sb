@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::bv32::BV32};
 
 use super::super::Armv7m;
 
@@ -18,17 +18,17 @@ impl Armv7m {
     //   APSR.C = carry;
     //   APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, bv_not(val))
+                gpr_set(reg, old_cpu, new_cpu, bv_not(val))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn mvn_imm(&mut self, register: GeneralPurposeRegister, value: B32) {
+    pub fn mvn_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T1 of Mvn Immediate
         //
         // Specific encoding ops are:

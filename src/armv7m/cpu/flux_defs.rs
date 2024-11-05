@@ -1,26 +1,26 @@
 use super::Armv7m;
-use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
-use crate::flux_support::b32::*;
+use crate::armv7m::lang::{SpecialRegister, GPR};
+use crate::flux_support::bv32::*;
 use crate::flux_support::rmap::*;
 
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
-    fn bv32(x: int) -> B32 { 
-        bv_int_to_bv32(x) 
+    fn bv32(x: int) -> BV32 {
+        bv_int_to_bv32(x)
     }
-    
-    fn to_int(x: B32) -> int { bv_bv32_to_int(x) }
 
-    fn get_general_purpose_reg(reg: int, cpu: Armv7m) -> B32 {
+    fn to_int(x: BV32) -> int { bv_bv32_to_int(x) }
+
+    fn get_gpr(reg: int, cpu: Armv7m) -> BV32 {
         map_get(cpu.general_regs, reg)
     }
 
-    fn general_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
+    fn gpr_set(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: BV32) -> bool {
         map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
     }
 
-    fn get_special_reg(reg: int, cpu: Armv7m) -> B32 {
+    fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
         if is_ipsr(reg) {
             bv_and(map_get(cpu.special_regs, psr()), bv32(0xff))
         } else {
@@ -28,11 +28,11 @@ flux_rs::defs! {
         }
     }
 
-    fn get_psr(cpu: Armv7m) ->  B32 {
+    fn get_psr(cpu: Armv7m) ->  BV32 {
         get_special_reg(psr(), cpu)
     }
 
-    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: B32) -> bool {
+    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: BV32) -> bool {
         map_set(old_cpu.special_regs, reg, val) == new_cpu.special_regs
     }
 
@@ -92,17 +92,17 @@ flux_rs::defs! {
         18
     }
 
-    fn nth_bit_is_set(val: B32, n: B32) -> bool {
+    fn nth_bit_is_set(val: BV32, n: BV32) -> bool {
         // val & (1 << n)
         bv_and(val, left_shift(bv32(1), n)) != bv32(0)
     }
 
-    fn right_shift(val: B32, n: B32) -> B32 {
+    fn right_shift(val: BV32, n: BV32) -> BV32 {
         // right shift
         bv_lshr(val, n)
     }
 
-    fn left_shift(val: B32, n: B32) -> B32 {
+    fn left_shift(val: BV32, n: BV32) -> BV32 {
         // shift left
         bv_shl(val, n)
     }
@@ -138,35 +138,35 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn right_shift_immediate_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn right_shift_immediate_computation(reg: GPR, old_cpu: Armv7m, shift: BV32) -> BV32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshr(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
     //         0
     //     } else {
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift)
+    //         lshr(get_gpr(reg, old_cpu), shift)
     //     }
     // }
 
-    // fn right_shift_immediate_carry_flag(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn right_shift_immediate_carry_flag(reg: GPR, old_cpu: Armv7m, shift: BV32) -> BV32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshr(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshr(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
-    //         nth_bit(get_general_purpose_reg(reg, old_cpu), 31)
+    //         nth_bit(get_gpr(reg, old_cpu), 31)
     //     } else {
     //         if shift >= 1 && shift <= 31 {
-    //             nth_bit(get_general_purpose_reg(reg, old_cpu), shift - 1)
+    //             nth_bit(get_gpr(reg, old_cpu), shift - 1)
     //         } else {
     //             0
     //         }
     //     }
     // }
 
-    // fn lsrs_imm_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
+    // fn lsrs_imm_flag_updates(reg: GPR, old_cpu: Armv7m, new_cpu: Armv7m, shift: BV32) -> bool {
     //     if !itstate_0_4_not_all_zero(old_cpu) {
     //         // flag updates
     //         // n flag and z flag are unset and set and carry is computed
@@ -188,35 +188,35 @@ flux_rs::defs! {
     //     }
     // }
 
-    // fn left_shift_reg_computation(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn left_shift_reg_computation(reg: GPR, old_cpu: Armv7m, shift: BV32) -> BV32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshl(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
     //         0
     //     } else {
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift)
+    //         lshl(get_gpr(reg, old_cpu), shift)
     //     }
     // }
 
-    // fn left_shift_reg_carry_flag(reg: GeneralPurposeRegister, old_cpu: Armv7m, shift: B32) -> B32 {
+    // fn left_shift_reg_carry_flag(reg: GPR, old_cpu: Armv7m, shift: BV32) -> BV32 {
     //     if (
-    //         get_general_purpose_reg(reg, old_cpu) > 0
+    //         get_gpr(reg, old_cpu) > 0
     //         &&
-    //         lshl(get_general_purpose_reg(reg, old_cpu), shift) == get_general_purpose_reg(reg, old_cpu)
+    //         lshl(get_gpr(reg, old_cpu), shift) == get_gpr(reg, old_cpu)
     //     ) {
-    //         nth_bit(get_general_purpose_reg(reg, old_cpu), 31)
+    //         nth_bit(get_gpr(reg, old_cpu), 31)
     //     } else {
     //         if shift >= 1 && shift <= 31 {
-    //             nth_bit(get_general_purpose_reg(reg, old_cpu), shift - 1)
+    //             nth_bit(get_gpr(reg, old_cpu), shift - 1)
     //         } else {
     //             0
     //         }
     //     }
     // }
 
-    // fn lslw_reg_flag_updates(reg: GeneralPurposeRegister, old_cpu: Armv7m, new_cpu: Armv7m, shift: B32) -> bool {
+    // fn lslw_reg_flag_updates(reg: GPR, old_cpu: Armv7m, new_cpu: Armv7m, shift: BV32) -> bool {
     //     if !itstate_0_4_not_all_zero(old_cpu) {
     //         // flag updates
     //         // n flag and z flag are unset and set and carry is computed

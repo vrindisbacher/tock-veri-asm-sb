@@ -1,4 +1,4 @@
-use crate::armv7m::lang::{GeneralPurposeRegister, SpecialRegister};
+use crate::armv7m::lang::{SpecialRegister, GPR};
 
 use super::super::Armv7m;
 
@@ -44,17 +44,17 @@ impl Armv7m {
     //                          R[d]<2:0> = CONTROL<2:0>;
     //                      else
     //                          R[d]<1:0> = CONTROL<1:0>;
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], SpecialRegister[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], SpecialRegister[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
+                gpr_set(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn mrs(&mut self, register: GeneralPurposeRegister, value: SpecialRegister) {
+    pub fn mrs(&mut self, register: GPR, value: SpecialRegister) {
         // VTOCK TODO: monster op
 
         // for now just move the value

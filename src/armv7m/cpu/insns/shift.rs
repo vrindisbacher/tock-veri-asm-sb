@@ -1,8 +1,6 @@
-use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::bv32::BV32};
 
-use super::{
-    super::Armv7m,
-};
+use super::super::Armv7m;
 
 impl Armv7m {
     // LSR Immediate (see p. A7-284 of the manual)
@@ -18,23 +16,18 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], B32[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], BV32[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, right_shift(get_general_purpose_reg(reg_val, old_cpu), shift))
+                gpr_set(reg, old_cpu, new_cpu, right_shift(get_gpr(reg_val, old_cpu), shift))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
-                // shift != 0 => general_purpose_register_updated(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
+                // shift != 0 => gpr_set(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
         }
     )]
-    pub fn lsrs_imm(
-        &mut self,
-        register: GeneralPurposeRegister,
-        value: GeneralPurposeRegister,
-        shift: B32,
-    ) {
+    pub fn lsrs_imm(&mut self, register: GPR, value: GPR, shift: BV32) {
         // Corresponds to encoding T1 of LSR
         //
         // Specific encoding ops are:
@@ -57,7 +50,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_B32(register, res);
+        // self.update_general_reg_with_BV32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values
@@ -87,24 +80,19 @@ impl Armv7m {
     //      APSR.C = carry;
     //      // APSR.V unchanged
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@reg_val], GeneralPurposeRegister[@shift]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], GPR[@shift]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, left_shift(get_general_purpose_reg(reg_val, old_cpu), get_general_purpose_reg(shift, old_cpu)))
+                gpr_set(reg, old_cpu, new_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu)))
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
-                // get_general_purpose_reg(shift, old_cpu) != 0 
-                //   => general_purpose_register_updated(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_general_purpose_reg(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_general_purpose_reg(shift, old_cpu))
+                // get_gpr(shift, old_cpu) != 0 
+                //   => gpr_set(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_gpr(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_gpr(shift, old_cpu))
         }
     )]
-    pub fn lslw_reg(
-        &mut self,
-        register: GeneralPurposeRegister,
-        value: GeneralPurposeRegister,
-        shift: GeneralPurposeRegister,
-    ) {
+    pub fn lslw_reg(&mut self, register: GPR, value: GPR, shift: GPR) {
         // Corresponds to encoding T2 of LSL
         //
         // Specific encoding ops are:
@@ -130,7 +118,7 @@ impl Armv7m {
         //         },
         //     )
         // };
-        // self.update_general_reg_with_B32(register, res);
+        // self.update_general_reg_with_BV32(register, res);
         // let set_flags = !self.in_if_then_block();
         // if set_flags {
         //     // VTOCK TODO: Actually deal with negative values

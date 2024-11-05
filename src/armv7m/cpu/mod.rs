@@ -2,14 +2,14 @@ mod flux_defs;
 mod insns;
 mod psr;
 
-use super::lang::{GeneralPurposeRegister, SpecialRegister};
+use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
-use crate::flux_support::b32::B32;
+use crate::flux_support::bv32::BV32;
 use crate::flux_support::rmap::Regs;
 use flux_defs::*;
 
-pub type ArmGeneralRegs = Regs<GeneralPurposeRegister, B32>;
-pub type ArmSpecialRegs = Regs<SpecialRegister, B32>;
+pub type ArmGeneralRegs = Regs<GPR, BV32>;
+pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
 
 // The following is a struct that represents the CPU of the ARMv7m processor architecture
 //
@@ -44,16 +44,16 @@ pub type ArmSpecialRegs = Regs<SpecialRegister, B32>;
 //
 #[derive(Debug)]
 #[flux_rs::refined_by(
-    general_regs: Map<GeneralPurposeRegister, B32>,
-    special_regs: Map<SpecialRegister, B32>,
+    general_regs: Map<GPR, BV32>,
+    special_regs: Map<SpecialRegister, BV32>,
     mem: Memory
 )]
 pub struct Armv7m {
     // General Registers r0 - r11
-    #[field(Regs<GeneralPurposeRegister, B32>[general_regs])]
+    #[field(Regs<GPR, BV32>[general_regs])]
     pub general_regs: ArmGeneralRegs,
     // Special Registers
-    #[field(Regs<SpecialRegister, B32>[special_regs])]
+    #[field(Regs<SpecialRegister, BV32>[special_regs])]
     pub special_regs: ArmSpecialRegs,
     // Memory
     #[field(Memory[mem])]
@@ -62,29 +62,29 @@ pub struct Armv7m {
 
 impl Armv7m {
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> B32[get_special_reg(reg, cpu)])]
-    fn get_value_from_special_reg(&self, register: &SpecialRegister) -> B32 {
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> BV32[get_special_reg(reg, cpu)])]
+    fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         *self.special_regs.get(register).unwrap()
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], B32[@val])
+        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
             ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.general_regs == old_cpu.general_regs && new_cpu.mem == old_cpu.mem }
     )]
-    fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: B32) {
+    fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         self.special_regs.set(register, value);
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
-            ensures self: Armv7m { new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
+        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
+            ensures self: Armv7m { new_cpu: gpr_set(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
     )]
-    fn update_general_reg_with_b32(&mut self, register: GeneralPurposeRegister, value: B32) {
+    fn update_general_reg_with_b32(&mut self, register: GPR, value: BV32) {
         self.general_regs.set(register, value);
     }
 
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> B32[get_general_purpose_reg(reg, cpu)])]
-    fn get_value_from_general_reg(&self, register: &GeneralPurposeRegister) -> B32 {
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> BV32[get_gpr(reg, cpu)])]
+    fn get_value_from_general_reg(&self, register: &GPR) -> BV32 {
         *self.general_regs.get(register).unwrap()
     }
 

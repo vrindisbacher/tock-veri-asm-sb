@@ -44,7 +44,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 31)))
     //  })]
     // pub fn set_n_flag(&mut self) {
@@ -53,7 +53,7 @@ impl Armv7m {
 
     // // VTOCK TODO: That can't be right?
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 31))))
     // })]
     // pub fn unset_n_flag(&mut self) {
@@ -67,7 +67,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 30)))
     // })]
     // pub fn set_z_flag(&mut self) {
@@ -75,7 +75,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 30))))
     // })]
     // pub fn unset_z_flag(&mut self) {
@@ -89,7 +89,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 29)))
     // })]
     // pub fn set_c_flag(&mut self) {
@@ -97,7 +97,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 29))))
     // })]
     // pub fn unset_c_flag(&mut self) {
@@ -111,7 +111,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 28)))
     // })]
     // pub fn set_v_flag(&mut self) {
@@ -119,7 +119,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 28))))
     // })]
     // pub fn unset_v_flag(&mut self) {
@@ -133,7 +133,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 27)))
     // })]
     // pub fn set_q_flag(&mut self) {
@@ -141,7 +141,7 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
     //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 27))))
     // })]
     // pub fn unset_q_flag(&mut self) {

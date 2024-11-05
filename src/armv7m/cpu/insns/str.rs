@@ -1,4 +1,7 @@
-use crate::{armv7m::{cpu::Armv7m, lang::GeneralPurposeRegister}, flux_support::b32::B32};
+use crate::{
+    armv7m::{cpu::Armv7m, lang::GPR},
+    flux_support::bv32::BV32,
+};
 
 impl Armv7m {
     // Str (register) (w) with a LSL (see p. A7-388 in the manual)
@@ -19,17 +22,17 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
-            GeneralPurposeRegister[@reg_to_store], 
-            GeneralPurposeRegister[@reg_base], 
-            GeneralPurposeRegister[@reg_offset], 
-            B32[@shift]
+            GPR[@reg_to_store], 
+            GPR[@reg_base], 
+            GPR[@reg_offset], 
+            BV32[@shift]
         ) 
         requires 
             is_valid_write_addr(
                 to_int(
                     bv_add(
-                        get_general_purpose_reg(reg_base, old_cpu), 
-                        left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                        get_gpr(reg_base, old_cpu), 
+                        left_shift(get_gpr(reg_offset, old_cpu), shift)
                     )
                 )
             )
@@ -38,13 +41,13 @@ impl Armv7m {
                 mem_value_updated(
                     to_int(
                         bv_add(
-                            get_general_purpose_reg(reg_base, old_cpu),
-                            left_shift(get_general_purpose_reg(reg_offset, old_cpu), shift)
+                            get_gpr(reg_base, old_cpu),
+                            left_shift(get_gpr(reg_offset, old_cpu), shift)
                         )
                     ),
                     old_cpu.mem,
                     new_cpu.mem, 
-                    get_general_purpose_reg(reg_to_store, old_cpu)
+                    get_gpr(reg_to_store, old_cpu)
                  )
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
@@ -54,10 +57,10 @@ impl Armv7m {
     )]
     pub fn strw_lsl_reg(
         &mut self,
-        register_to_str: GeneralPurposeRegister,
-        base_reg: GeneralPurposeRegister,
-        offset_reg: GeneralPurposeRegister,
-        shift: B32,
+        register_to_str: GPR,
+        base_reg: GPR,
+        offset_reg: GPR,
+        shift: BV32,
     ) {
         // Corresponds to encoding T2 of Str (register)
         //
@@ -76,13 +79,13 @@ impl Armv7m {
 
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
-            B32[@val],
-            GeneralPurposeRegister[@reg_base], 
+            BV32[@val],
+            GPR[@reg_base], 
         ) 
-        requires is_valid_write_addr(to_int(get_general_purpose_reg(reg_base, old_cpu)))
+        requires is_valid_write_addr(to_int(get_gpr(reg_base, old_cpu)))
         ensures self: Armv7m { 
             new_cpu: mem_value_updated(
-                        to_int(get_general_purpose_reg(reg_base, old_cpu)),
+                        to_int(get_gpr(reg_base, old_cpu)),
                         old_cpu.mem,
                         new_cpu.mem, 
                         val
@@ -92,7 +95,7 @@ impl Armv7m {
 
         }
     )]
-    pub fn str_direct(&mut self, value: B32, addr: GeneralPurposeRegister) {
+    pub fn str_direct(&mut self, value: BV32, addr: GPR) {
         let addr = self.get_value_from_general_reg(&addr).into();
         self.mem.write(addr, value);
     }

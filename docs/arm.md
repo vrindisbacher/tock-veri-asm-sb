@@ -66,9 +66,9 @@ flux_rs::defs! {
     // probably formalize that somehow
     requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 
     ensures self: Armv7m { new_cpu:
-        get_general_purpose_reg(r0(), new_cpu) == isr_r0(old_cpu)
+        get_gpr(r0(), new_cpu) == isr_r0(old_cpu)
         &&
-        get_general_purpose_reg(r2(), new_cpu) == isr_r2(old_cpu)
+        get_gpr(r2(), new_cpu) == isr_r2(old_cpu)
         && 
         nth_bit_is_set(
             get_mem_addr(
@@ -89,62 +89,62 @@ flux_rs::defs! {
 )]
 pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
     // r0 = 0
-    armv7m.movw_imm(GeneralPurposeRegister::R0, B32::from(0));
+    armv7m.movw_imm(GPR::R0, B32::from(0));
     // control = r0 = 0
-    armv7m.msr(SpecialRegister::Control, GeneralPurposeRegister::R0);
+    armv7m.msr(SpecialRegister::Control, GPR::R0);
     // isb
     armv7m.isb(Some(IsbOpt::Sys));
     // NOTE: using pseudo instr here
     // lr = 0xFFFFFFF9
     armv7m.pseudo_ldr_special(SpecialRegister::Lr, B32::from(0xFFFFFFF9));
     // r0 = ipsr
-    armv7m.mrs(GeneralPurposeRegister::R0, SpecialRegister::IPSR);
+    armv7m.mrs(GPR::R0, SpecialRegister::IPSR);
     // Note: this seems to be a useless instruction?
-    armv7m.and_imm(GeneralPurposeRegister::R0, B32::from(0xff));
+    armv7m.and_imm(GPR::R0, B32::from(0xff));
     // r0 = ipsr - 16
-    armv7m.subw_imm(GeneralPurposeRegister::R0, GeneralPurposeRegister::R0, B32::from(16));
+    armv7m.subw_imm(GPR::R0, GPR::R0, B32::from(16));
     // r2 = r0 >> 5 ---> (ipsr - 16 / 32)
-    armv7m.lsrs_imm(GeneralPurposeRegister::R2, GeneralPurposeRegister::R0, B32::from(5));
+    armv7m.lsrs_imm(GPR::R2, GPR::R0, B32::from(5));
     // r3 = 1
-    armv7m.movs_imm(GeneralPurposeRegister::R3, B32::from(1));
+    armv7m.movs_imm(GPR::R3, B32::from(1));
     // r0 = r0 & 31
-    armv7m.and_imm(GeneralPurposeRegister::R0, B32::from(31));
+    armv7m.and_imm(GPR::R0, B32::from(31));
     // r0 = r3 << r0
     //      -     -
     //      1     (ipsr - 16 & 31)
     armv7m.lslw_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R0,
+        GPR::R0,
+        GPR::R3,
+        GPR::R0,
     );
     // Note: Ignoring the dissasembled version of this because dealing with program counter is
     // annoying
     //
     // Gonna encode this as a pseudo instruction for now
-    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e180));
+    armv7m.pseudo_ldr(GPR::R3, B32::from(0xe000_e180));
     // r0 = 1 << (ipsr - 16 & 31)
     // r3 = 0xe000_e180
     // r2 = (ipsr - 16 >> 5) 
     armv7m.strw_lsl_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R2,
+        GPR::R0,
+        GPR::R3,
+        GPR::R2,
         B32::from(2),
     );
     // Note: Ignoring the dissasembled version of this because dealing with program counter is
     // annoying
     //
     // Gonna encode this as a pseudo instruction for now
-    armv7m.pseudo_ldr(GeneralPurposeRegister::R3, B32::from(0xe000_e200));
+    armv7m.pseudo_ldr(GPR::R3, B32::from(0xe000_e200));
     // r0 = 1 << (ipsr - 16 & 31)
     // r3 = 0xe000_e200
     // r2 = (ipsr - 16 >> 5) << 2
     //
     // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << (ipsr - 16) & 31) i.e. "bit for the ipsr # is set"
     armv7m.strw_lsl_reg(
-        GeneralPurposeRegister::R0,
-        GeneralPurposeRegister::R3,
-        GeneralPurposeRegister::R2,
+        GPR::R0,
+        GPR::R3,
+        GPR::R2,
         B32::from(2),
     );
     armv7m.bx(SpecialRegister::Lr);
@@ -243,30 +243,30 @@ Using `B32` and `Regs`, we can build our core representation:
 ```rust
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[flux_rs::refined_by(n: int)]
-pub enum GeneralPurposeRegister {
-    #[variant(GeneralPurposeRegister[0])]
+pub enum GPR {
+    #[variant(GPR[0])]
     R0,
-    #[variant(GeneralPurposeRegister[1])]
+    #[variant(GPR[1])]
     R1,
-    #[variant(GeneralPurposeRegister[2])]
+    #[variant(GPR[2])]
     R2,
-    #[variant(GeneralPurposeRegister[3])]
+    #[variant(GPR[3])]
     R3,
-    #[variant(GeneralPurposeRegister[4])]
+    #[variant(GPR[4])]
     R4,
-    #[variant(GeneralPurposeRegister[5])]
+    #[variant(GPR[5])]
     R5,
-    #[variant(GeneralPurposeRegister[6])]
+    #[variant(GPR[6])]
     R6,
-    #[variant(GeneralPurposeRegister[7])]
+    #[variant(GPR[7])]
     R7,
-    #[variant(GeneralPurposeRegister[8])]
+    #[variant(GPR[8])]
     R8,
-    #[variant(GeneralPurposeRegister[9])]
+    #[variant(GPR[9])]
     R9,
-    #[variant(GeneralPurposeRegister[10])]
+    #[variant(GPR[10])]
     R10,
-    #[variant(GeneralPurposeRegister[11])]
+    #[variant(GPR[11])]
     R11,
 }
 
@@ -291,17 +291,17 @@ pub enum SpecialRegister {
     IPSR,
 }
 
-pub type ArmGeneralRegs = Regs<GeneralPurposeRegister, B32>;
+pub type ArmGeneralRegs = Regs<GPR, B32>;
 pub type ArmSpecialRegs = Regs<SpecialRegister, B32>;
 
 #[flux_rs::refined_by(
-    general_regs: Map<GeneralPurposeRegister, B32>,
+    general_regs: Map<GPR, B32>,
     special_regs: Map<SpecialRegister, B32>,
     mem: Memory
 )]
 pub struct Armv7m {
     // General Registers r0 - r11
-    #[field(Regs<GeneralPurposeRegister, B32>[general_regs])]
+    #[field(Regs<GPR, B32>[general_regs])]
     pub general_regs: ArmGeneralRegs,
     // Special Registers
     #[field(Regs<SpecialRegister, B32>[special_regs])]
@@ -375,24 +375,24 @@ impl Armv7m {
     //       APSR.C = carry;
     //       // APSR.V unchanged
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
-            ensures self: Armv7m { new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
+        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
+            ensures self: Armv7m { new_cpu: grp_updated(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
     )]
-    fn update_general_reg_with_b32(&mut self, register: GeneralPurposeRegister, value: B32) {
+    fn update_general_reg_with_b32(&mut self, register: GPR, value: B32) {
         self.general_regs.set(register, value);
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], B32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
-                general_purpose_register_updated(reg, old_cpu, new_cpu, val) 
+                grp_updated(reg, old_cpu, new_cpu, val) 
                 &&
                 old_cpu.special_regs == new_cpu.special_regs
                 &&
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn movw_imm(&mut self, register: GeneralPurposeRegister, value: B32) {
+    pub fn movw_imm(&mut self, register: GPR, value: B32) {
         // Corresponds to encoding T2 of Mov immediate
         //
         // Specific encoding ops are:
@@ -412,13 +412,13 @@ Now, using this instruction and it's corresponding annotation, we can reason abo
 
 ```rust
 #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-    get_general_purpose_reg(r0(), new_cpu) == bv32(0)
+    get_gpr(r0(), new_cpu) == bv32(0)
     &&
-    get_general_purpose_reg(r1(), new_cpu) == bv32(1)
+    get_gpr(r1(), new_cpu) == bv32(1)
 })]
 fn two_movs(armv7m: &mut Armv7m) {
-    armv7m.movw_imm(GeneralPurposeRegister::R0, B32::from(0));
-    armv7m.movw_imm(GeneralPurposeRegister::R1, B32::from(1));
+    armv7m.movw_imm(GPR::R0, B32::from(0));
+    armv7m.movw_imm(GPR::R1, B32::from(1));
 }
 ```
 

@@ -1,4 +1,7 @@
-use crate::{armv7m::lang::{GeneralPurposeRegister, SpecialRegister}, flux_support::b32::B32};
+use crate::{
+    armv7m::lang::{SpecialRegister, GPR},
+    flux_support::bv32::BV32,
+};
 
 use super::super::Armv7m;
 
@@ -20,33 +23,33 @@ impl Armv7m {
     //   else
     //      R[t] = data;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
         ensures self: Armv7m { 
-            new_cpu: general_purpose_register_updated(reg, old_cpu, new_cpu, val)
+            new_cpu: gpr_set(reg, old_cpu, new_cpu, val)
             &&
             old_cpu.special_regs == new_cpu.special_regs
             &&
             old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn pseudo_ldr(&mut self, register: GeneralPurposeRegister, value: B32) {
+    pub fn pseudo_ldr(&mut self, register: GPR, value: BV32) {
         // Note the non pseudo instruction would do this:
         //
-        //      fn align(value: B32, alignment: B32) -> B32 {
+        //      fn align(value: BV32, alignment: BV32) -> BV32 {
         //          alignment * (value / alignment)
         //      }
         //      let base = Self::align(self.pc, 4);
         //      let addr = base + value;
         //      let data = self.mem.read(addr);
         //      VTOCK TODO: Deal with PC update here
-        //      self.update_general_reg_with_B32(register, data);
+        //      self.update_general_reg_with_BV32(register, data);
         //
         // but since dealing with offsets to the PC isn't supported right
         // now we'll just encode the pseudo instruction as a mov
         self.movw_imm(register, value);
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], B32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val]) 
         ensures self: Armv7m { 
             new_cpu: 
                 special_purpose_register_updated(reg, old_cpu, new_cpu, val)
@@ -56,17 +59,17 @@ impl Armv7m {
                 old_cpu.mem == new_cpu.mem
         }
     )]
-    pub fn pseudo_ldr_special(&mut self, register: SpecialRegister, value: B32) {
+    pub fn pseudo_ldr_special(&mut self, register: SpecialRegister, value: BV32) {
         // Note the non pseudo instruction would do this:
         //
-        //      fn align(value: B32, alignment: B32) -> B32 {
+        //      fn align(value: BV32, alignment: BV32) -> BV32 {
         //          alignment * (value / alignment)
         //      }
         //      let base = Self::align(self.pc, 4);
         //      let addr = base + value;
         //      let data = self.mem.read(addr);
         //      VTOCK TODO: Deal with PC update here
-        //      self.update_general_reg_with_B32(register, data);
+        //      self.update_general_reg_with_BV32(register, data);
         //
         // but since dealing with offsets to the PC isn't supported right
         // now we'll just encode the pseudo instruction as a mov

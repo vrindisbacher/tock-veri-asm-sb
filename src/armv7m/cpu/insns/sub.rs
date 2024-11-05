@@ -1,4 +1,4 @@
-use crate::{armv7m::lang::GeneralPurposeRegister, flux_support::b32::B32};
+use crate::{armv7m::lang::GPR, flux_support::bv32::BV32};
 
 use super::super::Armv7m;
 impl Armv7m {
@@ -17,23 +17,18 @@ impl Armv7m {
     //      APSR.C = carry;
     //      APSR.V = overflow;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], GeneralPurposeRegister[@val1], B32[@val2]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@val1], BV32[@val2]) 
         ensures self: Armv7m 
             { 
                  new_cpu: 
-                     general_purpose_register_updated(reg, old_cpu, new_cpu, bv_sub(get_general_purpose_reg(val1, old_cpu), val2))
+                     gpr_set(reg, old_cpu, new_cpu, bv_sub(get_gpr(val1, old_cpu), val2))
                      &&
                      old_cpu.special_regs == new_cpu.special_regs
                      &&
                      old_cpu.mem == new_cpu.mem
             }
     )]
-    pub fn subw_imm(
-        &mut self,
-        register: GeneralPurposeRegister,
-        value1: GeneralPurposeRegister,
-        value2: B32,
-    ) {
+    pub fn subw_imm(&mut self, register: GPR, value1: GPR, value2: BV32) {
         // Corresponds to encoding T3 of Sub immediate:
         //
         // Specific encoding ops are:

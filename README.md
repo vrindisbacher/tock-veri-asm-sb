@@ -37,7 +37,7 @@ One potentially interesting future artifact would be a fully verified ARM or RIS
 ```rust
 #[flux_rs::sig(fn (arm: &strg Armv7m[@cpu]) ensures arm: Armv7m { v: v.r0 == 0 })]
 fn simple_mov_program(armv7m: &mut Armv7m) {
-    armv7m.mov(GeneralPurposeRegister::R0, Value::Value(0));
+    armv7m.mov(GPR::R0, Value::Value(0));
 }
 ```
 
@@ -92,46 +92,46 @@ flux_rs::defs! {
 }
 
 #[flux_rs::refined_by(n: int)]
-pub enum GeneralPurposeRegister {
-    #[variant(GeneralPurposeRegister[0])]
+pub enum GPR {
+    #[variant(GPR[0])]
     R0,
-    #[variant(GeneralPurposeRegister[1])]
+    #[variant(GPR[1])]
     R1,
-    #[variant(GeneralPurposeRegister[2])]
+    #[variant(GPR[2])]
     R2,
-    #[variant(GeneralPurposeRegister[3])]
+    #[variant(GPR[3])]
     R3,
-    #[variant(GeneralPurposeRegister[4])]
+    #[variant(GPR[4])]
     R4,
-    #[variant(GeneralPurposeRegister[5])]
+    #[variant(GPR[5])]
     R5,
-    #[variant(GeneralPurposeRegister[6])]
+    #[variant(GPR[6])]
     R6,
-    #[variant(GeneralPurposeRegister[7])]
+    #[variant(GPR[7])]
     R7,
-    #[variant(GeneralPurposeRegister[8])]
+    #[variant(GPR[8])]
     R8,
-    #[variant(GeneralPurposeRegister[9])]
+    #[variant(GPR[9])]
     R9,
-    #[variant(GeneralPurposeRegister[10])]
+    #[variant(GPR[10])]
     R10,
-    #[variant(GeneralPurposeRegister[11])]
+    #[variant(GPR[11])]
     R11,
-    #[variant(GeneralPurposeRegister[12])]
+    #[variant(GPR[12])]
     R12,
-    #[variant(GeneralPurposeRegister[13])]
+    #[variant(GPR[13])]
     R13,
     // Link Register
-    #[variant(GeneralPurposeRegister[14])]
+    #[variant(GPR[14])]
     R14,
-    #[variant(GeneralPurposeRegister[15])]
+    #[variant(GPR[15])]
     R15,
 }
 
 #[flux_rs::refined_by(is_reg: bool, val: int)]
 pub enum Value {
-    #[variant({GeneralPurposeRegister[@n]} -> Value[true, n])]
-    Register(GeneralPurposeRegister),
+    #[variant({GPR[@n]} -> Value[true, n])]
+    Register(GPR),
     #[variant({u32[@n]} -> Value[false, n])]
     Value(u32),
 }
@@ -222,25 +222,25 @@ pub struct Armv7m {
 
 impl Armv7m {
 
-    #[flux_rs::sig(fn (&Armv7m[@cpu], &GeneralPurposeRegister[@reg]) -> u32[get_reg(reg, cpu)])]
-    fn get_value_from_reg(&self, register: &GeneralPurposeRegister) -> u32 {
+    #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> u32[get_reg(reg, cpu)])]
+    fn get_value_from_reg(&self, register: &GPR) -> u32 {
         match register {
-            GeneralPurposeRegister::R0 => self.r0,
-            GeneralPurposeRegister::R1 => self.r1,
-            GeneralPurposeRegister::R2 => self.r2,
-            GeneralPurposeRegister::R3 => self.r3,
-            GeneralPurposeRegister::R4 => self.r4,
-            GeneralPurposeRegister::R5 => self.r5,
-            GeneralPurposeRegister::R6 => self.r6,
-            GeneralPurposeRegister::R7 => self.r7,
-            GeneralPurposeRegister::R8 => self.r8,
-            GeneralPurposeRegister::R9 => self.r9,
-            GeneralPurposeRegister::R10 => self.r10,
-            GeneralPurposeRegister::R11 => self.r11,
-            GeneralPurposeRegister::R12 => self.r12,
-            GeneralPurposeRegister::R13 => self.r13,
-            GeneralPurposeRegister::R14 => self.r14,
-            GeneralPurposeRegister::R15 => self.r15,
+            GPR::R0 => self.r0,
+            GPR::R1 => self.r1,
+            GPR::R2 => self.r2,
+            GPR::R3 => self.r3,
+            GPR::R4 => self.r4,
+            GPR::R5 => self.r5,
+            GPR::R6 => self.r6,
+            GPR::R7 => self.r7,
+            GPR::R8 => self.r8,
+            GPR::R9 => self.r9,
+            GPR::R10 => self.r10,
+            GPR::R11 => self.r11,
+            GPR::R12 => self.r12,
+            GPR::R13 => self.r13,
+            GPR::R14 => self.r14,
+            GPR::R15 => self.r15,
         }
     }
 
@@ -252,34 +252,34 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], u32[@new_val]) ensures self: Armv7m { new_cpu: get_reg(reg, new_cpu) == new_val })] 
-    fn update_reg_with_u32(&mut self, register: GeneralPurposeRegister, value: u32) {
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], u32[@new_val]) ensures self: Armv7m { new_cpu: get_reg(reg, new_cpu) == new_val })] 
+    fn update_reg_with_u32(&mut self, register: GPR, value: u32) {
         match register {
-            GeneralPurposeRegister::R0 => self.r0 = value,
-            GeneralPurposeRegister::R1 => self.r1 = value,
-            GeneralPurposeRegister::R2 => self.r2 = value,
-            GeneralPurposeRegister::R3 => self.r3 = value,
-            GeneralPurposeRegister::R4 => self.r4 = value,
-            GeneralPurposeRegister::R5 => self.r5 = value,
-            GeneralPurposeRegister::R6 => self.r6 = value,
-            GeneralPurposeRegister::R7 => self.r7 = value,
-            GeneralPurposeRegister::R8 => self.r8 = value,
-            GeneralPurposeRegister::R9 => self.r9 = value,
-            GeneralPurposeRegister::R10 => self.r10 = value,
-            GeneralPurposeRegister::R11 => self.r11 = value,
-            GeneralPurposeRegister::R12 => self.r12 = value,
-            GeneralPurposeRegister::R13 => self.r13 = value,
-            GeneralPurposeRegister::R14 => self.r14 = value,
-            GeneralPurposeRegister::R15 => self.r15 = value,
+            GPR::R0 => self.r0 = value,
+            GPR::R1 => self.r1 = value,
+            GPR::R2 => self.r2 = value,
+            GPR::R3 => self.r3 = value,
+            GPR::R4 => self.r4 = value,
+            GPR::R5 => self.r5 = value,
+            GPR::R6 => self.r6 = value,
+            GPR::R7 => self.r7 = value,
+            GPR::R8 => self.r8 = value,
+            GPR::R9 => self.r9 = value,
+            GPR::R10 => self.r10 = value,
+            GPR::R11 => self.r11 = value,
+            GPR::R12 => self.r12 = value,
+            GPR::R13 => self.r13 = value,
+            GPR::R14 => self.r14 = value,
+            GPR::R15 => self.r15 = value,
         }
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GeneralPurposeRegister[@reg], Value[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], Value[@val]) 
         ensures self: Armv7m { 
             new_cpu: get_reg(reg, new_cpu) == value_into_u32(val, old_cpu) 
         }
     )]
-    pub fn mov(&mut self, register: GeneralPurposeRegister, value: Value) {
+    pub fn mov(&mut self, register: GPR, value: Value) {
         // Move immediate - writes a value into destination register
         // This does not cause a flag update
         let val = self.value_into_u32(value);
