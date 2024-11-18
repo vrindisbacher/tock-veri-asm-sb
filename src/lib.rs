@@ -84,6 +84,9 @@ mod arm_isr {
                 ),
                 isr_bit_loc(old_cpu)
             )
+            &&
+            // note - must be correct to yield back properly
+            to_int(get_special_reg(lr(), new_cpu)) == 0xFFFF_FFF9
         }
     )]
     pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
