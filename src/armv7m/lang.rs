@@ -25,14 +25,13 @@ pub enum GPR {
     R10,
     #[variant(GPR[11])]
     R11,
+    #[variant(GPR[12])]
+    R12,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[flux_rs::refined_by(n : int)]
 pub enum SpecialRegister {
-    #[variant(SpecialRegister[12])]
-    // R12 is used for IPC
-    R12,
     #[variant(SpecialRegister[13])]
     Sp,
     #[variant(SpecialRegister[14])]

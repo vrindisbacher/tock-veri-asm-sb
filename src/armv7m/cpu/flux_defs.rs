@@ -1,4 +1,4 @@
-use super::Armv7m;
+use super::{Armv7m, CPUMode, Control, SP};
 use crate::armv7m::lang::{SpecialRegister, GPR};
 use crate::flux_support::bv32::*;
 use crate::flux_support::rmap::*;
@@ -6,9 +6,7 @@ use crate::flux_support::rmap::*;
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
-    fn bv32(x: int) -> BV32 {
-        bv_int_to_bv32(x)
-    }
+    fn bv32(x: int) -> BV32 { bv_int_to_bv32(x) }
 
     fn to_int(x: BV32) -> int { bv_bv32_to_int(x) }
 
@@ -16,29 +14,119 @@ flux_rs::defs! {
         map_get(cpu.general_regs, reg)
     }
 
-
     fn set_gpr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<GPR, BV32> {
         map_set(old_cpu.general_regs, reg, val)
     }
 
-    fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
-        if is_ipsr(reg) {
-            bv_and(map_get(cpu.special_regs, psr()), bv32(0xff))
+    fn control_update(val: BV32, old_cpu: Armv7m) -> Control {
+        if to_int(val) == 0 {
+            Control { npriv: false, spsel: false }
+        } else if to_int(val) == 1 {
+            Control { npriv: true, spsel: false }
+        } else if to_int(val) == 2 {
+            Control { npriv: false, spsel: true }
         } else {
-            map_get(cpu.special_regs, reg)
+            Control { npriv: false, spsel: true }
         }
     }
 
-    fn get_psr(cpu: Armv7m) ->  BV32 {
-        get_special_reg(psr(), cpu)
+    fn get_control(control: Control) -> BV32 {
+        if control.npriv && control.spsel {
+            bv32(3)
+        } else if control.npriv {
+            // first bit is 1 - i.e. 01
+            bv32(1)
+        } else if control.spsel {
+            // second bit is 1 - i.e. 10
+            bv32(2)
+        } else {
+            bv32(0)
+        }
     }
 
-    fn set_spr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<SpecialRegister, BV32> {
-        map_set(old_cpu.special_regs, reg, val)
+    fn get_sp(sp: SP, mode: int, control: Control) -> BV32 {
+        if mode_is_handler(mode) {
+            sp.sp_main
+        } else {
+            // thread mode
+            if control.spsel {
+                sp.sp_process
+            } else {
+                sp.sp_main
+            }
+        }
+    }
+
+    fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
+        if is_sp(reg) {
+            get_sp(cpu.sp, cpu.mode, cpu.control)
+        } else if is_lr(reg) {
+            cpu.lr
+        } else if is_pc(reg) {
+            cpu.pc
+        } else if is_control(reg) {
+            get_control(cpu.control)
+        } else if is_psr(reg) {
+            cpu.psr
+        } else {
+            // ipsr
+            bv_and(cpu.psr, bv32(0xff))
+        }
+    }
+
+    fn set_control(control: Control, mode: int, val: BV32) -> Control {
+        if mode_is_handler(mode) {
+            Control { npriv: nth_bit_is_set(val, bv32(1)), ..control }
+        } else {
+            Control { npriv: nth_bit_is_set(val, bv32(1)), spsel: nth_bit_is_set(val, bv32(2)) }
+        }
+    }
+
+    fn set_sp(sp: SP, mode: int, control: Control, val: BV32) -> SP {
+        if mode_is_handler(mode) {
+            SP { sp_main: val, ..sp }
+        } else {
+            // thread mode
+            if control.spsel {
+                SP { sp_process: val, ..sp }
+            } else {
+                SP { sp_main: val, ..sp }
+            }
+        }
+    }
+
+    fn set_spr(reg: int, cpu: Armv7m, val: BV32) -> Armv7m {
+        if is_sp(reg) {
+            Armv7m { sp: set_sp(cpu.sp, cpu.mode, cpu.control, val), ..cpu }
+        } else if is_lr(reg) {
+            Armv7m { lr: val, ..cpu }
+        } else if is_pc(reg) {
+            Armv7m { pc: val, ..cpu }
+        } else if is_control(reg) {
+            Armv7m { control: set_control(cpu.control, cpu.mode, val), ..cpu }
+        } else if is_psr(reg) {
+            Armv7m { psr: val, ..cpu }
+        } else {
+            cpu
+        }
+    }
+
+    fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
+
+    fn mode_is_handler(mode: int) -> bool {
+        mode == 0
     }
 
     fn is_ipsr(reg: int) -> bool {
         reg == 18
+    }
+
+    fn is_psr(reg: int) -> bool {
+        reg == 17
+    }
+
+    fn is_control(reg: int) -> bool {
+        reg == 16
     }
 
     fn is_pc(reg: int) -> bool {
@@ -51,10 +139,6 @@ flux_rs::defs! {
 
     fn is_sp(reg: int) -> bool {
         reg == 13
-    }
-
-    fn is_control(reg: int) -> bool {
-        reg == 16
     }
 
     fn r0() -> int {

@@ -44,7 +44,9 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val]) 
-        ensures self: Armv7m[{ special_regs: set_spr(reg, old_cpu, val), ..old_cpu }]
+        // right now requires that the register is the link register
+        requires is_lr(reg)
+        ensures self: Armv7m[{ lr: val, ..old_cpu }]
     )]
     pub fn pseudo_ldr_special(&mut self, register: SpecialRegister, value: BV32) {
         // Note the non pseudo instruction would do this:

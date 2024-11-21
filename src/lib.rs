@@ -177,18 +177,6 @@ mod arm_test {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m { new_cpu: 
-            get_gpr(r3(), new_cpu) == bv32(0xE000_E010)
-            &&
-            get_special_reg(control(), new_cpu) == bv32(0xE000_E010)
-        }
-    )]
-    fn store_diff_maps(armv7m: &mut Armv7m) {
-        armv7m.movw_imm(GPR::R3, BV32::from(0xE000_E010));
-        armv7m.msr(SpecialRegister::Control, GPR::R3);
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
         ensures self: Armv7m { new_cpu: get_mem_addr(0xE000_E184, new_cpu.mem) == bv32(1) }
     )]
     fn lsl_store_nvic(armv7m: &mut Armv7m) {

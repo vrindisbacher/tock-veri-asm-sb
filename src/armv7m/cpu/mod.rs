@@ -41,38 +41,164 @@ pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
 //      - Q, bit[27] Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of
 //      the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to
 //      indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
-//
+#[derive(Debug)]
+#[flux_rs::refined_by(mode: int)]
+pub enum CPUMode {
+    #[variant(CPUMode[0])]
+    Handler,
+    #[variant(CPUMode[1])]
+    Thread,
+}
+
+#[derive(Debug)]
+#[flux_rs::refined_by(sp_main: BV32, sp_process: BV32)]
+pub struct SP {
+    #[field(BV32[sp_main])]
+    sp_main: BV32,
+    #[field(BV32[sp_process])]
+    sp_process: BV32,
+}
+
+#[derive(Debug)]
+#[flux_rs::refined_by(npriv: bool, spsel: bool)]
+pub struct Control {
+    // both of these are either 0 or 1 so using bools
+    // 0 - Thread mode has privileged access
+    // 1 - Thread mode has unprivileged access
+    #[field(bool[npriv])]
+    npriv: bool,
+    // 0 use sp_main
+    // 1 In Thread mode, use SP_process as the current stack. In Handler mode, this value is reserved.
+    #[field(bool[spsel])]
+    spsel: bool,
+}
+
 #[derive(Debug)]
 #[flux_rs::refined_by(
     general_regs: Map<GPR, BV32>,
-    special_regs: Map<SpecialRegister, BV32>,
-    mem: Memory
+    sp: SP,
+    control: Control,
+    lr: BV32,
+    pc: BV32,
+    psr: BV32,
+    mem: Memory,
+    mode: CPUMode
 )]
 pub struct Armv7m {
     // General Registers r0 - r11
     #[field(Regs<GPR, BV32>[general_regs])]
     pub general_regs: ArmGeneralRegs,
-    // Special Registers
-    #[field(Regs<SpecialRegister, BV32>[special_regs])]
-    pub special_regs: ArmSpecialRegs,
+    // Stack Pointer
+    #[field(SP[sp])]
+    pub sp: SP,
+    // Control register
+    #[field(Control[control])]
+    pub control: Control,
+    // Program Counter
+    #[field(BV32[pc])]
+    pub pc: BV32,
+    // Link register
+    #[field(BV32[lr])]
+    pub lr: BV32,
+    // program status register
+    #[field(BV32[psr])]
+    pub psr: BV32,
     // Memory
     #[field(Memory[mem])]
     pub mem: Memory,
+    // current CPU mode
+    #[field(CPUMode[mode])]
+    pub mode: CPUMode,
 }
 
 impl Armv7m {
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> BV32[get_special_reg(reg, cpu)])]
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
-        *self.special_regs.get(register).unwrap()
+        match register {
+            SpecialRegister::Sp => {
+                match self.mode {
+                    CPUMode::Handler => {
+                        // updates sp_main
+                        self.sp.sp_main
+                    }
+                    CPUMode::Thread => {
+                        // check spsel
+                        // 0 use sp_main
+                        // 1 In Thread mode, use SP_process as the current stack. In Handler mode, this value is reserved.
+                        if self.control.spsel {
+                            self.sp.sp_process
+                        } else {
+                            self.sp.sp_main
+                        }
+                    }
+                }
+            }
+            SpecialRegister::Lr => self.lr,
+            SpecialRegister::Pc => self.pc,
+            SpecialRegister::Control => {
+                if self.control.npriv && self.control.spsel {
+                    BV32::from(3)
+                } else if self.control.npriv {
+                    // first bit is 1 - i.e. 01
+                    BV32::from(1)
+                } else if self.control.spsel {
+                    // second bit is 1 - i.e. 10
+                    BV32::from(2)
+                } else {
+                    BV32::from(0)
+                }
+            }
+            SpecialRegister::PSR => self.psr,
+            SpecialRegister::IPSR => self.psr & BV32::from(0xff),
+        }
     }
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
-            ensures self: Armv7m[{ special_regs: set_spr(reg, old_cpu, val), ..old_cpu }] 
+            ensures self: Armv7m[set_spr(reg, old_cpu, val)] 
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
-        self.special_regs.set(register, value);
+        match register {
+            SpecialRegister::Sp => {
+                match self.mode {
+                    CPUMode::Handler => {
+                        // updates sp_main
+                        self.sp.sp_main = value;
+                    }
+                    CPUMode::Thread => {
+                        // check spsel
+                        // 0 use sp_main
+                        // 1:
+                        //  In Thread mode, use SP_process as the current stack.
+                        //  In Handler mode, this value is reserved.
+                        if self.control.spsel {
+                            self.sp.sp_process = value;
+                        } else {
+                            self.sp.sp_main = value;
+                        }
+                    }
+                }
+            }
+            SpecialRegister::Lr => {
+                self.lr = value;
+            }
+            SpecialRegister::Pc => {
+                self.pc = value;
+            }
+            SpecialRegister::Control => {
+                // TODO(VR): Ignore spsel write (i.e. 2, 3)
+                // when in handler mode
+                let npriv_bit_set = value & BV32::from(1) != BV32::from(0);
+                self.control.npriv = npriv_bit_set;
+                if let CPUMode::Thread = self.mode {
+                    let spsel_bit_set = value & BV32::from(2) != BV32::from(0);
+                    self.control.spsel = spsel_bit_set;
+                }
+            }
+            SpecialRegister::PSR => self.psr = value,
+            // IPSR updates do nothing
+            _ => {}
+        }
     }
 
     #[flux_rs::sig(
