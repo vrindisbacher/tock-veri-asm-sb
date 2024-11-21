@@ -69,7 +69,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
-            ensures self: Armv7m { new_cpu: special_purpose_register_updated(reg, old_cpu, new_cpu, val) && new_cpu.general_regs == old_cpu.general_regs && new_cpu.mem == old_cpu.mem }
+            ensures self: Armv7m[{ special_regs: set_spr(reg, old_cpu, val), ..old_cpu }] 
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         self.special_regs.set(register, value);
@@ -77,7 +77,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-            ensures self: Armv7m { new_cpu: gpr_set(reg, old_cpu, new_cpu, val) && new_cpu.special_regs == old_cpu.special_regs && new_cpu.mem == old_cpu.mem }
+            ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }] 
     )]
     fn update_general_reg_with_b32(&mut self, register: GPR, value: BV32) {
         self.general_regs.set(register, value);

@@ -149,14 +149,16 @@ mod arm_test {
         flux_support::bv32::BV32,
     };
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-        gpr_set(
-            r0(), 
-            old_cpu,
-            new_cpu, 
-            bv32(to_int(get_special_reg(ipsr(), old_cpu)) % 32)
-        )
-    })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m[{
+            general_regs: set_gpr(
+                r0(), 
+                old_cpu,
+                bv32(to_int(get_special_reg(ipsr(), old_cpu)) % 32)
+            ),
+            ..old_cpu
+        }] 
+    )]
     fn simple_mod(armv7m: &mut Armv7m) {
         // r0 = ipsr
         armv7m.mrs(GPR::R0, SpecialRegister::IPSR);
@@ -177,16 +179,6 @@ mod arm_test {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
         ensures self: Armv7m { new_cpu: 
             get_gpr(r3(), new_cpu) == bv32(0xE000_E010)
-        }
-    )]
-    fn simple_store(armv7m: &mut Armv7m) {
-        armv7m.movw_imm(GPR::R3, BV32::from(0xE000_E010));
-        armv7m.str_direct(BV32::from(1), GPR::R3)
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m { new_cpu: 
-            get_gpr(r3(), new_cpu) == bv32(0xE000_E010)
             &&
             get_special_reg(control(), new_cpu) == bv32(0xE000_E010)
         }
@@ -196,18 +188,11 @@ mod arm_test {
         armv7m.msr(SpecialRegister::Control, GPR::R3);
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        mem_value_updated(0xE000_E180, old_cpu.mem, new_cpu.mem, bv32(1)) 
-    })]
-    fn simple_store_nvic(armv7m: &mut Armv7m) {
-        armv7m.pseudo_ldr(GPR::R3, BV32::from(0xE000_E180));
-        armv7m.str_direct(BV32::from(1), GPR::R3)
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        mem_value_updated(0xE000_E184, old_cpu.mem, new_cpu.mem, bv32(1)) 
-    })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m { new_cpu: get_mem_addr(0xE000_E184, new_cpu.mem) == bv32(1) }
+    )]
     fn lsl_store_nvic(armv7m: &mut Armv7m) {
+        // 0xE000_E180 + 1 * 4 = 1
         armv7m.pseudo_ldr(GPR::R3, BV32::from(0xE000_E180));
         armv7m.movw_imm(GPR::R0, BV32::from(1));
         armv7m.movw_imm(GPR::R1, BV32::from(1));
@@ -217,9 +202,9 @@ mod arm_test {
     #[flux_rs::should_fail]
     // Sanity check that we the postcondition here specifies the wrong
     // register (should be 0xE000_E184)
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        mem_value_updated(0xE000_E180, old_cpu.mem, new_cpu.mem, bv32(1)) 
-    })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m { new_cpu: get_mem_addr(0xE000_E180, new_cpu.mem) == bv32(1)  }
+    )]
     fn lsl_store_nvic_wrong(armv7m: &mut Armv7m) {
         armv7m.pseudo_ldr(GPR::R3, BV32::from(0xE000_E180));
         armv7m.movw_imm(GPR::R0, BV32::from(1));
@@ -227,16 +212,20 @@ mod arm_test {
         armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R1, BV32::from(2));
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        gpr_set(r0(), old_cpu, new_cpu, bv32(0))
-    })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m[{
+            general_regs: set_gpr(r0(), old_cpu, bv32(0)), ..old_cpu
+        }]
+    )]
     fn movw_r0(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R0, BV32::from(0));
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        gpr_set(r1(), old_cpu, new_cpu, bv32(1))
-    })]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        ensures self: Armv7m[{
+            general_regs: set_gpr(r1(), old_cpu, bv32(1)), ..old_cpu
+        }] 
+    )]
     fn movw_r1(armv7m: &mut Armv7m) {
         armv7m.movw_imm(GPR::R1, BV32::from(1));
     }

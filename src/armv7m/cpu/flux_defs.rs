@@ -16,8 +16,9 @@ flux_rs::defs! {
         map_get(cpu.general_regs, reg)
     }
 
-    fn gpr_set(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: BV32) -> bool {
-        map_set(old_cpu.general_regs, reg, val) == new_cpu.general_regs
+
+    fn set_gpr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<GPR, BV32> {
+        map_set(old_cpu.general_regs, reg, val)
     }
 
     fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
@@ -32,8 +33,8 @@ flux_rs::defs! {
         get_special_reg(psr(), cpu)
     }
 
-    fn special_purpose_register_updated(reg: int, old_cpu: Armv7m, new_cpu: Armv7m, val: BV32) -> bool {
-        map_set(old_cpu.special_regs, reg, val) == new_cpu.special_regs
+    fn set_spr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<SpecialRegister, BV32> {
+        map_set(old_cpu.special_regs, reg, val)
     }
 
     fn is_ipsr(reg: int) -> bool {
