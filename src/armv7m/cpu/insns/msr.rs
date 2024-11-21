@@ -53,14 +53,7 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], GPR[@val])
             // only updates to CONTROL right now
             requires is_control(reg)
-            ensures self: Armv7m {
-                new_cpu: 
-                    special_purpose_register_updated(reg, old_cpu, new_cpu, get_gpr(val, old_cpu))
-                    &&
-                    old_cpu.general_regs == new_cpu.general_regs
-                    &&
-                    old_cpu.mem == new_cpu.mem
-            }
+            ensures self: Armv7m[{ special_regs: set_spr(reg, old_cpu, get_gpr(val, old_cpu)), ..old_cpu }] 
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GPR) {
         // This is a monster op

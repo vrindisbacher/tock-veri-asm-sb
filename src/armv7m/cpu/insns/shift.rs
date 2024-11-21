@@ -17,15 +17,7 @@ impl Armv7m {
     //      // APSR.V unchanged
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], BV32[@shift]) 
-        ensures self: Armv7m { 
-            new_cpu: 
-                gpr_set(reg, old_cpu, new_cpu, right_shift(get_gpr(reg_val, old_cpu), shift))
-                &&
-                old_cpu.special_regs == new_cpu.special_regs
-                &&
-                old_cpu.mem == new_cpu.mem
-                // shift != 0 => gpr_set(reg, new_cpu, right_shift_immediate_computation(reg_val, old_cpu, shift)) && lsrs_imm_flag_updates(reg_val, old_cpu, new_cpu, shift)
-        }
+        ensures self: Armv7m [{ general_regs: set_gpr(reg, old_cpu, right_shift(get_gpr(reg_val, old_cpu), shift)), ..old_cpu }]
     )]
     pub fn lsrs_imm(&mut self, register: GPR, value: GPR, shift: BV32) {
         // Corresponds to encoding T1 of LSR
@@ -81,16 +73,7 @@ impl Armv7m {
     //      // APSR.V unchanged
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], GPR[@reg_val], GPR[@shift]) 
-        ensures self: Armv7m { 
-            new_cpu: 
-                gpr_set(reg, old_cpu, new_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu)))
-                &&
-                old_cpu.special_regs == new_cpu.special_regs
-                &&
-                old_cpu.mem == new_cpu.mem
-                // get_gpr(shift, old_cpu) != 0 
-                //   => gpr_set(reg, new_cpu, left_shift_reg_computation(reg_val, old_cpu, get_gpr(shift, old_cpu))) && lslw_reg_flag_updates(reg_val, old_cpu, new_cpu, get_gpr(shift, old_cpu))
-        }
+        ensures self: Armv7m [{ general_regs: set_gpr(reg, old_cpu, left_shift(get_gpr(reg_val, old_cpu), get_gpr(shift, old_cpu))), ..old_cpu }]
     )]
     pub fn lslw_reg(&mut self, register: GPR, value: GPR, shift: GPR) {
         // Corresponds to encoding T2 of LSL

@@ -45,14 +45,7 @@ impl Armv7m {
     //                      else
     //                          R[d]<1:0> = CONTROL<1:0>;
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], SpecialRegister[@val]) 
-        ensures self: Armv7m { 
-            new_cpu: 
-                gpr_set(reg, old_cpu, new_cpu, get_special_reg(val, old_cpu)) 
-                &&
-                old_cpu.special_regs == new_cpu.special_regs
-                &&
-                old_cpu.mem == new_cpu.mem
-        }
+        ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, get_special_reg(val, old_cpu)), ..old_cpu }] 
     )]
     pub fn mrs(&mut self, register: GPR, value: SpecialRegister) {
         // VTOCK TODO: monster op

@@ -245,7 +245,7 @@ flux_rs::defs! {
         map_get(mem, address)
     }
 
-    fn mem_value_updated(address: int, old_mem: Memory, new_mem: Memory, value: BV32) -> bool {
-        map_set(old_mem, address, value) == new_mem
+    fn update_mem(address: int, old_mem: Memory, value: BV32) -> Map<int, BV32> {
+        map_set(old_mem, address, value)
     }
 }

@@ -36,9 +36,8 @@ impl Armv7m {
                     )
                 )
             )
-        ensures self: Armv7m { 
-            new_cpu: 
-                mem_value_updated(
+        ensures self: Armv7m[{ 
+            mem: update_mem(
                     to_int(
                         bv_add(
                             get_gpr(reg_base, old_cpu),
@@ -46,14 +45,10 @@ impl Armv7m {
                         )
                     ),
                     old_cpu.mem,
-                    new_cpu.mem, 
                     get_gpr(reg_to_store, old_cpu)
-                 )
-                &&
-                old_cpu.special_regs == new_cpu.special_regs
-                &&
-                old_cpu.general_regs == new_cpu.general_regs
-        }
+            ), 
+            ..old_cpu 
+        }]
     )]
     pub fn strw_lsl_reg(
         &mut self,
@@ -75,28 +70,5 @@ impl Armv7m {
         let addr = (self.get_value_from_general_reg(&base_reg) + offset).into();
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
-    }
-
-    #[flux_rs::sig(fn (
-            self: &strg Armv7m[@old_cpu], 
-            BV32[@val],
-            GPR[@reg_base], 
-        ) 
-        requires is_valid_write_addr(to_int(get_gpr(reg_base, old_cpu)))
-        ensures self: Armv7m { 
-            new_cpu: mem_value_updated(
-                        to_int(get_gpr(reg_base, old_cpu)),
-                        old_cpu.mem,
-                        new_cpu.mem, 
-                        val
-                     ) 
-                    && new_cpu.general_regs == old_cpu.general_regs
-                    && new_cpu.special_regs == old_cpu.special_regs
-
-        }
-    )]
-    pub fn str_direct(&mut self, value: BV32, addr: GPR) {
-        let addr = self.get_value_from_general_reg(&addr).into();
-        self.mem.write(addr, value);
     }
 }
