@@ -52,10 +52,12 @@ pub enum CPUMode {
 
 #[derive(Debug)]
 #[flux_rs::refined_by(sp_main: BV32, sp_process: BV32)]
+#[flux_rs::invariant(is_valid_ram_addr(int(sp_main)))]
+#[flux_rs::invariant(is_valid_ram_addr(int(sp_process)))]
 pub struct SP {
-    #[field(BV32[sp_main])]
+    #[field({ BV32[sp_main] | is_valid_ram_addr(int(sp_main)) })]
     sp_main: BV32,
-    #[field(BV32[sp_process])]
+    #[field({ BV32[sp_process] | is_valid_ram_addr(int(sp_process)) })]
     sp_process: BV32,
 }
 
