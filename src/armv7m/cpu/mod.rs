@@ -41,7 +41,7 @@ pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
 //      - Q, bit[27] Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of
 //      the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to
 //      indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 #[flux_rs::refined_by(mode: int)]
 pub enum CPUMode {
     #[variant(CPUMode[0])]
@@ -116,21 +116,14 @@ impl Armv7m {
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         match register {
             SpecialRegister::Sp => {
-                match self.mode {
-                    CPUMode::Handler => {
-                        // updates sp_main
-                        self.sp.sp_main
-                    }
-                    CPUMode::Thread => {
-                        // check spsel
-                        // 0 use sp_main
-                        // 1 In Thread mode, use SP_process as the current stack. In Handler mode, this value is reserved.
-                        if self.control.spsel {
-                            self.sp.sp_process
-                        } else {
-                            self.sp.sp_main
-                        }
-                    }
+                // Thread mode: Main, else
+                // check spsel
+                // 0 use sp_main
+                // 1 In Thread mode, use SP_process as the current stack. In Handler mode, this value is reserved
+                if self.mode == CPUMode::Handler || !self.control.spsel {
+                    self.sp.sp_main
+                } else {
+                    self.sp.sp_process
                 }
             }
             SpecialRegister::Lr => self.lr,
@@ -160,23 +153,11 @@ impl Armv7m {
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         match register {
             SpecialRegister::Sp => {
-                match self.mode {
-                    CPUMode::Handler => {
-                        // updates sp_main
-                        self.sp.sp_main = value;
-                    }
-                    CPUMode::Thread => {
-                        // check spsel
-                        // 0 use sp_main
-                        // 1:
-                        //  In Thread mode, use SP_process as the current stack.
-                        //  In Handler mode, this value is reserved.
-                        if self.control.spsel {
-                            self.sp.sp_process = value;
-                        } else {
-                            self.sp.sp_main = value;
-                        }
-                    }
+                if self.mode == CPUMode::Handler {
+                    // updates sp_main
+                    self.sp.sp_main = value;
+                } else {
+                    self.sp.sp_process = value;
                 }
             }
             SpecialRegister::Lr => {

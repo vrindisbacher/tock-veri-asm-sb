@@ -45,15 +45,10 @@ flux_rs::defs! {
     }
 
     fn get_sp(sp: SP, mode: int, control: Control) -> BV32 {
-        if mode_is_handler(mode) {
+        if mode_is_handler(mode) || !control.spsel {
             sp.sp_main
         } else {
-            // thread mode
-            if control.spsel {
-                sp.sp_process
-            } else {
-                sp.sp_main
-            }
+            sp.sp_process
         }
     }
 
@@ -83,15 +78,10 @@ flux_rs::defs! {
     }
 
     fn set_sp(sp: SP, mode: int, control: Control, val: BV32) -> SP {
-        if mode_is_handler(mode) {
+        if mode_is_handler(mode) || !control.spsel {
             SP { sp_main: val, ..sp }
         } else {
-            // thread mode
-            if control.spsel {
-                SP { sp_process: val, ..sp }
-            } else {
-                SP { sp_main: val, ..sp }
-            }
+            SP { sp_process: val, ..sp }
         }
     }
 
