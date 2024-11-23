@@ -4,9 +4,9 @@ use super::sys_control;
 use super::sys_tick;
 use super::{
     Memory, INTERRUPT_AUXILIARY_CONTROL_REGISTER_END, INTERRUPT_AUXILIARY_CONTROL_REGISTER_START,
-    MPU_END, MPU_START, NVIC_END, NVIC_START, PPB_END, PPB_START, SW_TRIGGER_INTERRUPT_REG_END,
-    SW_TRIGGER_INTERRUPT_REG_START, SYSTEM_CONTROL_BLOCK_END, SYSTEM_CONTROL_BLOCK_START,
-    SYS_TICK_END, SYS_TICK_START,
+    MPU_END, MPU_START, NVIC_END, NVIC_START, PPB_END, PPB_START, RAM_END, RAM_START,
+    SW_TRIGGER_INTERRUPT_REG_END, SW_TRIGGER_INTERRUPT_REG_START, SYSTEM_CONTROL_BLOCK_END,
+    SYSTEM_CONTROL_BLOCK_START, SYS_TICK_END, SYS_TICK_START,
 };
 
 pub mod mpu_defs {
@@ -221,6 +221,12 @@ use sys_control_space_defs::*;
 use sys_tick_defs::*;
 
 flux_rs::defs! {
+
+    fn is_valid_ram_addr(address: int) -> bool {
+        // TODO(VR): alignment?
+        address >= RAM_START && address <= RAM_END
+    }
+
     fn is_valid_read_addr(address: int) -> bool {
         is_valid_sys_control_space_read_addr(address)
         ||
@@ -229,6 +235,8 @@ flux_rs::defs! {
         is_valid_mpu_read_addr(address)
         ||
         is_valid_sys_tick_read_addr(address)
+        ||
+        is_valid_ram_addr(address)
     }
 
     fn is_valid_write_addr(address: int) -> bool {
@@ -239,6 +247,8 @@ flux_rs::defs! {
         is_valid_mpu_write_addr(address)
         ||
         is_valid_sys_tick_write_addr(address)
+        ||
+        is_valid_ram_addr(address)
     }
 
     fn get_mem_addr(address: int, mem: Memory) -> BV32 {

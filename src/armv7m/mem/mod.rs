@@ -46,6 +46,9 @@ const NVIC_END: u32 = 0xE000ECFF;
 const MPU_START: u32 = 0xE000ED90;
 const MPU_END: u32 = 0xE000EDEF;
 
+const RAM_START: u32 = 0x6000_0000;
+const RAM_END: u32 = 0x9FFF_FFFF;
+
 pub mod flux_defs;
 mod mpu;
 mod nvic;
@@ -86,6 +89,9 @@ impl Memory {
                 }
                 *self.mem.get(&address).unwrap()
             }
+            RAM_START..=RAM_END => {
+                *self.mem.get(&address).unwrap()
+            }
             _ => panic!("Read of unknown memory address (only ppb is defined)"),
         }
     }
@@ -105,6 +111,9 @@ impl Memory {
                 {
                     panic!("Write to Invalid PPB address")
                 }
+                self.mem.set(address, value)
+            }
+            RAM_START..=RAM_END => {
                 self.mem.set(address, value)
             }
             _ => panic!("Write to unknown memory address (only ppb is defined)"),
