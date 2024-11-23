@@ -150,6 +150,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
+            requires is_sp(reg) => is_valid_ram_addr(int(val))
             ensures self: Armv7m[set_spr(reg, old_cpu, val)] 
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
