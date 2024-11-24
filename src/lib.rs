@@ -56,6 +56,7 @@ mod arm_isr {
     //   34:   4770            bx      lr
     //   38:   e000e180        .word   0xe000e180
     //   3c:   e000e200        .word   0xe000e200
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
         // VTOCK TODO:

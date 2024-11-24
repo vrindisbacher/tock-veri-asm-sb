@@ -56,9 +56,9 @@ pub enum CPUMode {
 #[flux_rs::invariant(is_valid_ram_addr(int(sp_process)))]
 pub struct SP {
     #[field({ BV32[sp_main] | is_valid_ram_addr(int(sp_main)) })]
-    sp_main: BV32,
+    pub sp_main: BV32,
     #[field({ BV32[sp_process] | is_valid_ram_addr(int(sp_process)) })]
-    sp_process: BV32,
+    pub sp_process: BV32,
 }
 
 #[derive(Debug)]
@@ -68,11 +68,11 @@ pub struct Control {
     // 0 - Thread mode has privileged access
     // 1 - Thread mode has unprivileged access
     #[field(bool[npriv])]
-    npriv: bool,
+    pub npriv: bool,
     // 0 use sp_main
     // 1 In Thread mode, use SP_process as the current stack. In Handler mode, this value is reserved.
     #[field(bool[spsel])]
-    spsel: bool,
+    pub spsel: bool,
 }
 
 #[derive(Debug)]
@@ -114,6 +114,7 @@ pub struct Armv7m {
 }
 
 impl Armv7m {
+
     #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> BV32[get_special_reg(reg, cpu)])]
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         match register {
@@ -170,8 +171,6 @@ impl Armv7m {
                 self.pc = value;
             }
             SpecialRegister::Control => {
-                // TODO(VR): Ignore spsel write (i.e. 2, 3)
-                // when in handler mode
                 let npriv_bit_set = value & BV32::from(1) != BV32::from(0);
                 self.control.npriv = npriv_bit_set;
                 if let CPUMode::Thread = self.mode {
@@ -196,6 +195,138 @@ impl Armv7m {
     #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> BV32[get_gpr(reg, cpu)])]
     fn get_value_from_general_reg(&self, register: &GPR) -> BV32 {
         *self.general_regs.get(register).unwrap()
+    }
+   
+    #[flux_rs::sig(
+        fn (&mut Armv7m[@cpu]) 
+        // requires we have enough space to push 8 x 4 byte values into mem
+        requires 
+            is_valid_ram_addr(
+                int(
+                    bv_and(
+                        bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3))
+                    )
+                )
+            )
+            &&
+            get_sp(cpu.sp, cpu.mode, cpu.control) >= bv32(0x20)
+    )]
+    fn push_stack(&mut self) {
+        // Assuming 4 byte alignment for now 
+        // but maybe this is something to revisit
+        let frame_size = 0x20.into();
+        let frame_ptr = if self.mode == CPUMode::Handler || !self.control.spsel {
+            self.sp.sp_main = (self.sp.sp_main - frame_size) & !BV32::from(3);
+            self.sp.sp_main
+        } else {
+            self.sp.sp_process = (self.sp.sp_main - frame_size) & !BV32::from(3);
+            self.sp.sp_process
+        }.into();
+         // MemA[frameptr,4] = R[0];
+         // MemA[frameptr+0x4,4] = R[1];
+         // MemA[frameptr+0x8,4] = R[2];
+         // MemA[frameptr+0xC,4] = R[3];
+         // MemA[frameptr+0x10,4] = R[12];
+         // MemA[frameptr+0x14,4] = LR;
+         // MemA[frameptr+0x18,4] = ReturnAddress(ExceptionType);
+         // MemA[frameptr+0x1C,4] = (XPSR<31:10>:frameptralign:XPSR<8:0>);
+        let r0 = self.get_value_from_general_reg(&GPR::R0);
+        self.mem.write(frame_ptr, r0);
+        let r1 = self.get_value_from_general_reg(&GPR::R1);
+        self.mem.write(frame_ptr + 0x4, r1);
+        let r2 = self.get_value_from_general_reg(&GPR::R2);
+        self.mem.write(frame_ptr + 0x8, r2);
+        let r3 = self.get_value_from_general_reg(&GPR::R3);
+        self.mem.write(frame_ptr + 0xC, r3);
+        let r12 = self.get_value_from_general_reg(&GPR::R12);
+        self.mem.write(frame_ptr + 0x10, r12);
+        let lr = self.get_value_from_special_reg(&SpecialRegister::Lr);
+        self.mem.write(frame_ptr + 0x14, lr);
+        // putting a dummy value for ret addr
+        self.mem.write(frame_ptr + 0x18, 0.into());
+        // TODO: Real implementation skips bit 9
+        let psr = self.get_value_from_special_reg(&SpecialRegister::PSR);
+        self.mem.write(frame_ptr + 0x1C, lr);
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu], u8[@exec_num])
+            requires exec_num >= 16
+            ensures self: Armv7m[{ 
+                mode: handler_mode(),
+                control: Control { spsel: false, ..old_cpu.control },
+                psr: bv_or(bv_and(old_cpu.psr, bv_not(bv32(0xff))), bv32(exec_num)),
+                ..old_cpu
+            }]
+    )]
+    fn exception_taken(&mut self, exception_number: u8) {
+        // TODO: need to forget r0 - r3, r12 somehow
+
+        // stack = main
+        self.mode = CPUMode::Handler;
+        self.control.spsel = false;
+    
+        // set exception num in psr
+        self.psr = (self.psr & !BV32::from(0xff)) |  ((exception_number as u32).into());
+
+        // set link register
+        self.lr = if self.mode == CPUMode::Handler {
+            // From another exception
+            0xFFFF_FFF1.into()
+        } else if self.control.spsel {
+            // from process stack
+            0xFFFF_FFFD.into()
+        } else {
+            // from main stack
+            0xFFFF_FFF9.into()
+        };
+
+        // TODO: There are other ops here but I don't think they 
+        // matter 
+    }
+
+    fn exception_entry(&mut self, exception_number: u8, isr: fn(&mut Armv7m) -> BV32) {
+        self.push_stack();
+        self.exception_taken(exception_number);
+    }
+
+    fn exception_exit(&mut self, return_exec: BV32, ret_to: fn(&mut Armv7m) -> ()) {
+        let frame_ptr = match return_exec.into() {
+            0xFFFF_FFF9 => {
+                // to sp_main
+                self.control.spsel = false;
+                self.sp.sp_main
+            }
+            0xFFFF_FFFD => {
+                // to sp_process
+                self.control.spsel = true;
+                self.sp.sp_process
+            }
+            _ => panic!("unimplemented")
+        }.into();
+        // R[0] = MemA[frameptr,4];
+        // R[1] = MemA[frameptr+0x4,4];
+        // R[2] = MemA[frameptr+0x8,4];
+        // R[3] = MemA[frameptr+0xC,4];
+        // R[12] = MemA[frameptr+0x10,4];
+        // LR = MemA[frameptr+0x14,4];
+        // BranchTo(MemA[frameptr+0x18,4]); // UNPREDICTABLE if the new PC not halfword aligned
+        // psr = MemA[frameptr+0x1C,4];
+        self.update_general_reg_with_b32(GPR::R0, self.mem.read(frame_ptr));
+        self.update_general_reg_with_b32(GPR::R1, self.mem.read(frame_ptr + 0x4));
+        self.update_general_reg_with_b32(GPR::R2, self.mem.read(frame_ptr + 0x8));
+        self.update_general_reg_with_b32(GPR::R3, self.mem.read(frame_ptr + 0xC));
+        self.update_general_reg_with_b32(GPR::R12, self.mem.read(frame_ptr + 0x10));
+        self.update_special_reg_with_b32(SpecialRegister::Lr, self.mem.read(frame_ptr + 0x14));
+        self.update_special_reg_with_b32(SpecialRegister::PSR, self.mem.read(frame_ptr + 0x1C));
+        // branch to return address
+        ret_to(self)
+    }
+
+    fn exception(&mut self, exception_number: u8, isr: fn(&mut Armv7m) -> BV32, ret_to: fn(&mut Armv7m) -> ()) {
+        self.exception_entry(exception_number, isr);
+        let ret = isr(self);
+        self.exception_exit(ret, ret_to);
     }
 
     // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]

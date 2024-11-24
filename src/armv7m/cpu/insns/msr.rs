@@ -8,7 +8,7 @@ impl Armv7m {
     // See p. A7-301 & p. B5-677 of the manual
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], GPR[@val])
-            requires !is_ipsr(reg) 
+            requires !is_ipsr(reg) && is_sp(reg) => is_valid_ram_addr(int(get_gpr(val, old_cpu)))
             ensures self: Armv7m[set_spr(reg, old_cpu, get_gpr(val, old_cpu))] 
     )]
     pub fn msr(&mut self, register: SpecialRegister, value: GPR) {

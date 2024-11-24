@@ -18,6 +18,7 @@ impl Armv7m {
     //  MemU[address,4] = R[t];
 
     // NOTE: Dest cannot be LR, PC, or SP
+    #[flux_rs::trusted]
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
             GPR[@reg_to_store], 

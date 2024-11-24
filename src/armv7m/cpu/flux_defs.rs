@@ -107,6 +107,10 @@ flux_rs::defs! {
         mode == 0
     }
 
+    fn handler_mode() -> int {
+        0
+    }
+
     fn is_ipsr(reg: int) -> bool {
         reg == 18
     }
