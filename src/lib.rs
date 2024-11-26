@@ -236,20 +236,37 @@ mod arm_test {
     }
 
 
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m[{ general_regs: set_gpr(r0(), old_cpu, bv32(10)), ..old_cpu }])]
-    // fn kernel_logic(armv7m: &mut Armv7m) {
-    //     armv7m.movs_imm(GPR::R0, BV32::from(10));
-    // }
 
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-    //                requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-    //                ensures self: Armv7m[{ general_regs: set_gpr(r0(), old_cpu, bv32(10)), ..old_cpu }])]
-    // fn full_circle(armv7m: &mut Armv7m) {
-    //     // executes some kernel logic
-    //     kernel_logic(armv7m);
-    //     // gets pre-empted
-    //     armv7m.preempt(18);
-    //     // return here 
-    // }
+    // process havocs everything except for the fact the sp can take an update
+    #[flux_rs::trusted]
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) 
+           ensures self: Armv7m {new_cpu: sp_can_handle_exception_entry(new_cpu) }
+    )]
+    fn process(armv7m: &mut Armv7m) {}
 
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu]) ensures self: Armv7m { new_cpu: sp_can_handle_exception_entry(new_cpu) })]
+    fn prepare_for_exception(armv7m: &mut Armv7m)  {}
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) 
+           requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
+           ensures self: Armv7m { new_cpu: get_gpr(r0(), new_cpu) == bv32(10) }
+    )]
+    fn full_circle(armv7m: &mut Armv7m) {
+        // executes some kernel logic
+        armv7m.movs_imm(GPR::R0, BV32::from(10));
+        // just assume that the precondition about sp is handled at this point
+        prepare_for_exception(armv7m);
+        // pretend switch to process
+        armv7m.preempt(11);
+        // process that havocs all state
+        process(armv7m);
+        // pre-emption because of sys call
+        armv7m.preempt(11);
+        // end up back here
+        // no more instructions for now
+    }
 }

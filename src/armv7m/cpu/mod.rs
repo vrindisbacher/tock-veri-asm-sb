@@ -385,6 +385,7 @@ impl Armv7m {
         }
     }
 
+    #[flux_rs::trusted] // can't figure this out atm
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
