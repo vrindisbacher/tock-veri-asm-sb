@@ -18,7 +18,7 @@ flux_rs::defs! {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy)]
 #[flux_rs::opaque]
 #[flux_rs::refined_by(x: bitvec<32>)]
 pub struct BV32(u32);
@@ -124,5 +124,20 @@ impl Rem for BV32 {
     #[flux_rs::sig(fn (BV32[@val1], BV32[@val2]) -> BV32[bv_urem(val1, val2)])]
     fn rem(self, rhs: Self) -> BV32 {
         BV32(self.0 & rhs.0)
+    }
+}
+
+impl PartialEq for BV32 {
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@val1], &BV32[@val2]) -> bool[val1 == val2])]
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@val1], &BV32[@val2]) -> bool[val1 != val2])]
+    fn ne(&self, other: &Self) -> bool {
+       self.0 != other.0 
     }
 }

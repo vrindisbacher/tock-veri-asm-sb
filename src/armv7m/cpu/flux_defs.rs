@@ -6,6 +6,46 @@ use crate::flux_support::rmap::*;
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
+
+    fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
+        if mode_is_handler(cpu.mode) {
+            bv32(0xFFFF_FFF1)
+        } else if control.spsel {
+            bv32(0xFFFF_FFFD)
+        } else {
+            bv32(0xFFFF_FFF9)
+        }
+    }
+
+    fn control_post_exception_entry(cpu: Armv7m) -> Control {
+        Control { spsel: false, ..cpu.control }
+    }
+
+    fn psr_post_exception_entry(cpu: Armv7m, exception_num: int) -> BV32 {
+        bv_or(bv_and(cpu.psr, bv_not(bv32(0xff))), bv32(exception_num))
+    }
+
+    fn sp_post_exception_entry(cpu: Armv7m) -> BV32 {
+        bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+    }
+
+    fn sp_can_handle_exception_entry(cpu: Armv7m) -> bool {
+        // requires we have enough space to push 8 x 4 byte values into mem
+        is_valid_ram_addr(
+            int(
+                sp_post_exception_entry(cpu)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            int(
+                get_sp(cpu.sp, cpu.mode, cpu.control)
+            )
+        )
+    }
+}
+
+flux_rs::defs! {
     fn bv32(x: int) -> BV32 { bv_int_to_bv32(x) }
 
     fn to_int(x: BV32) -> int { bv_bv32_to_int(x) }
@@ -70,10 +110,9 @@ flux_rs::defs! {
     }
 
     fn set_control(control: Control, mode: int, val: BV32) -> Control {
-        if mode_is_handler(mode) {
-            Control { npriv: nth_bit_is_set(val, bv32(1)), ..control }
-        } else {
-            Control { npriv: nth_bit_is_set(val, bv32(1)), spsel: nth_bit_is_set(val, bv32(2)) }
+        Control {
+            npriv: nth_bit_is_set(val, bv32(1)),
+            spsel: if !mode_is_handler(mode) { nth_bit_is_set(val, bv32(2)) } else { control.spsel }
         }
     }
 
@@ -155,8 +194,20 @@ flux_rs::defs! {
         4
     }
 
+    fn r12() -> int {
+        12
+    }
+
+    fn sp() -> int {
+        13
+    }
+
     fn lr() -> int {
         14
+    }
+
+    fn pc() -> int {
+        15
     }
 
     fn control() -> int {
