@@ -89,9 +89,7 @@ impl Memory {
                 }
                 *self.mem.get(&address).unwrap()
             }
-            RAM_START..=RAM_END => {
-                *self.mem.get(&address).unwrap()
-            }
+            RAM_START..=RAM_END => *self.mem.get(&address).unwrap(),
             _ => panic!("Read of unknown memory address (only ppb is defined)"),
         }
     }
@@ -113,9 +111,7 @@ impl Memory {
                 }
                 self.mem.set(address, value)
             }
-            RAM_START..=RAM_END => {
-                self.mem.set(address, value)
-            }
+            RAM_START..=RAM_END => self.mem.set(address, value),
             _ => panic!("Write to unknown memory address (only ppb is defined)"),
         }
     }

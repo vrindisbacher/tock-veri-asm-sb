@@ -58,7 +58,7 @@ mod arm_isr {
     //   3c:   e000e200        .word   0xe000e200
     #[flux_rs::trusted]
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) 
+        fn (self: &strg Armv7m[@old_cpu]) -> SpecialRegister
         // VTOCK TODO:
         //
         // Note we need to say that the IPSR is more than 16
@@ -66,10 +66,6 @@ mod arm_isr {
         // probably formalize that somehow
         requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 
         ensures self: Armv7m { new_cpu:
-            get_gpr(r0(), new_cpu) == isr_r0(old_cpu)
-            &&
-            get_gpr(r2(), new_cpu) == isr_r2(old_cpu)
-            && 
             nth_bit_is_set(
                 get_mem_addr(
                     0xe000_e180 + isr_offset(old_cpu),
@@ -90,7 +86,7 @@ mod arm_isr {
             to_int(get_special_reg(lr(), new_cpu)) == 0xFFFF_FFF9
         }
     )]
-    pub fn generic_isr_armv7m(armv7m: &mut Armv7m) {
+    pub fn generic_isr_armv7m(armv7m: &mut Armv7m) -> SpecialRegister {
         // r0 = 0
         armv7m.movw_imm(GPR::R0, BV32::from(0));
         // control = r0 = 0
@@ -136,7 +132,7 @@ mod arm_isr {
         //
         // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << ipsr - 16 & 31) i.e. "bit for the ipsr # is set"
         armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R2, BV32::from(2));
-        armv7m.bx(SpecialRegister::Lr);
+        return SpecialRegister::Lr;
     }
 }
 

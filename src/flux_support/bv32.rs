@@ -128,7 +128,6 @@ impl Rem for BV32 {
 }
 
 impl PartialEq for BV32 {
-
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (&BV32[@val1], &BV32[@val2]) -> bool[val1 == val2])]
     fn eq(&self, other: &Self) -> bool {
@@ -138,6 +137,6 @@ impl PartialEq for BV32 {
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (&BV32[@val1], &BV32[@val2]) -> bool[val1 != val2])]
     fn ne(&self, other: &Self) -> bool {
-       self.0 != other.0 
+        self.0 != other.0
     }
 }

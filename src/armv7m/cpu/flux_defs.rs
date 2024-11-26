@@ -16,6 +16,15 @@ flux_rs::defs! {
         }
     }
 
+    fn sp_post_exception_exit(sp: SP, return_exec: BV32) -> SP {
+        if return_exec == bv32(0xFFFF_FFFF9) {
+            SP { sp_main: bv_add(sp.sp_main, bv32(0x20)), ..sp }
+        } else {
+            SP { sp_process: bv_add(sp.sp_process, bv32(0x20)), ..sp }
+        }
+
+    }
+
     fn gprs_post_exception_exit(sp: int, cpu: Armv7m) -> Map<GPR, BV32> {
         map_set(
             map_set(
