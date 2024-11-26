@@ -237,24 +237,32 @@ mod arm_test {
 
     // pre-emption test
     #[flux_rs::sig(fn (&mut Armv7m) -> BV32[bv32(0xFFFF_FFF9)])]
-    fn isr(armv7m: &mut Armv7m) -> BV32 {
+    fn to_process_isr(armv7m: &mut Armv7m) -> BV32 {
+        return BV32::from(0xFFFF_FFFD)
+    }
+
+    fn to_kernel_isr(armv7m: &mut Armv7m) -> BV32 {
         return BV32::from(0xFFFF_FFF9)
     }
 
     #[flux_rs::sig(fn (&mut Armv7m[@old]))]
-    fn post_preemption(armv7m: &mut Armv7m) {}
+    fn fake_process(armv7m: &mut Armv7m) {
+        armv7m.preempt(11, to_kernel_isr, kernel_continuation);
+    }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m[{ general_regs: set_gpr(r0(), old_cpu, bv32(10)), ..old_cpu }])]
-    fn before_preemption(armv7m: &mut Armv7m) {
+    fn kernel_logic(armv7m: &mut Armv7m) {
         armv7m.movs_imm(GPR::R0, BV32::from(10));
     }
+
+    fn kernel_continuation(armv7m: &mut Armv7m){}
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
                    requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
                    ensures self: Armv7m[{ general_regs: set_gpr(r0(), old_cpu, bv32(10)), ..old_cpu }])]
-    fn preempt(armv7m: &mut Armv7m) {
-        before_preemption(armv7m);
-        armv7m.preempt(11, isr, post_preemption);
+    fn full_circle(armv7m: &mut Armv7m) {
+        kernel_logic(armv7m);
+        armv7m.preempt(11, to_process_isr, fake_process);
     }
 
 }
