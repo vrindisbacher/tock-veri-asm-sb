@@ -214,7 +214,11 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
             requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m{ new_cpu: get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control) == sp_post_exception_entry(cpu) }
+            ensures self: Armv7m[{ 
+                sp: sp_post_exception_entry(cpu), 
+                mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+                ..cpu 
+            }] 
     )]
     fn push_stack(&mut self) {
         // Assuming 4 byte alignment for now 
@@ -248,7 +252,7 @@ impl Armv7m {
         self.mem.write(frame_ptr + 0x18, BV32::from(0));
         // TODO: Real implementation skips bit 9
         let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
-        self.mem.write(frame_ptr + 0x1C, lr);
+        self.mem.write(frame_ptr + 0x1C, psr);
     }
 
     #[flux_rs::sig(
@@ -262,9 +266,8 @@ impl Armv7m {
             }]
     )]
     fn exception_taken(&mut self, exception_number: u8) {
-        // TODO: need to forget r0 - r3, r12 somehow
+        // TODO: need to forget r0 - r3, r12 somehow 
 
- 
         // set exception num in psr
         self.psr = (self.psr & !BV32::from(0xff)) |  BV32::from(exception_number as u32);
 
@@ -289,28 +292,42 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (&mut Armv7m[@cpu], u8[@exception_num]) 
+        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
+            ensures self: Armv7m[{ 
+                mode: handler_mode(),
+                control: control_post_exception_entry(cpu),
+                psr: psr_post_exception_entry(cpu, exception_num),
+                lr: lr_post_exception_entry(cpu, cpu.control),
+                sp: sp_post_exception_entry(cpu), 
+                mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+                ..cpu
+            }]
     )]
     fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
         self.exception_taken(exception_number);
     }
 
-    fn exception_exit(&mut self, return_exec: BV32, ret_to: fn(&mut Armv7m) -> ()) {
-        let frame_ptr = match return_exec.into() {
-            0xFFFF_FFF9 => {
-                // to sp_main
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
+            requires return_exec == bv32(0xFFFF_FFF9) && return_exec == bv32(0xFFFF_FFFD)
+            ensures self: Armv7m[{
+                control: Control { spsel: return_exec == bv32(0xFFFF_FFF9), ..cpu.control },
+                general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
+                lr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x14, cpu.mem),
+                psr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x1C, cpu.mem),
+                ..cpu
+            }]
+    )]
+    fn exception_exit(&mut self, return_exec: BV32) {
+        let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
                 self.control.spsel = false;
-                self.sp.sp_main
-            }
-            0xFFFF_FFFD => {
-                // to sp_process
+                self.sp.sp_main.into()
+        } else {
                 self.control.spsel = true;
-                self.sp.sp_process
-            }
-            _ => panic!("unimplemented")
-        }.into();
+                self.sp.sp_process.into()
+        };
         // R[0] = MemA[frameptr,4];
         // R[1] = MemA[frameptr+0x4,4];
         // R[2] = MemA[frameptr+0x8,4];
@@ -335,7 +352,7 @@ impl Armv7m {
     fn exception(&mut self, exception_number: u8, isr: fn(&mut Armv7m) -> BV32, ret_to: fn(&mut Armv7m) -> ()) {
         self.exception_entry(exception_number);
         let ret = isr(self);
-        self.exception_exit(ret, ret_to);
+        self.exception_exit(ret);
         // branch to return address
         ret_to(self)
     }

@@ -1,3 +1,4 @@
+use super::Memory;
 use super::{Armv7m, CPUMode, Control, SP};
 use crate::armv7m::lang::{SpecialRegister, GPR};
 use crate::flux_support::bv32::*;
@@ -6,6 +7,74 @@ use crate::flux_support::rmap::*;
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
+
+    fn get_sp_from_isr_ret(sp: SP, return_exec: BV32) -> int {
+        if return_exec == bv32(0xFFFF_FFFF9) {
+            int(sp.sp_main)
+        } else {
+            int(sp.sp_process)
+        }
+    }
+
+    fn gprs_post_exception_exit(sp: int, cpu: Armv7m) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            cpu.general_regs,
+                            r0(),
+                            get_mem_addr(sp, cpu.mem)
+                        ),
+                        r1(),
+                        get_mem_addr(sp + 0x4, cpu.mem)
+                    ),
+                    r2(),
+                    get_mem_addr(sp + 0x8, cpu.mem)
+                ),
+                r3(),
+                get_mem_addr(sp + 0xc, cpu.mem)
+            ),
+            r12(),
+            get_mem_addr(sp + 0x10, cpu.mem)
+        )
+    }
+
+    fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        sp,
+                                        get_gpr(r0(), cpu)
+                                    ),
+                                    sp + 0x4,
+                                    get_gpr(r1(), cpu)
+                                ),
+                                sp + 0x8,
+                                get_gpr(r2(), cpu)
+                            ),
+                            sp + 0xc,
+                            get_gpr(r3(), cpu)
+                        ),
+                        sp + 0x10,
+                        get_gpr(r12(), cpu)
+                    ),
+                    sp + 0x14,
+                    get_special_reg(lr(), cpu)
+                ),
+                sp + 0x18,
+                bv32(0)
+            ),
+            sp + 0x1c,
+            get_special_reg(psr(), cpu)
+        )
+    }
 
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
         if mode_is_handler(cpu.mode) {
@@ -25,15 +94,20 @@ flux_rs::defs! {
         bv_or(bv_and(cpu.psr, bv_not(bv32(0xff))), bv32(exception_num))
     }
 
-    fn sp_post_exception_entry(cpu: Armv7m) -> BV32 {
-        bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+    fn sp_post_exception_entry(cpu: Armv7m) -> SP {
+        set_sp(
+            cpu.sp,
+            cpu.mode,
+            cpu.control,
+            bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+        )
     }
 
     fn sp_can_handle_exception_entry(cpu: Armv7m) -> bool {
         // requires we have enough space to push 8 x 4 byte values into mem
         is_valid_ram_addr(
             int(
-                sp_post_exception_entry(cpu)
+                get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)
             )
         )
         &&
