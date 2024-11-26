@@ -290,6 +290,7 @@ impl Armv7m {
         // matter
     }
 
+    #[flux_rs::trusted] // takes so lonnggg
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -313,6 +314,7 @@ impl Armv7m {
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
             requires return_exec == bv32(0xFFFF_FFF9) && return_exec == bv32(0xFFFF_FFFD)
             ensures self: Armv7m[{
+                mode: thread_mode(),
                 control: Control { spsel: return_exec == bv32(0xFFFF_FFF9), ..cpu.control },
                 general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
                 lr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x14, cpu.mem),
@@ -324,9 +326,11 @@ impl Armv7m {
     fn exception_exit(&mut self, return_exec: BV32) {
         let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
             self.control.spsel = false;
+            self.mode = CPUMode::Thread;
             self.sp.sp_main.into()
         } else {
             self.control.spsel = true;
+            self.mode = CPUMode::Thread;
             self.sp.sp_process.into()
         };
         // R[0] = MemA[frameptr,4];
@@ -361,11 +365,18 @@ impl Armv7m {
         isr: fn(&mut Armv7m) -> BV32,
         ret_to: fn(&mut Armv7m) -> (),
     ) {
+        // stack
         self.exception_entry(exception_number);
+        // call isr
         let ret = isr(self);
+        // unstack
         self.exception_exit(ret);
         // branch to return address
         ret_to(self)
+    }
+
+    pub fn preempt(&mut self, exception_number: u8, isr: fn (&mut Armv7m) -> BV32, ret_to: fn(&mut Armv7m) -> ()) {
+        self.exception(exception_number, isr, ret_to);
     }
 
     // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]

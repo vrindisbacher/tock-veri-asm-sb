@@ -126,6 +126,10 @@ flux_rs::defs! {
             )
         )
     }
+
+    fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
+        mode == 1 && !control.spsel
+    }
 }
 
 flux_rs::defs! {
@@ -231,6 +235,10 @@ flux_rs::defs! {
 
     fn handler_mode() -> int {
         0
+    }
+
+    fn thread_mode() -> int {
+        1
     }
 
     fn is_ipsr(reg: int) -> bool {
