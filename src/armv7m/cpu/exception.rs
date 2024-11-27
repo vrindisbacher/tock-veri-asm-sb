@@ -97,6 +97,7 @@ impl Armv7m {
                     mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
                     ..cpu
                 }
+                && is_valid_ram_addr(int(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control)))
             }
     )]
     fn exception_entry(&mut self, exception_number: u8) {
@@ -119,6 +120,7 @@ impl Armv7m {
                     sp: sp_post_exception_exit(cpu.sp, return_exec),
                     ..cpu
                 }
+                && is_valid_ram_addr(int(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control)))
             }
     )]
     fn exception_exit(&mut self, return_exec: BV32) {
@@ -162,7 +164,13 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
-            ensures self: Armv7m[cpu]
+            ensures self: Armv7m { new_cpu: 
+                new_cpu == cpu 
+                &&
+                is_valid_ram_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num))
+                &&
+                is_valid_ram_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x20)
+            }
     )]
     fn run_isr(&mut self, exception_number: u8) -> BV32 {
         if exception_number == 11 {
@@ -191,7 +199,10 @@ impl Armv7m {
             requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m[{
                 mode: thread_mode(),
-                control: Control { spsel: get_bx_from_exception_num(exception_num, cpu.lr) == bv32(0xFFFF_FFF9), ..cpu.control },
+                control: Control { 
+                    spsel: get_bx_from_exception_num(exception_num, cpu.lr) != bv32(0xFFFF_FFF9),
+                    ..cpu.control 
+                },
                 general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
                 lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
                 psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
