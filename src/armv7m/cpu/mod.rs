@@ -1,6 +1,8 @@
 mod flux_defs;
 mod insns;
 mod psr;
+mod exception;
+mod isr;
 
 use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
@@ -164,7 +166,7 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
             requires is_sp(reg) => is_valid_ram_addr(int(val))
-            ensures self: Armv7m[set_spr(reg, old_cpu, val)] 
+            ensures self: Armv7m { new_cpu: new_cpu == set_spr(reg, old_cpu, val) } 
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         match register {
@@ -198,7 +200,10 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-            ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }] 
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+                general_regs: set_gpr(reg, old_cpu, val), ..old_cpu 
+            }
+        }
     )]
     fn update_general_reg_with_b32(&mut self, register: GPR, value: BV32) {
         self.general_regs.set(register, value);
@@ -207,208 +212,6 @@ impl Armv7m {
     #[flux_rs::sig(fn (&Armv7m[@cpu], &GPR[@reg]) -> BV32[get_gpr(reg, cpu)])]
     fn get_value_from_general_reg(&self, register: &GPR) -> BV32 {
         *self.general_regs.get(register).unwrap()
-    }
-
-    #[flux_rs::trusted]
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu]) 
-            requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m[{ 
-                sp: sp_post_exception_entry(cpu), 
-                mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
-                ..cpu 
-            }] 
-    )]
-    fn push_stack(&mut self) {
-        // Assuming 4 byte alignment for now
-        // but maybe this is something to revisit
-        let frame_size = BV32::from(0x20);
-        let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
-        let frame_ptr = (frame_ptr - frame_size) & !BV32::from(3);
-        self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
-        let frame_ptr = frame_ptr.into();
-        // MemA[frameptr,4] = R[0];
-        // MemA[frameptr+0x4,4] = R[1];
-        // MemA[frameptr+0x8,4] = R[2];
-        // MemA[frameptr+0xC,4] = R[3];
-        // MemA[frameptr+0x10,4] = R[12];
-        // MemA[frameptr+0x14,4] = LR;
-        // MemA[frameptr+0x18,4] = ReturnAddress(ExceptionType);
-        // MemA[frameptr+0x1C,4] = (XPSR<31:10>:frameptralign:XPSR<8:0>);
-        let r0 = self.get_value_from_general_reg(&GPR::r0());
-        self.mem.write(frame_ptr, r0);
-        let r1 = self.get_value_from_general_reg(&GPR::r1());
-        self.mem.write(frame_ptr + 0x4, r1);
-        let r2 = self.get_value_from_general_reg(&GPR::r2());
-        self.mem.write(frame_ptr + 0x8, r2);
-        let r3 = self.get_value_from_general_reg(&GPR::r3());
-        self.mem.write(frame_ptr + 0xC, r3);
-        let r12 = self.get_value_from_general_reg(&GPR::r12());
-        self.mem.write(frame_ptr + 0x10, r12);
-        let lr = self.get_value_from_special_reg(&SpecialRegister::lr());
-        self.mem.write(frame_ptr + 0x14, lr);
-        // putting a dummy value for ret addr
-        self.mem.write(frame_ptr + 0x18, BV32::from(0));
-        // TODO: Real implementation skips bit 9
-        let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
-        self.mem.write(frame_ptr + 0x1C, psr);
-    }
-
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
-            ensures self: Armv7m[{ 
-                mode: handler_mode(),
-                control: control_post_exception_entry(old_cpu),
-                psr: psr_post_exception_entry(old_cpu, exception_num),
-                lr: lr_post_exception_entry(old_cpu, old_cpu.control),
-                ..old_cpu
-            }]
-    )]
-    fn exception_taken(&mut self, exception_number: u8) {
-        // TODO: need to forget r0 - r3, r12 somehow
-
-        // set exception num in psr
-        self.psr = (self.psr & !BV32::from(0xff)) | BV32::from(exception_number as u32);
-
-        // set link register
-        self.lr = if self.mode_is_handler() {
-            // From another exception
-            BV32::from(0xFFFF_FFF1)
-        } else if self.control.spsel {
-            // from process stack
-            BV32::from(0xFFFF_FFFD)
-        } else {
-            // from main stack
-            BV32::from(0xFFFF_FFF9)
-        };
-
-        // stack = main
-        self.mode = CPUMode::Handler;
-        self.control.spsel = false;
-
-        // TODO: There are other ops here but I don't think they
-        // matter
-    }
-
-    fn generic_isr(&mut self) {}
-    fn svc_isr(&mut self) {}
-    fn sys_tick_isr(&mut self) {}
-
-    #[flux_rs::trusted] // takes so lonnggg
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m[{ 
-                mode: handler_mode(),
-                control: control_post_exception_entry(cpu),
-                psr: psr_post_exception_entry(cpu, exception_num),
-                lr: lr_post_exception_entry(cpu, cpu.control),
-                sp: sp_post_exception_entry(cpu), 
-                mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
-                ..cpu
-            }]
-    )]
-    fn exception_entry(&mut self, exception_number: u8) {
-        self.push_stack();
-        self.exception_taken(exception_number);
-    }
-
-    #[flux_rs::trusted] // incompatible types... :(
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
-            // requires return_exec == bv32(0xFFFF_FFF9) && return_exec == bv32(0xFFFF_FFFD)
-            ensures self: Armv7m[{
-                mode: thread_mode(),
-                control: Control { spsel: return_exec == bv32(0xFFFF_FFF9), ..cpu.control },
-                general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
-                lr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x14, cpu.mem),
-                psr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x1C, cpu.mem),
-                sp: sp_post_exception_exit(cpu.sp, return_exec),
-                ..cpu
-            }]
-    )]
-    fn exception_exit(&mut self, return_exec: BV32) {
-        let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
-            self.control.spsel = false;
-            self.mode = CPUMode::Thread;
-            self.sp.sp_main.into()
-        } else {
-            self.control.spsel = true;
-            self.mode = CPUMode::Thread;
-            self.sp.sp_process.into()
-        };
-        // R[0] = MemA[frameptr,4];
-        // R[1] = MemA[frameptr+0x4,4];
-        // R[2] = MemA[frameptr+0x8,4];
-        // R[3] = MemA[frameptr+0xC,4];
-        // R[12] = MemA[frameptr+0x10,4];
-        // LR = MemA[frameptr+0x14,4];
-        // BranchTo(MemA[frameptr+0x18,4]); // UNPREDICTABLE if the new PC not halfword aligned
-        // psr = MemA[frameptr+0x1C,4];
-        self.update_general_reg_with_b32(GPR::r0(), self.mem.read(frame_ptr));
-        self.update_general_reg_with_b32(GPR::r1(), self.mem.read(frame_ptr + 0x4));
-        self.update_general_reg_with_b32(GPR::r2(), self.mem.read(frame_ptr + 0x8));
-        self.update_general_reg_with_b32(GPR::r3(), self.mem.read(frame_ptr + 0xC));
-        self.update_general_reg_with_b32(GPR::r12(), self.mem.read(frame_ptr + 0x10));
-        self.update_special_reg_with_b32(SpecialRegister::lr(), self.mem.read(frame_ptr + 0x14));
-        self.update_special_reg_with_b32(SpecialRegister::psr(), self.mem.read(frame_ptr + 0x1C));
-        if return_exec == BV32::from(0xFFFF_FFF9) {
-            self.sp.sp_main = self.sp.sp_main + BV32::from(0x20);
-        } else {
-            self.sp.sp_process = self.sp.sp_process + BV32::from(0x20);
-        };
-    }
-
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
-            ensures self: Armv7m[cpu]
-    )]
-    fn run_isr(&mut self, exception_number: u8) -> BV32 {
-        if exception_number == 11 {
-            // self.svc_isr();
-            // TODO(VR): bx value has to be a postcondition of the isr
-            if self.lr == BV32::from(0xFFFF_FFFD) {
-                // if we come from a process we go to kernel
-                BV32::from(0xFFFF_FFF9)
-            } else {
-                // otherwise we should always come from a process
-                BV32::from(0xFFFF_FFFD)
-            }
-        } else if exception_number == 15 {
-            // self.sys_tick_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
-            BV32::from(0xFFFF_FFF9)
-        } else {
-            // self.generic_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
-            BV32::from(0xFFFF_FFF9)
-        }
-    }
-
-    #[flux_rs::trusted] // can't figure this out atm
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m[{
-                mode: thread_mode(),
-                control: Control { spsel: get_bx_from_exception_num(exception_num, cpu.lr) == bv32(0xFFFF_FFF9), ..cpu.control },
-                general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
-                lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
-                psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
-                sp: sp_post_exception_exit(cpu.sp, get_bx_from_exception_num(exception_num, cpu.lr)),
-                ..cpu
-            }]
-    )]
-    pub fn preempt(
-        &mut self,
-        exception_number: u8,
-    ) {
-        // stack
-        self.exception_entry(exception_number);
-        // call isr
-        let ret_value = self.run_isr(exception_number);
-        // unstack
-        self.exception_exit(ret_value);
     }
 
     // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]

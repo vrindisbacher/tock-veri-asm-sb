@@ -35,19 +35,20 @@ impl Armv7m {
                     )
                 )
             )
-        ensures self: Armv7m[{ 
-            mem: update_mem(
-                    to_int(
-                        bv_add(
-                            get_gpr(reg_base, old_cpu),
-                            left_shift(get_gpr(reg_offset, old_cpu), shift)
-                        )
-                    ),
-                    old_cpu.mem,
-                    get_gpr(reg_to_store, old_cpu)
-            ), 
-            ..old_cpu 
-        }]
+        ensures self: Armv7m{ new_cpu: new_cpu == Armv7m { 
+                mem: update_mem(
+                        to_int(
+                            bv_add(
+                                get_gpr(reg_base, old_cpu),
+                                left_shift(get_gpr(reg_offset, old_cpu), shift)
+                            )
+                        ),
+                        old_cpu.mem,
+                        get_gpr(reg_to_store, old_cpu)
+                ), 
+                ..old_cpu 
+            }
+        }
     )]
     pub fn strw_lsl_reg(
         &mut self,

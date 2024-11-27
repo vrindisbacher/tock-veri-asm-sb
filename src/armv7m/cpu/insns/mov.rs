@@ -18,7 +18,9 @@ impl Armv7m {
     //       // APSR.V unchanged
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-        ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }]
+        ensures self: Armv7m { new_cpu: 
+            new_cpu == Armv7m { general_regs: set_gpr(reg, old_cpu, val), ..old_cpu } 
+        }
     )]
     pub fn movw_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T2 of Mov immediate
