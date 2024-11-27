@@ -97,7 +97,7 @@ impl Memory {
     #[flux_rs::sig(
         fn (self: &strg Memory[@old_mem], u32[@addr], BV32[@val]) 
             requires is_valid_write_addr(addr)
-            ensures self: Memory[update_mem(addr, old_mem, val)] 
+            ensures self: Memory { new_mem: new_mem == update_mem(addr, old_mem, val) }
     )]
     pub fn write(&mut self, address: u32, value: BV32) {
         match address {

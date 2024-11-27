@@ -1,6 +1,6 @@
 use crate::{armv7m::lang::{IsbOpt, SpecialRegister, GPR}, flux_support::bv32::BV32};
 
-use super::Armv7m;
+use super::{Armv7m, Control};
 
 flux_rs::defs! {
 
@@ -28,27 +28,35 @@ impl Armv7m {
 
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) -> SpecialRegister
-        requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 
-        ensures self: Armv7m { new_cpu:
-            nth_bit_is_set(
-                get_mem_addr(
-                    0xe000_e180 + isr_offset(old_cpu),
-                    new_cpu.mem
+        fn (self: &strg Armv7m[@old_cpu]) 
+        requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 && mode_is_handler(old_cpu.mode)
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
+                mem: update_mem(
+                     0xe000_e200 + isr_offset(old_cpu),
+                     update_mem(
+                         0xe000_e180 + isr_offset(old_cpu),
+                         old_cpu.mem,
+                         isr_r0(old_cpu)
+                    ),
+                    isr_r0(old_cpu)
                 ),
-                isr_bit_loc(old_cpu)
-            )
-            &&
-            nth_bit_is_set(
-                get_mem_addr(
-                    0xe000_e200 + isr_offset(old_cpu),
-                    new_cpu.mem
+                general_regs: map_set(
+                    map_set(
+                        map_set(
+                            old_cpu.general_regs,
+                            r0(),
+                            isr_r0(old_cpu)
+                        ),
+                        r2(),
+                        isr_r2(old_cpu)
+                    ),
+                    r3(),
+                    bv32(0xe000_e200)
                 ),
-                isr_bit_loc(old_cpu)
-            )
-            &&
-            // note - must be correct to yield back properly
-            to_int(get_special_reg(lr(), new_cpu)) == 0xFFFF_FFF9
+                control: Control { npriv: false, ..old_cpu.control },
+                lr: bv32(0xFFFF_FFF9),
+                ..old_cpu
+            }
         }
     )]
     pub fn generic_isr(&mut self) {

@@ -106,9 +106,13 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
+            requires 
+                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
+                &&
+                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
-                    control: Control { spsel: return_exec == bv32(0xFFFF_FFF9), ..cpu.control },
+                    control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
                     general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
                     lr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x14, cpu.mem),
                     psr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x1C, cpu.mem),
