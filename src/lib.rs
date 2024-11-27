@@ -6,9 +6,9 @@ mod flux_support;
 mod arm_test {
     use crate::{
         armv7m::{
-            cpu::Armv7m,
+            cpu::{Armv7m, SP},
             lang::{SpecialRegister, GPR},
-            mem::Memory,
+            mem::{flux_defs, Memory},
         },
         flux_support::bv32::BV32,
     };
@@ -105,10 +105,17 @@ mod arm_test {
 
 
     // process havocs everything except for the fact the sp can take an update
+
+    flux_rs::defs! {
+        fn sp_main(sp: SP) -> BV32 {
+            sp.sp_main 
+        }
+    }
+
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
-           ensures self: Armv7m {new_cpu: sp_can_handle_exception_entry(new_cpu) }
+           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && sp_can_handle_exception_entry(new_cpu) }
     )]
     fn process(armv7m: &mut Armv7m) {}
 
