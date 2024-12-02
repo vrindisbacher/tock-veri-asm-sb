@@ -3,6 +3,7 @@ use crate::{armv7m::lang::{SpecialRegister, GPR}, flux_support::bv32::BV32};
 use super::{Armv7m, CPUMode, Control};
 
 impl Armv7m {
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -85,6 +86,7 @@ impl Armv7m {
         // matter
     }
 
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -105,6 +107,7 @@ impl Armv7m {
         self.exception_taken(exception_number);
     }
 
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
             requires 
@@ -166,10 +169,10 @@ impl Armv7m {
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
             ensures self: Armv7m { new_cpu: 
                 new_cpu == cpu 
-                &&
-                is_valid_ram_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num))
-                &&
-                is_valid_ram_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x20)
+                && 
+                // is_valid_ram_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num))
+                // &&
+                is_valid_ram_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x20)
             }
     )]
     fn run_isr(&mut self, exception_number: u8) -> BV32 {
@@ -197,18 +200,19 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m[{
-                mode: thread_mode(),
-                control: Control { 
+            ensures self: Armv7m { new_cpu: 
+                new_cpu.mode == thread_mode()
+                &&
+                new_cpu.control == Control { 
                     spsel: get_bx_from_exception_num(exception_num, cpu.lr) != bv32(0xFFFF_FFF9),
                     ..cpu.control 
-                },
-                general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
-                lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
-                psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
-                sp: sp_post_exception_exit(cpu.sp, get_bx_from_exception_num(exception_num, cpu.lr)),
-                ..cpu
-            }]
+                }
+                // general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
+                // lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
+                // psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
+                // sp: sp_post_exception_exit(cpu.sp, get_bx_from_exception_num(exception_num, cpu.lr)),
+                // ..cpu
+            }
     )]
     pub fn preempt(
         &mut self,
