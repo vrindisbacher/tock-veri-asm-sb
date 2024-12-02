@@ -24,7 +24,9 @@ impl Armv7m {
     //      R[t] = data;
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-        ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }]
+        ensures self: Armv7m { new_cpu: 
+            new_cpu == Armv7m { general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }
+        }
     )]
     pub fn pseudo_ldr(&mut self, register: GPR, value: BV32) {
         // Note the non pseudo instruction would do this:
@@ -44,7 +46,9 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val]) 
-        ensures self: Armv7m[{ special_regs: set_spr(reg, old_cpu, val), ..old_cpu }]
+        // right now requires that the register is the link register
+        requires is_lr(reg)
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { lr: val, ..old_cpu } }
     )]
     pub fn pseudo_ldr_special(&mut self, register: SpecialRegister, value: BV32) {
         // Note the non pseudo instruction would do this:

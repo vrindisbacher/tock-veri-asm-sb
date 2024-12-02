@@ -28,7 +28,6 @@ impl Armv7m {
         //     BranchTo(address<31:1>:'0');
     }
 
-    // #[flux_rs::trusted]
     #[flux_rs::sig(fn (self: &strg Armv7m[@cpu], SpecialRegister[@reg]) ensures self: Armv7m[cpu])]
     pub fn bx(&mut self, register: SpecialRegister) {
         // Corresponds to Encoding T1

@@ -46,6 +46,9 @@ const NVIC_END: u32 = 0xE000ECFF;
 const MPU_START: u32 = 0xE000ED90;
 const MPU_END: u32 = 0xE000EDEF;
 
+const RAM_START: u32 = 0x6000_0000;
+const RAM_END: u32 = 0x9FFF_FFFF;
+
 pub mod flux_defs;
 mod mpu;
 mod nvic;
@@ -86,6 +89,7 @@ impl Memory {
                 }
                 *self.mem.get(&address).unwrap()
             }
+            RAM_START..=RAM_END => *self.mem.get(&address).unwrap(),
             _ => panic!("Read of unknown memory address (only ppb is defined)"),
         }
     }
@@ -93,7 +97,7 @@ impl Memory {
     #[flux_rs::sig(
         fn (self: &strg Memory[@old_mem], u32[@addr], BV32[@val]) 
             requires is_valid_write_addr(addr)
-            ensures self: Memory[update_mem(addr, old_mem, val)] 
+            ensures self: Memory { new_mem: new_mem == update_mem(addr, old_mem, val) }
     )]
     pub fn write(&mut self, address: u32, value: BV32) {
         match address {
@@ -107,6 +111,7 @@ impl Memory {
                 }
                 self.mem.set(address, value)
             }
+            RAM_START..=RAM_END => self.mem.set(address, value),
             _ => panic!("Write to unknown memory address (only ppb is defined)"),
         }
     }

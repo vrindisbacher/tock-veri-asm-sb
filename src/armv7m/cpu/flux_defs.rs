@@ -1,4 +1,5 @@
-use super::Armv7m;
+use super::Memory;
+use super::{Armv7m, CPUMode, Control, SP};
 use crate::armv7m::lang::{SpecialRegister, GPR};
 use crate::flux_support::bv32::*;
 use crate::flux_support::rmap::*;
@@ -6,9 +7,158 @@ use crate::flux_support::rmap::*;
 const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
-    fn bv32(x: int) -> BV32 {
-        bv_int_to_bv32(x)
+
+    fn get_bx_from_exception_num(exception_num: int, lr: BV32) -> BV32 {
+        if exception_num == 11 {
+            if lr == bv32(0xFFFF_FFFD) {
+                bv32(0xFFFF_FFF9)
+            } else {
+                bv32(0xFFFF_FFFD)
+            }
+        } else {
+            bv32(0xFFFF_FFF9)
+        }
     }
+
+    fn get_sp_from_exception_num(sp: SP, lr: BV32, exception_num: int) -> int {
+        if exception_num == 11 {
+            // svc - depends on where we're coming from right now
+            if lr == bv32(0xFFFF_FF1) || lr == bv32(0xFFFF_FFFD) {
+                int(sp.sp_main)
+            } else {
+                int(sp.sp_process)
+            }
+        } else {
+            int(sp.sp_main)
+        }
+    }
+
+    fn get_sp_from_isr_ret(sp: SP, return_exec: BV32) -> int {
+        if return_exec == bv32(0xFFFF_FFFF9) {
+            int(sp.sp_main)
+        } else {
+            int(sp.sp_process)
+        }
+    }
+
+    fn sp_post_exception_exit(sp: SP, return_exec: BV32) -> SP {
+        if return_exec == bv32(0xFFFF_FFFF9) {
+            SP { sp_main: bv_add(sp.sp_main, bv32(0x20)), ..sp }
+        } else {
+            SP { sp_process: bv_add(sp.sp_process, bv32(0x20)), ..sp }
+        }
+
+    }
+
+    fn gprs_post_exception_exit(sp: int, cpu: Armv7m) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            cpu.general_regs,
+                            r0(),
+                            get_mem_addr(sp, cpu.mem)
+                        ),
+                        r1(),
+                        get_mem_addr(sp + 0x4, cpu.mem)
+                    ),
+                    r2(),
+                    get_mem_addr(sp + 0x8, cpu.mem)
+                ),
+                r3(),
+                get_mem_addr(sp + 0xc, cpu.mem)
+            ),
+            r12(),
+            get_mem_addr(sp + 0x10, cpu.mem)
+        )
+    }
+
+    fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        sp,
+                                        get_gpr(r0(), cpu)
+                                    ),
+                                    sp + 0x4,
+                                    get_gpr(r1(), cpu)
+                                ),
+                                sp + 0x8,
+                                get_gpr(r2(), cpu)
+                            ),
+                            sp + 0xc,
+                            get_gpr(r3(), cpu)
+                        ),
+                        sp + 0x10,
+                        get_gpr(r12(), cpu)
+                    ),
+                    sp + 0x14,
+                    get_special_reg(lr(), cpu)
+                ),
+                sp + 0x18,
+                bv32(0)
+            ),
+            sp + 0x1c,
+            get_special_reg(psr(), cpu)
+        )
+    }
+
+    fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
+        if mode_is_handler(cpu.mode) {
+            bv32(0xFFFF_FFF1)
+        } else if control.spsel {
+            bv32(0xFFFF_FFFD)
+        } else {
+            bv32(0xFFFF_FFF9)
+        }
+    }
+
+    fn control_post_exception_entry(cpu: Armv7m) -> Control {
+        Control { spsel: false, ..cpu.control }
+    }
+
+    fn psr_post_exception_entry(cpu: Armv7m, exception_num: int) -> BV32 {
+        bv_or(bv_and(cpu.psr, bv_not(bv32(0xff))), bv32(exception_num))
+    }
+
+    fn sp_post_exception_entry(cpu: Armv7m) -> SP {
+        set_sp(
+            cpu.sp,
+            cpu.mode,
+            cpu.control,
+            bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+        )
+    }
+
+    fn sp_can_handle_exception_entry(cpu: Armv7m) -> bool {
+        // requires we have enough space to push 8 x 4 byte values into mem
+        is_valid_ram_addr(
+            int(
+                get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            int(
+                get_sp(cpu.sp, cpu.mode, cpu.control)
+            )
+        )
+    }
+
+    fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
+        mode == 1 && !control.spsel
+    }
+}
+
+flux_rs::defs! {
+    fn bv32(x: int) -> BV32 { bv_int_to_bv32(x) }
 
     fn to_int(x: BV32) -> int { bv_bv32_to_int(x) }
 
@@ -16,29 +166,116 @@ flux_rs::defs! {
         map_get(cpu.general_regs, reg)
     }
 
-
     fn set_gpr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<GPR, BV32> {
         map_set(old_cpu.general_regs, reg, val)
     }
 
-    fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
-        if is_ipsr(reg) {
-            bv_and(map_get(cpu.special_regs, psr()), bv32(0xff))
+    fn control_update(val: BV32, old_cpu: Armv7m) -> Control {
+        if to_int(val) == 0 {
+            Control { npriv: false, spsel: false }
+        } else if to_int(val) == 1 {
+            Control { npriv: true, spsel: false }
+        } else if to_int(val) == 2 {
+            Control { npriv: false, spsel: true }
         } else {
-            map_get(cpu.special_regs, reg)
+            Control { npriv: false, spsel: true }
         }
     }
 
-    fn get_psr(cpu: Armv7m) ->  BV32 {
-        get_special_reg(psr(), cpu)
+    fn get_control(control: Control) -> BV32 {
+        if control.npriv && control.spsel {
+            bv32(3)
+        } else if control.npriv {
+            // first bit is 1 - i.e. 01
+            bv32(1)
+        } else if control.spsel {
+            // second bit is 1 - i.e. 10
+            bv32(2)
+        } else {
+            bv32(0)
+        }
     }
 
-    fn set_spr(reg: int, old_cpu: Armv7m, val: BV32) -> Map<SpecialRegister, BV32> {
-        map_set(old_cpu.special_regs, reg, val)
+    fn get_sp(sp: SP, mode: int, control: Control) -> BV32 {
+        if mode_is_handler(mode) || !control.spsel {
+            sp.sp_main
+        } else {
+            sp.sp_process
+        }
+    }
+
+    fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
+        if is_sp(reg) {
+            get_sp(cpu.sp, cpu.mode, cpu.control)
+        } else if is_lr(reg) {
+            cpu.lr
+        } else if is_pc(reg) {
+            cpu.pc
+        } else if is_control(reg) {
+            get_control(cpu.control)
+        } else if is_psr(reg) {
+            cpu.psr
+        } else {
+            // ipsr
+            bv_and(cpu.psr, bv32(0xff))
+        }
+    }
+
+    fn set_control(control: Control, mode: int, val: BV32) -> Control {
+        Control {
+            npriv: nth_bit_is_set(val, bv32(1)),
+            spsel: if !mode_is_handler(mode) { nth_bit_is_set(val, bv32(2)) } else { control.spsel }
+        }
+    }
+
+    fn set_sp(sp: SP, mode: int, control: Control, val: BV32) -> SP {
+        if mode_is_handler(mode) || !control.spsel {
+            SP { sp_main: val, ..sp }
+        } else {
+            SP { sp_process: val, ..sp }
+        }
+    }
+
+    fn set_spr(reg: int, cpu: Armv7m, val: BV32) -> Armv7m {
+        if is_sp(reg) {
+            Armv7m { sp: set_sp(cpu.sp, cpu.mode, cpu.control, val), ..cpu }
+        } else if is_lr(reg) {
+            Armv7m { lr: val, ..cpu }
+        } else if is_pc(reg) {
+            Armv7m { pc: val, ..cpu }
+        } else if is_control(reg) {
+            Armv7m { control: set_control(cpu.control, cpu.mode, val), ..cpu }
+        } else if is_psr(reg) {
+            Armv7m { psr: val, ..cpu }
+        } else {
+            cpu
+        }
+    }
+
+    fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
+
+    fn mode_is_handler(mode: int) -> bool {
+        mode == 0
+    }
+
+    fn handler_mode() -> int {
+        0
+    }
+
+    fn thread_mode() -> int {
+        1
     }
 
     fn is_ipsr(reg: int) -> bool {
         reg == 18
+    }
+
+    fn is_psr(reg: int) -> bool {
+        reg == 17
+    }
+
+    fn is_control(reg: int) -> bool {
+        reg == 16
     }
 
     fn is_pc(reg: int) -> bool {
@@ -51,10 +288,6 @@ flux_rs::defs! {
 
     fn is_sp(reg: int) -> bool {
         reg == 13
-    }
-
-    fn is_control(reg: int) -> bool {
-        reg == 16
     }
 
     fn r0() -> int {
@@ -77,8 +310,20 @@ flux_rs::defs! {
         4
     }
 
+    fn r12() -> int {
+        12
+    }
+
+    fn sp() -> int {
+        13
+    }
+
     fn lr() -> int {
         14
+    }
+
+    fn pc() -> int {
+        15
     }
 
     fn control() -> int {
