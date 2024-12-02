@@ -338,9 +338,13 @@ flux_rs::defs! {
         18
     }
 
-    fn nth_bit_is_set(val: BV32, n: BV32) -> bool {
+    fn nth_bit(val: BV32, n: BV32) -> BV32 {
         // val & (1 << n)
-        bv_and(val, left_shift(bv32(1), n)) != bv32(0)
+        bv_and(val, left_shift(bv32(1), n))
+    }
+
+    fn nth_bit_is_set(val: BV32, n: BV32) -> bool {
+        nth_bit(val, n) != bv32(0)
     }
 
     fn right_shift(val: BV32, n: BV32) -> BV32 {
@@ -361,17 +365,17 @@ flux_rs::defs! {
         }
     }
 
-    // fn itstate_0_4_not_all_zero(cpu: Armv7m) -> bool {
-    //     !(
-    //         nth_bit(cpu.psr, 25) == 0
-    //         &&
-    //         nth_bit(cpu.psr, 26) == 0
-    //         &&
-    //         nth_bit(cpu.psr, 10) == 0
-    //         &&
-    //         nth_bit(cpu.psr, 11) == 0
-    //     )
-    // }
+    fn itstate_0_4_not_all_zero(cpu: Armv7m) -> bool {
+        !(
+            nth_bit(cpu.psr, bv32(25)) == bv32(0)
+            &&
+            nth_bit(cpu.psr, bv32(26)) == bv32(0)
+            &&
+            nth_bit(cpu.psr, bv32(10)) == bv32(0)
+            &&
+            nth_bit(cpu.psr, bv32(11)) == bv32(0)
+        )
+    }
 
     // fn movs_flag_updates(cpu: Armv7m) -> bool {
     //     if !itstate_0_4_not_all_zero(cpu) {

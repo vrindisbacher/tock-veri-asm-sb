@@ -39,7 +39,15 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
             // TODO(VR): Flag Updates
-            ensures self: Armv7m[{ general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }]
+            ensures self: Armv7m { new_cpu: 
+                !itstate_0_4_not_all_zero(old_cpu) => new_cpu == Armv7m { 
+                    general_regs: set_gpr(reg, old_cpu, val), 
+                    psr: bv_or(bv_and(get_psr(old_cpu), bv_not(left_shift(bv32(1), bv32(31)))), left_shift(bv32(1), bv32(30))),
+                    ..old_cpu 
+                }
+                &&
+                itstate_0_4_not_all_zero(old_cpu) => new_cpu == Armv7m { general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }
+            }
     )]
     pub fn movs_imm(&mut self, register: GPR, value: BV32) {
         // Corresponds to encoding T1 of Mov immediate:
@@ -49,11 +57,11 @@ impl Armv7m {
         //
         // We already know d (register above)
         self.update_general_reg_with_b32(register, value);
-        // let set_flags = !self.in_if_then_block();
-        // if set_flags {
-        //     // VTOCK TODO: Actually deal with negative values
-        //     self.unset_n_flag();
-        //     self.set_z_flag();
-        // }
+        let set_flags = !self.in_if_then_block();
+        if set_flags {
+            // VTOCK TODO: Actually deal with negative values
+            self.unset_n_flag();
+            self.set_z_flag();
+        }
     }
 }

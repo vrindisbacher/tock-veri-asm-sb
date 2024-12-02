@@ -214,18 +214,23 @@ impl Armv7m {
         *self.general_regs.get(register).unwrap()
     }
 
-    // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]
-    // fn in_if_then_block(&self) -> bool {
-    //     // See page B1-517 for where IT lies in EPSR register
-    //     //
-    //     // Use EPSR[26:25] EPSR[15:12] EPSR[11:10] Additional Information
-    //     // IT  IT[1:0]      IT[7:4]    IT[3:2]     See ITSTATE on page A7-179
-    //     //
-    //     // See A7-180 for pseudo code for InItBlock
-    //     let bit_0 = get_nth_bit(self.psr, 25) == 0;
-    //     let bit_1 = get_nth_bit(self.psr, 26) == 0;
-    //     let bit_2 = get_nth_bit(self.psr, 10) == 0;
-    //     let bit_3 = get_nth_bit(self.psr, 11) == 0;
-    //     !(bit_0 && bit_1 && bit_2 && bit_3)
-    // }
+    #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[itstate_0_4_not_all_zero(cpu)] )]
+    fn in_if_then_block(&self) -> bool {
+        // See page B1-517 for where IT lies in EPSR register
+        //
+        // Use EPSR[26:25] EPSR[15:12] EPSR[11:10] Additional Information
+        // IT  IT[1:0]      IT[7:4]    IT[3:2]     See ITSTATE on page A7-179
+        //
+        // See A7-180 for pseudo code for InItBlock
+        let bit_0 = get_nth_bit(self.psr, 25) == BV32::from(0);
+        let bit_1 = get_nth_bit(self.psr, 26) == BV32::from(0);
+        let bit_2 = get_nth_bit(self.psr, 10) == BV32::from(0);
+        let bit_3 = get_nth_bit(self.psr, 11) == BV32::from(0);
+        !(bit_0 && bit_1 && bit_2 && bit_3)
+    }
+}
+
+#[flux_rs::sig(fn (BV32[@val], u32[@shift]) -> BV32[nth_bit(val, bv32(shift))])]
+fn get_nth_bit(val: BV32, shift: u32) -> BV32 {
+    val & (BV32::from(1) << BV32::from(shift))
 }

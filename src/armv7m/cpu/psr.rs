@@ -1,4 +1,5 @@
 use crate::armv7m::lang::SpecialRegister;
+use crate::flux_support::bv32::BV32;
 
 use super::flux_defs::*;
 use super::Armv7m;
@@ -21,21 +22,20 @@ use super::Armv7m;
 // Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
 
 impl Armv7m {
-    // #[flux_rs::sig(
-    //     fn (self: &strg Armv7m[@old_cpu], u32[@val])
-    //     ensures self: Armv7m { new_cpu: special_purpose_register_updated(psr(), old_cpu, new_cpu, val) }
-    // )]
-    // fn set_psr(&mut self, value: u32) {
-    //     self.update_special_reg_with_u32(SpecialRegister::PSR, value);
-    // }
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu], BV32[@val])
+        ensures self: Armv7m[set_spr(psr(), old_cpu, val)]
+    )]
+    fn set_psr(&mut self, value: BV32) {
+        self.update_special_reg_with_b32(SpecialRegister::psr(), value);
+    }
 
-    // #[flux_rs::sig(
-    //     fn (&Armv7m[@cpu]) -> u32[get_special_reg(psr(), cpu)]
-    // )]
-    // fn get_psr(&self) -> u32 {
-    //     let reg = SpecialRegister::PSR;
-    //     self.get_value_from_special_reg(&reg)
-    // }
+    #[flux_rs::sig(
+        fn (&Armv7m[@cpu]) -> BV32[get_psr(cpu)]
+    )]
+    fn get_psr(&self) -> BV32 {
+        self.psr
+    }
 
     // #[flux_rs::trusted]
     // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(get_psr(cpu), 31)])]
@@ -43,22 +43,21 @@ impl Armv7m {
     //     self.get_psr() & (1 << 31) == 1
     // }
 
-    // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 31)))
-    //  })]
-    // pub fn set_n_flag(&mut self) {
-    //     self.set_psr(self.get_psr() | (1 << 31));
-    // }
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m[
+        set_spr(psr(), old_cpu, bv_or(get_psr(old_cpu), left_shift(bv32(1), bv32(31))))
+    ])]
+    pub fn set_n_flag(&mut self) {
+        self.set_psr(self.get_psr() | (BV32::from(1) << BV32::from(31)));
+    }
 
     // // VTOCK TODO: That can't be right?
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    //     special_purpose_register_updated(psr(), old_cpu, new_cpu, and(get_special_reg(psr(), old_cpu), negated(left_shift(1, 31))))
-    // })]
-    // pub fn unset_n_flag(&mut self) {
-    //     self.set_psr(self.get_psr() & !(1 << 31));
-    // }
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m[
+        set_spr(psr(), old_cpu, bv_and(get_psr(old_cpu), bv_not(left_shift(bv32(1), bv32(31)))) )
+    ])]
+    pub fn unset_n_flag(&mut self) {
+        self.set_psr(self.get_psr() & !(BV32::from(1) << BV32::from(31)));
+    }
 
     // #[flux_rs::trusted]
     // #[flux_rs::sig(fn (&Armv7m[@cpu]) -> bool[nth_bit_is_set(get_psr(cpu), 30)])]
@@ -67,12 +66,12 @@ impl Armv7m {
     // }
 
     // #[flux_rs::trusted]
-    // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
-    //     special_purpose_register_updated(psr(), old_cpu, new_cpu, or(get_special_reg(psr(), old_cpu), left_shift(1, 30)))
-    // })]
-    // pub fn set_z_flag(&mut self) {
-    //     self.set_psr(self.get_psr() | (1 << 30));
-    // }
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m[
+        set_spr(psr(), old_cpu, bv_or(get_psr(old_cpu), left_shift(bv32(1), bv32(30))))
+    ])]
+    pub fn set_z_flag(&mut self) {
+        self.set_psr(self.get_psr() | (BV32::from(1) << BV32::from(30)));
+    }
 
     // #[flux_rs::trusted]
     // #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu:
