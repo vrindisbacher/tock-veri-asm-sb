@@ -43,6 +43,43 @@ pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
 //      - Q, bit[27] Set to 1 if a SSAT or USAT instruction changes the input value for the signed or unsigned range of
 //      the result. In a processor that implements the DSP extension, the processor sets this bit to 1 to
 //      indicate an overflow on some multiplies. Setting this bit to 1 is called saturation.
+
+#[derive(Debug)]
+#[flux_rs::refined_by(
+    r0: BV32, 
+    r1: BV32,
+    r2: BV32,
+    r3: BV32,
+    r12: BV32,
+    lr: BV32,
+    psr: BV32
+)]
+pub struct InterruptState {
+    #[field(BV32[r0])]
+    r0: BV32,
+    #[field(BV32[r1])]
+    r1: BV32,
+    #[field(BV32[r2])]
+    r2: BV32,
+    #[field(BV32[r3])]
+    r3: BV32,
+    #[field(BV32[r12])]
+    r12: BV32,
+    #[field(BV32[lr])]
+    lr: BV32,
+    #[field(BV32[psr])]
+    psr: BV32
+}
+
+#[derive(Debug)]
+#[flux_rs::refined_by(main: InterruptState, process: InterruptState)]
+pub struct HardwareStacking {
+    #[field(InterruptState[main])]
+    main: InterruptState,
+    #[field(InterruptState[process])]
+    process: InterruptState
+}
+
 #[derive(Debug)]
 #[flux_rs::refined_by(mode: int)]
 pub enum CPUMode {
@@ -86,6 +123,7 @@ pub struct Control {
     pc: BV32,
     psr: BV32,
     mem: Memory,
+    hardware_stacking: HardwareStacking,
     mode: CPUMode
 )]
 pub struct Armv7m {
@@ -110,6 +148,8 @@ pub struct Armv7m {
     // Memory
     #[field(Memory[mem])]
     pub mem: Memory,
+    #[field(HardwareStacking[hardware_stacking])]
+    pub hardware_stacking: HardwareStacking,
     // current CPU mode
     #[field(CPUMode[mode])]
     pub mode: CPUMode,

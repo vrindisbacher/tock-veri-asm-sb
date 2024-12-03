@@ -1,5 +1,5 @@
 use super::Memory;
-use super::{Armv7m, CPUMode, Control, SP};
+use super::{Armv7m, CPUMode, Control, SP, HardwareStacking, InterruptState};
 use crate::armv7m::lang::{SpecialRegister, GPR};
 use crate::flux_support::bv32::*;
 use crate::flux_support::rmap::*;
@@ -72,6 +72,36 @@ flux_rs::defs! {
             r12(),
             get_mem_addr(sp + 0x10, cpu.mem)
         )
+    }
+
+    fn hardware_stacking_post_exception_entry(cpu: Armv7m, control: Control) -> HardwareStacking {
+        if mode_is_handler(cpu.mode) || !control.spsel {
+            HardwareStacking {
+                main: InterruptState {
+                    r0: get_gpr(r0(), cpu),
+                    r1: get_gpr(r1(), cpu),
+                    r2: get_gpr(r2(), cpu),
+                    r3: get_gpr(r3(), cpu),
+                    r12: get_gpr(r12(), cpu),
+                    lr: get_special_reg(lr(), cpu),
+                    psr: get_special_reg(psr(), cpu)
+                },
+                ..cpu.hardware_stacking
+            }
+        } else {
+            HardwareStacking {
+                process: InterruptState {
+                    r0: get_gpr(r0(), cpu),
+                    r1: get_gpr(r1(), cpu),
+                    r2: get_gpr(r2(), cpu),
+                    r3: get_gpr(r3(), cpu),
+                    r12: get_gpr(r12(), cpu),
+                    lr: get_special_reg(lr(), cpu),
+                    psr: get_special_reg(psr(), cpu)
+                },
+                ..cpu.hardware_stacking
+            }
+        }
     }
 
     fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {

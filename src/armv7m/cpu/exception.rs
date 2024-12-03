@@ -3,13 +3,13 @@ use crate::{armv7m::lang::{SpecialRegister, GPR}, flux_support::bv32::BV32};
 use super::{Armv7m, CPUMode, Control};
 
 impl Armv7m {
-    #[flux_rs::trusted]
+
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
             requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
-                    mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+                    hardware_stacking: hardware_stacking_post_exception_entry(cpu, cpu.control),
                     ..cpu 
                 }
             }
@@ -21,7 +21,7 @@ impl Armv7m {
         let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
         let frame_ptr = (frame_ptr - frame_size) & !BV32::from(3);
         self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
-        let frame_ptr = frame_ptr.into();
+
         // MemA[frameptr,4] = R[0];
         // MemA[frameptr+0x4,4] = R[1];
         // MemA[frameptr+0x8,4] = R[2];
@@ -31,22 +31,33 @@ impl Armv7m {
         // MemA[frameptr+0x18,4] = ReturnAddress(ExceptionType);
         // MemA[frameptr+0x1C,4] = (XPSR<31:10>:frameptralign:XPSR<8:0>);
         let r0 = self.get_value_from_general_reg(&GPR::r0());
-        self.mem.write(frame_ptr, r0);
         let r1 = self.get_value_from_general_reg(&GPR::r1());
-        self.mem.write(frame_ptr + 0x4, r1);
         let r2 = self.get_value_from_general_reg(&GPR::r2());
-        self.mem.write(frame_ptr + 0x8, r2);
         let r3 = self.get_value_from_general_reg(&GPR::r3());
-        self.mem.write(frame_ptr + 0xC, r3);
         let r12 = self.get_value_from_general_reg(&GPR::r12());
-        self.mem.write(frame_ptr + 0x10, r12);
         let lr = self.get_value_from_special_reg(&SpecialRegister::lr());
-        self.mem.write(frame_ptr + 0x14, lr);
-        // putting a dummy value for ret addr
-        self.mem.write(frame_ptr + 0x18, BV32::from(0));
-        // TODO: Real implementation skips bit 9
         let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
-        self.mem.write(frame_ptr + 0x1C, psr);
+        if self.mode_is_handler() || !self.control.spsel {
+            // push onto main
+            self.hardware_stacking.main.r0 = r0;
+            self.hardware_stacking.main.r1 = r1;
+            self.hardware_stacking.main.r2 = r2;
+            self.hardware_stacking.main.r3 = r3;
+            self.hardware_stacking.main.r12 = r12;
+            self.hardware_stacking.main.lr = lr;
+            // TODO: Real implementation skips bit 9
+            self.hardware_stacking.main.psr = psr;
+        } else {
+            // push onto process
+            self.hardware_stacking.process.r0 = r0;
+            self.hardware_stacking.process.r1 = r1;
+            self.hardware_stacking.process.r2 = r2;
+            self.hardware_stacking.process.r3 = r3;
+            self.hardware_stacking.process.r12 = r12;
+            self.hardware_stacking.process.lr = lr;
+            // TODO: Real implementation skips bit 9
+            self.hardware_stacking.process.psr = psr;
+        }
     }
 
     #[flux_rs::sig(
