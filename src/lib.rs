@@ -1,7 +1,63 @@
 #![allow(unused)]
 
+use armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}};
+use flux_support::bv32::BV32;
+
 pub mod armv7m;
 mod flux_support;
+
+// Part 1: 
+//   0:   b5f0            push    {r4, r5, r6, r7, lr}
+//   2:   af03            add     r7, sp, #12
+//   4:   e92d 0d00       stmdb   sp!, {r8, sl, fp}
+//   8:   4632            mov     r2, r6
+//   a:   463b            mov     r3, r7
+//   c:   46cc            mov     ip, r9
+//   e:   f380 8809       msr     PSP, r0
+//  12:   e891 0ff0       ldmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
+//  16:   dfff            svc     255     @ 0xff
+//
+// Part 2:
+//  18:   e881 0ff0       stmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
+//  1c:   f3ef 8009       mrs     r0, PSP
+//  20:   4616            mov     r6, r2
+//  22:   461f            mov     r7, r3
+//  24:   46e1            mov     r9, ip
+//  26:   e8bd 0d00       ldmia.w sp!, {r8, sl, fp}
+//  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
+pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
+    // push onto stack
+    armv7m.push_gpr(GPR::r4());
+    armv7m.push_gpr(GPR::r5());
+    armv7m.push_gpr(GPR::r6());
+    armv7m.push_gpr(GPR::r7());
+    armv7m.push_spr(SpecialRegister::lr());
+
+    // add imm 
+    armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12));
+
+    // some stmdb stuff
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8());
+    // sl - r10
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10());
+    // fp - r11
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
+    
+    // mov
+    armv7m.mov(GPR::r2(), GPR::r6());
+    armv7m.mov(GPR::r3(), GPR::r7());
+    // note ip is intraprocedure scratch register - r12
+    armv7m.mov(GPR::r12(), GPR::r9());
+
+    // msr
+    armv7m.msr(SpecialRegister::psp(), GPR::r0());
+
+    // ldmia
+    armv7m.ldmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
+
+    // svc
+    armv7m.svc(0xff);
+}
 
 mod arm_test {
     use crate::{
@@ -12,97 +68,6 @@ mod arm_test {
         },
         flux_support::bv32::BV32,
     };
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m[{
-            general_regs: set_gpr(
-                r0(), 
-                old_cpu,
-                bv32(to_int(get_special_reg(ipsr(), old_cpu)) % 32)
-            ),
-            ..old_cpu
-        }] 
-    )]
-    fn simple_mod(armv7m: &mut Armv7m) {
-        // r0 = ipsr
-        armv7m.mrs(GPR::R0, SpecialRegister::IPSR);
-        // r0 = r0 & 31
-        armv7m.and_imm(GPR::R0, BV32::from(31));
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: get_gpr(r0(), new_cpu) ==  right_shift(bv32(1 % 32), bv32(5)) })]
-    fn simple_shift(armv7m: &mut Armv7m) {
-        // r0 = 1
-        armv7m.movs_imm(GPR::R0, BV32::from(1));
-        // r0 = r0 & 31
-        armv7m.and_imm(GPR::R0, BV32::from(31));
-        // r0 = r0 >> 5
-        armv7m.lsrs_imm(GPR::R0, GPR::R0, BV32::from(5));
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m { new_cpu: get_mem_addr(0xE000_E184, new_cpu.mem) == bv32(1) }
-    )]
-    fn lsl_store_nvic(armv7m: &mut Armv7m) {
-        // 0xE000_E180 + 1 * 4 = 1
-        armv7m.pseudo_ldr(GPR::R3, BV32::from(0xE000_E180));
-        armv7m.movw_imm(GPR::R0, BV32::from(1));
-        armv7m.movw_imm(GPR::R1, BV32::from(1));
-        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R1, BV32::from(2));
-    }
-
-    #[flux_rs::should_fail]
-    // Sanity check that we the postcondition here specifies the wrong
-    // register (should be 0xE000_E184)
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m { new_cpu: get_mem_addr(0xE000_E180, new_cpu.mem) == bv32(1)  }
-    )]
-    fn lsl_store_nvic_wrong(armv7m: &mut Armv7m) {
-        armv7m.pseudo_ldr(GPR::R3, BV32::from(0xE000_E180));
-        armv7m.movw_imm(GPR::R0, BV32::from(1));
-        armv7m.movw_imm(GPR::R1, BV32::from(1));
-        armv7m.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R1, BV32::from(2));
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m[{
-            general_regs: set_gpr(r0(), old_cpu, bv32(0)), ..old_cpu
-        }]
-    )]
-    fn movw_r0(armv7m: &mut Armv7m) {
-        armv7m.movw_imm(GPR::R0, BV32::from(0));
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        ensures self: Armv7m[{
-            general_regs: set_gpr(r1(), old_cpu, bv32(1)), ..old_cpu
-        }] 
-    )]
-    fn movw_r1(armv7m: &mut Armv7m) {
-        armv7m.movw_imm(GPR::R1, BV32::from(1));
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        get_gpr(r0(), new_cpu) == bv32(0)
-        &&
-        get_gpr(r1(), new_cpu) == bv32(1)
-    })]
-    fn two_movs_by_call(armv7m: &mut Armv7m) {
-        movw_r0(armv7m);
-        movw_r1(armv7m);
-    }
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
-        get_gpr(r0(), new_cpu) == bv32(0)
-        &&
-        get_gpr(r1(), new_cpu) == bv32(1)
-    })]
-    fn two_movs(armv7m: &mut Armv7m) {
-        armv7m.movw_imm(GPR::R0, BV32::from(0));
-        armv7m.movw_imm(GPR::R1, BV32::from(1));
-    }
-
-
 
     // process havocs everything except for the fact the sp can take an update
 

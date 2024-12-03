@@ -1,11 +1,16 @@
+mod add;
 mod and;
 mod bx;
 mod isb;
+mod ldmia;
 mod ldr;
 mod mov;
 mod mrs;
 mod msr;
 mod mvn;
+mod push;
 mod shift;
+mod stmdb;
 mod str;
 mod sub;
+mod svc;

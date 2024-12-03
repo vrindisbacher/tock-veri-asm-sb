@@ -50,6 +50,46 @@ impl GPR {
         Self::R3
     }
 
+    #[flux_rs::sig(fn () -> GPR[r4()])]
+    pub fn r4() -> Self {
+        Self::R4
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r5()])]
+    pub fn r5() -> Self {
+        Self::R5
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r6()])]
+    pub fn r6() -> Self {
+        Self::R6
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r7()])]
+    pub fn r7() -> Self {
+        Self::R7
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r8()])]
+    pub fn r8() -> Self {
+        Self::R8
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r9()])]
+    pub fn r9() -> Self {
+        Self::R9
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r10()])]
+    pub fn r10() -> Self {
+        Self::R10
+    }
+
+    #[flux_rs::sig(fn () -> GPR[r11()])]
+    pub fn r11() -> Self {
+        Self::R11
+    }
+
     #[flux_rs::sig(fn () -> GPR[r12()])]
     pub fn r12() -> Self {
         Self::R12
@@ -72,12 +112,19 @@ pub enum SpecialRegister {
     PSR,
     #[variant(SpecialRegister[18])]
     IPSR,
+    #[variant(SpecialRegister[19])]
+    PSP,
 }
 
 impl SpecialRegister {
     #[flux_rs::sig(fn () -> SpecialRegister[sp()])]
     pub fn sp() -> Self {
         Self::Sp
+    }
+
+    #[flux_rs::sig(fn () -> SpecialRegister[psp()])]
+    pub fn psp() -> Self {
+        Self::PSP
     }
 
     #[flux_rs::sig(fn () -> SpecialRegister[lr()])]

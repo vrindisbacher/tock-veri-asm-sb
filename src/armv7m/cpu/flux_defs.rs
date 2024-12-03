@@ -344,8 +344,14 @@ flux_rs::defs! {
         }
     }
 
+    fn get_psp(sp: SP) -> BV32 {
+        sp.sp_process
+    }
+
     fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
-        if is_sp(reg) {
+        if is_psp(reg) {
+            get_psp(cpu.sp)
+        } else if is_sp(reg) {
             get_sp(cpu.sp, cpu.mode, cpu.control)
         } else if is_lr(reg) {
             cpu.lr
@@ -376,8 +382,14 @@ flux_rs::defs! {
         }
     }
 
+    fn set_psp(sp: SP, val: BV32) -> SP {
+        SP { sp_process: val, ..sp }
+    }
+
     fn set_spr(reg: int, cpu: Armv7m, val: BV32) -> Armv7m {
-        if is_sp(reg) {
+        if is_psp(reg) {
+            Armv7m { sp: set_psp(cpu.sp, val), ..cpu }
+        } else if is_sp(reg) {
             Armv7m { sp: set_sp(cpu.sp, cpu.mode, cpu.control, val), ..cpu }
         } else if is_lr(reg) {
             Armv7m { lr: val, ..cpu }
@@ -430,6 +442,10 @@ flux_rs::defs! {
         reg == 13
     }
 
+    fn is_psp(reg: int) -> bool {
+        reg == 19
+    }
+
     fn r0() -> int {
         0
     }
@@ -448,6 +464,34 @@ flux_rs::defs! {
 
     fn r4() -> int {
         4
+    }
+
+    fn r5() -> int {
+        5
+    }
+
+    fn r6() -> int {
+        6
+    }
+
+    fn r7() -> int {
+        7
+    }
+
+    fn r8() -> int {
+        8
+    }
+
+    fn r9() -> int {
+        9
+    }
+
+    fn r10() -> int {
+        10
+    }
+
+    fn r11() -> int {
+        11
     }
 
     fn r12() -> int {
@@ -476,6 +520,10 @@ flux_rs::defs! {
 
     fn ipsr() -> int {
         18
+    }
+
+    fn psp() -> int {
+        19
     }
 
     fn nth_bit_is_set(val: BV32, n: BV32) -> bool {
