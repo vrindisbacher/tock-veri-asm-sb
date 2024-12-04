@@ -9,12 +9,8 @@ const U32_MAX: u32 = std::u32::MAX;
 flux_rs::defs! {
 
     fn get_bx_from_exception_num(exception_num: int, lr: BV32) -> BV32 {
-        if exception_num == 11 {
-            if lr == bv32(0xFFFF_FFFD) {
-                bv32(0xFFFF_FFF9)
-            } else {
-                bv32(0xFFFF_FFFD)
-            }
+        if exception_num == 11 && lr == bv32(0xFFFF_FFF9) {
+            bv32(0xFFFF_FFFD)
         } else {
             bv32(0xFFFF_FFF9)
         }

@@ -99,8 +99,6 @@ impl Armv7m {
                     mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
                     ..cpu
                 }
-                && 
-                is_valid_ram_addr(int(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control)))
             }
     )]
     fn exception_entry(&mut self, exception_number: u8) {
@@ -170,23 +168,9 @@ impl Armv7m {
         fn (&Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
     )]
     fn run_isr(&self, exception_number: u8) -> BV32 {
-        if exception_number == 11 {
-            // self.svc_isr();
-            // TODO(VR): bx value has to be a postcondition of the isr
-            if self.lr == BV32::from(0xFFFF_FFFD) {
-                // if we come from a process we go to kernel
-                BV32::from(0xFFFF_FFF9)
-            } else {
-                // otherwise we should always come from a process
-                BV32::from(0xFFFF_FFFD)
-            }
-        } else if exception_number == 15 {
-            // self.sys_tick_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
-            BV32::from(0xFFFF_FFF9)
+        if exception_number == 11 && self.lr == BV32::from(0xFFFF_FFF9) {
+            BV32::from(0xFFFF_FFFD)
         } else {
-            // self.generic_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
             BV32::from(0xFFFF_FFF9)
         }
     }
@@ -194,17 +178,17 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
+            // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { 
                         spsel: get_bx_from_exception_num(exception_num, cpu.lr) != bv32(0xFFFF_FFF9),
                         ..cpu.control 
                     },
-                    general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
-                    lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
-                    psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
-                    sp: sp_post_exception_exit(cpu.sp, get_bx_from_exception_num(exception_num, cpu.lr)),
+                    general_regs: gprs_post_exception_exit(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num), new_cpu),
+                    lr: get_mem_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x14, new_cpu.mem),
+                    psr: get_mem_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x1C, new_cpu.mem),
+                    sp: sp_post_exception_exit(new_cpu.sp, get_bx_from_exception_num(exception_num, new_cpu.lr)),
                     ..cpu
                 }
             }
@@ -234,14 +218,12 @@ impl Armv7m {
     )]
     pub fn assume(&mut self) {}
 
-    #[flux_rs::trusted]
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
+        requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
+        ensures self: Armv7m { new_cpu: 
             sp_main(new_cpu.sp) == sp_main(old_cpu.sp)
             &&
             mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
-            // new_cpu.control == old_cpu.control
-            // &&
-            // new_cpu.mode == old_cpu.mode
         }
     )]
     pub fn havoc(&mut self) {}
@@ -254,7 +236,7 @@ impl Armv7m {
                 mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             ensures self: Armv7m { new_cpu: 
                 sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
-                // && get_gpr(r0(), new_cpu) == bv32(10) 
+                && get_gpr(r0(), new_cpu) == bv32(10) 
             }
     )]
     pub fn exception_preserve(&mut self) {

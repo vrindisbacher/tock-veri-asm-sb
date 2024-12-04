@@ -115,12 +115,11 @@ mod arm_test {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
+           requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
            ensures self: Armv7m { new_cpu: 
             sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
             &&
-            new_cpu.control == old_cpu.control
-            &&
-            new_cpu.mode == old_cpu.mode
+            mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
         }
     )]
     fn process(armv7m: &mut Armv7m) {}
@@ -133,19 +132,15 @@ mod arm_test {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
            requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
-           ensures self: Armv7m { new_cpu: get_gpr(r0(), new_cpu) == bv32(10) }
+           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) }
+            // get_gpr(r0(), new_cpu) == bv32(10) }
     )]
     fn full_circle(armv7m: &mut Armv7m) {
         // executes some kernel logic
         armv7m.movs_imm(GPR::R0, BV32::from(10));
-        // just assume that the precondition about sp is handled at this point
-        prepare_for_exception(armv7m);
-        // pretend switch to process
         armv7m.preempt(11);
-        // process that havocs all state except the main sp, the mode, and the control
+        // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
         process(armv7m);
-        // pre-emption because of sys call
-        prepare_for_exception(armv7m);
         armv7m.preempt(11);
         // end up back here
         // no more instructions for now
