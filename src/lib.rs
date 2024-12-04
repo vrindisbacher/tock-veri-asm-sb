@@ -110,6 +110,10 @@ mod arm_test {
         fn sp_main(sp: SP) -> BV32 {
             sp.sp_main 
         }
+
+        fn sp_process(sp: SP) -> BV32 {
+            sp.sp_process
+        }
     }
 
     #[flux_rs::trusted]
@@ -133,16 +137,36 @@ mod arm_test {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
            requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
-           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) }
-            // get_gpr(r0(), new_cpu) == bv32(10) }
+           ensures self: Armv7m { new_cpu: 
+            // sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
+            // get_gpr(r0(), new_cpu) == get_mem_addr(int(sp_process(old_cpu.sp)) - 0x20, old_cpu.mem)
+                // int(sp_process(old_cpu.sp)) + 0x20 == int(sp_process(new_cpu.sp))
+                // &&
+                int(sp_main(new_cpu.sp)) + 0x20 == int(sp_main(old_cpu.sp))
+            }
     )]
     fn full_circle(armv7m: &mut Armv7m) {
         // executes some kernel logic
-        armv7m.movs_imm(GPR::R0, BV32::from(10));
+        armv7m.movs_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
-        process(armv7m);
-        armv7m.preempt(11);
+        // process(armv7m);
+        // fake sys call
+        // armv7m.preempt(11);
+        // end up back here
+        // no more instructions for now
+    }
+    
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) 
+           requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
+           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) }
+    )]
+    fn kernel_preempt(armv7m: &mut Armv7m) {
+        // executes some kernel logic
+        armv7m.movs_imm(GPR::r0(), BV32::from(10));
+        // interrupt that sends us back to kernel
+        armv7m.preempt(20);
         // end up back here
         // no more instructions for now
     }
