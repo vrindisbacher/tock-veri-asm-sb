@@ -139,10 +139,14 @@ mod arm_test {
            requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
            ensures self: Armv7m { new_cpu: 
             // sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
-            // get_gpr(r0(), new_cpu) == get_mem_addr(int(sp_process(old_cpu.sp)) - 0x20, old_cpu.mem)
-                // int(sp_process(old_cpu.sp)) + 0x20 == int(sp_process(new_cpu.sp))
-                // &&
-                int(sp_main(new_cpu.sp)) + 0x20 == int(sp_main(old_cpu.sp))
+            // bv_add(sp_process(old_cpu.sp), bv32(0x20)) == sp_process(new_cpu.sp)
+            // &&
+            // bv_add(sp_main(new_cpu.sp), bv32(0x20)) == sp_main(old_cpu.sp)
+            sp_main(new_cpu.sp) == bv_sub(sp_main(old_cpu.sp), bv32(0x20))
+            &&
+            get_mem_addr(
+                int(bv_sub(sp_main(old_cpu.sp), bv32(0x20))), new_cpu.mem
+            ) == get_gpr(r0(), old_cpu)
             }
     )]
     fn full_circle(armv7m: &mut Armv7m) {
