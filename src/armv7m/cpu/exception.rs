@@ -6,7 +6,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
-            requires sp_can_handle_exception_entry(cpu)
+            // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
                     mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
@@ -89,7 +89,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
+            // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: handler_mode(),
                     control: control_post_exception_entry(cpu),
@@ -111,10 +111,10 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
-            requires 
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
-                &&
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
+            // requires 
+            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
+            //     &&
+            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
@@ -228,6 +228,8 @@ impl Armv7m {
         is_valid_ram_addr(int(get_sp(cpu.sp, cpu.mode, cpu.control)))
         &&
         is_valid_ram_addr(int(bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20))))
+        &&
+        sp_can_handle_exception_entry(new_cpu)
         }
     )]
     pub fn assume(&mut self) {}
@@ -236,9 +238,10 @@ impl Armv7m {
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) ensures self: Armv7m { new_cpu: 
             sp_main(new_cpu.sp) == sp_main(old_cpu.sp)
             &&
-            new_cpu.control == old_cpu.control
-            &&
-            new_cpu.mode == old_cpu.mode
+            mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
+            // new_cpu.control == old_cpu.control
+            // &&
+            // new_cpu.mode == old_cpu.mode
         }
     )]
     pub fn havoc(&mut self) {}
@@ -247,8 +250,8 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu])
             requires 
                 sp_can_handle_exception_entry(old_cpu)
-                // &&
-                // mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+                &&
+                mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             ensures self: Armv7m { new_cpu: 
                 sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
                 // && get_gpr(r0(), new_cpu) == bv32(10) 
@@ -259,7 +262,7 @@ impl Armv7m {
         // self.nonsense_exit();
         self.movw_imm(GPR::R0, BV32::from(10));
         self.exception_entry(11);
-        self.assume();
+        // self.assume();
         // let ret_value = self.run_isr(exception_num);
         // go to a process
         self.exception_exit(BV32::from(0xFFFF_FFFD));
@@ -268,8 +271,9 @@ impl Armv7m {
         self.havoc();
 
         // // go to the kernel via sys call
+        // self.assume();
         self.exception_entry(11);
-        self.assume();
+        // self.assume();
         // // let ret_value = self.run_isr(exception_num);
         self.exception_exit(BV32::from(0xFFFF_FFF9));
 

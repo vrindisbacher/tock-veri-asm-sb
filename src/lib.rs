@@ -145,6 +145,7 @@ mod arm_test {
         // process that havocs all state except the main sp, the mode, and the control
         process(armv7m);
         // pre-emption because of sys call
+        prepare_for_exception(armv7m);
         armv7m.preempt(11);
         // end up back here
         // no more instructions for now
