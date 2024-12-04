@@ -115,7 +115,13 @@ mod arm_test {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
-           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && sp_can_handle_exception_entry(new_cpu) }
+           ensures self: Armv7m { new_cpu: 
+            sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
+            &&
+            new_cpu.control == old_cpu.control
+            &&
+            new_cpu.mode == old_cpu.mode
+        }
     )]
     fn process(armv7m: &mut Armv7m) {}
 
@@ -136,7 +142,7 @@ mod arm_test {
         prepare_for_exception(armv7m);
         // pretend switch to process
         armv7m.preempt(11);
-        // process that havocs all state
+        // process that havocs all state except the main sp, the mode, and the control
         process(armv7m);
         // pre-emption because of sys call
         armv7m.preempt(11);

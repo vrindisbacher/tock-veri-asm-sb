@@ -133,7 +133,8 @@ flux_rs::defs! {
             cpu.sp,
             cpu.mode,
             cpu.control,
-            bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+            // bv_and(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)), bv_not(bv32(3)))
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20))
         )
     }
 
@@ -154,6 +155,10 @@ flux_rs::defs! {
 
     fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
         mode == 1 && !control.spsel
+    }
+
+    fn mode_is_thread_unprivileged(mode: int, control: Control) -> bool {
+        mode == 1 && control.spsel
     }
 }
 
