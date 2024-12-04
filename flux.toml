@@ -1,3 +1,1 @@
-dump_checker_trace = true
-check_diff = true
 cache = true

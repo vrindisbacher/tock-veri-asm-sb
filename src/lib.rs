@@ -115,6 +115,7 @@ mod arm_test {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
+           // process MUST be running in mode thread unprivileged
            requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
            ensures self: Armv7m { new_cpu: 
             sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 

@@ -90,16 +90,7 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             // requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mode: handler_mode(),
-                    control: control_post_exception_entry(cpu),
-                    psr: psr_post_exception_entry(cpu, exception_num),
-                    lr: lr_post_exception_entry(cpu, cpu.control),
-                    sp: sp_post_exception_entry(cpu), 
-                    mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
-                    ..cpu
-                }
-            }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_entry(cpu, exception_num) }
     )]
     fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
@@ -175,23 +166,11 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::trusted]
+    // #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             // requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mode: thread_mode(),
-                    control: Control { 
-                        spsel: get_bx_from_exception_num(exception_num, cpu.lr) != bv32(0xFFFF_FFF9),
-                        ..cpu.control 
-                    },
-                    general_regs: gprs_post_exception_exit(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num), new_cpu),
-                    lr: get_mem_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x14, new_cpu.mem),
-                    psr: get_mem_addr(get_sp_from_exception_num(new_cpu.sp, new_cpu.lr, exception_num) + 0x1C, new_cpu.mem),
-                    sp: sp_post_exception_exit(new_cpu.sp, get_bx_from_exception_num(exception_num, new_cpu.lr)),
-                    ..cpu
-                }
-            }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
     )]
     pub fn preempt(
         &mut self,
@@ -203,62 +182,5 @@ impl Armv7m {
         let ret_value = self.run_isr(exception_number);
         // unstack
         self.exception_exit(ret_value);
-    }
-
-    #[flux_rs::trusted]
-    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu]) ensures self: Armv7m { new_cpu: 
-        new_cpu == cpu 
-        &&
-        is_valid_ram_addr(int(get_sp(cpu.sp, cpu.mode, cpu.control)))
-        &&
-        is_valid_ram_addr(int(bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20))))
-        &&
-        sp_can_handle_exception_entry(new_cpu)
-        }
-    )]
-    pub fn assume(&mut self) {}
-
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu]) 
-        requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
-        ensures self: Armv7m { new_cpu: 
-            sp_main(new_cpu.sp) == sp_main(old_cpu.sp)
-            &&
-            mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
-        }
-    )]
-    pub fn havoc(&mut self) {}
-
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu])
-            requires 
-                sp_can_handle_exception_entry(old_cpu)
-                &&
-                mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-            ensures self: Armv7m { new_cpu: 
-                sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
-                && get_gpr(r0(), new_cpu) == bv32(10) 
-            }
-    )]
-    pub fn exception_preserve(&mut self) {
-        // self.nonsense_entry();
-        // self.nonsense_exit();
-        self.movw_imm(GPR::R0, BV32::from(10));
-        self.exception_entry(11);
-        // self.assume();
-        // let ret_value = self.run_isr(exception_num);
-        // go to a process
-        self.exception_exit(BV32::from(0xFFFF_FFFD));
-        
-        // Run a process - havocs everything except for the main reg
-        self.havoc();
-
-        // // go to the kernel via sys call
-        // self.assume();
-        self.exception_entry(11);
-        // self.assume();
-        // // let ret_value = self.run_isr(exception_num);
-        self.exception_exit(BV32::from(0xFFFF_FFF9));
-
-    }
-    
+    } 
 }

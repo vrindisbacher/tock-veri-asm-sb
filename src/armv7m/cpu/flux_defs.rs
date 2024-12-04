@@ -8,6 +8,57 @@ const U32_MAX: u32 = std::u32::MAX;
 
 flux_rs::defs! {
 
+    fn cpu_post_exception_entry(cpu: Armv7m, exception_num: int) -> Armv7m {
+        Armv7m {
+            mode: handler_mode(),
+            control: control_post_exception_entry(cpu),
+            psr: psr_post_exception_entry(cpu, exception_num),
+            lr: lr_post_exception_entry(cpu, cpu.control),
+            sp: sp_post_exception_entry(cpu), 
+            mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+            ..cpu
+        }
+    }
+
+    fn get_lr_direct(cpu: Armv7m) -> BV32 {
+        cpu.lr
+    }
+
+    fn get_sp_direct(cpu: Armv7m) -> SP {
+        cpu.sp
+    }
+
+    fn get_mem_direct(cpu: Armv7m) -> Memory {
+        cpu.mem
+    }
+
+    fn cpu_post_exception_exit(cpu: Armv7m, exception_num: int) -> Armv7m {
+        Armv7m {
+            mode: thread_mode(), 
+            control: Control { 
+                spsel: get_bx_from_exception_num(exception_num, get_lr_direct(cpu_post_exception_entry(cpu, exception_num))) != bv32(0xFFFF_FFF9), 
+                ..cpu.control 
+            },
+            general_regs: gprs_post_exception_exit(
+                get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))),
+                cpu_post_exception_entry(cpu, exception_num)
+            ),
+            lr: get_mem_addr(
+                get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))) + 0x14,
+                get_mem_direct(cpu_post_exception_entry(cpu, exception_num))
+            ),
+            psr: get_mem_addr(
+                get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))) + 0x1C,
+                get_mem_direct(cpu_post_exception_entry(cpu, exception_num))
+            ),
+            sp: sp_post_exception_exit(
+                sp_post_exception_entry(cpu), 
+                get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))
+            ),
+            ..cpu_post_exception_entry(cpu, exception_num)
+        }
+    }
+
     fn get_bx_from_exception_num(exception_num: int, lr: BV32) -> BV32 {
         if exception_num == 11 && lr == bv32(0xFFFF_FFF9) {
             bv32(0xFFFF_FFFD)
