@@ -6,7 +6,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
-            requires sp_can_handle_exception_entry(cpu)
+            // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
                     mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
@@ -19,7 +19,7 @@ impl Armv7m {
         // but maybe this is something to revisit
         let frame_size = BV32::from(0x20);
         let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
-        let frame_ptr = (frame_ptr - frame_size) & !BV32::from(3);
+        let frame_ptr = (frame_ptr - frame_size); // & !BV32::from(3);
         self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
         let frame_ptr = frame_ptr.into();
         // MemA[frameptr,4] = R[0];
@@ -89,18 +89,8 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mode: handler_mode(),
-                    control: control_post_exception_entry(cpu),
-                    psr: psr_post_exception_entry(cpu, exception_num),
-                    lr: lr_post_exception_entry(cpu, cpu.control),
-                    sp: sp_post_exception_entry(cpu), 
-                    mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
-                    ..cpu
-                }
-                && is_valid_ram_addr(int(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control)))
-            }
+            // requires sp_can_handle_exception_entry(cpu)
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_entry(cpu, exception_num) }
     )]
     fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
@@ -110,10 +100,10 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
-            requires 
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
-                &&
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
+            // requires 
+            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
+            //     &&
+            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
@@ -166,53 +156,21 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
-            ensures self: Armv7m { new_cpu: 
-                new_cpu == cpu 
-                && 
-                // is_valid_ram_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num))
-                // &&
-                is_valid_ram_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x20)
-            }
+        fn (&Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
     )]
-    fn run_isr(&mut self, exception_number: u8) -> BV32 {
-        if exception_number == 11 {
-            // self.svc_isr();
-            // TODO(VR): bx value has to be a postcondition of the isr
-            if self.lr == BV32::from(0xFFFF_FFFD) {
-                // if we come from a process we go to kernel
-                BV32::from(0xFFFF_FFF9)
-            } else {
-                // otherwise we should always come from a process
-                BV32::from(0xFFFF_FFFD)
-            }
-        } else if exception_number == 15 {
-            // self.sys_tick_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
-            BV32::from(0xFFFF_FFF9)
+    fn run_isr(&self, exception_number: u8) -> BV32 {
+        if exception_number == 11 && self.lr == BV32::from(0xFFFF_FFF9) {
+            BV32::from(0xFFFF_FFFD)
         } else {
-            // self.generic_isr();
-            // TODO(VR): Below bx value needs to be a postcondition of ISR
             BV32::from(0xFFFF_FFF9)
         }
     }
 
+    // #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m { new_cpu: 
-                new_cpu.mode == thread_mode()
-                &&
-                new_cpu.control == Control { 
-                    spsel: get_bx_from_exception_num(exception_num, cpu.lr) != bv32(0xFFFF_FFF9),
-                    ..cpu.control 
-                }
-                // general_regs: gprs_post_exception_exit(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num), cpu),
-                // lr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x14, cpu.mem),
-                // psr: get_mem_addr(get_sp_from_exception_num(cpu.sp, cpu.lr, exception_num) + 0x1C, cpu.mem),
-                // sp: sp_post_exception_exit(cpu.sp, get_bx_from_exception_num(exception_num, cpu.lr)),
-                // ..cpu
-            }
+            // requires sp_can_handle_exception_entry(cpu)
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
     )]
     pub fn preempt(
         &mut self,
@@ -224,5 +182,5 @@ impl Armv7m {
         let ret_value = self.run_isr(exception_number);
         // unstack
         self.exception_exit(ret_value);
-    }
+    } 
 }
