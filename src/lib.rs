@@ -137,16 +137,7 @@ mod arm_test {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
            requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
-           ensures self: Armv7m { new_cpu: 
-            // sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
-            // bv_add(sp_process(old_cpu.sp), bv32(0x20)) == sp_process(new_cpu.sp)
-            // &&
-            // bv_add(sp_main(new_cpu.sp), bv32(0x20)) == sp_main(old_cpu.sp)
-            sp_main(new_cpu.sp) == bv_sub(sp_main(old_cpu.sp), bv32(0x20))
-            &&
-            get_mem_addr(
-                int(bv_sub(sp_main(old_cpu.sp), bv32(0x20))), new_cpu.mem
-            ) == get_gpr(r0(), old_cpu)
+           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
             }
     )]
     fn full_circle(armv7m: &mut Armv7m) {
@@ -154,9 +145,9 @@ mod arm_test {
         armv7m.movs_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
-        // process(armv7m);
+        process(armv7m);
         // fake sys call
-        // armv7m.preempt(11);
+        armv7m.preempt(11);
         // end up back here
         // no more instructions for now
     }

@@ -9,8 +9,7 @@ impl Armv7m {
             // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
-                    mem: mem_post_exception_entry(int(get_sp(cpu.sp, cpu.mode, cpu.control)), cpu),
-                        //int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+                    mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
                     ..cpu 
                 }
             }
@@ -93,7 +92,7 @@ impl Armv7m {
             // requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_entry(cpu, exception_num) }
     )]
-    fn exception_entry(&mut self, exception_number: u8) {
+    pub fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
         self.exception_taken(exception_number);
     }
@@ -167,7 +166,6 @@ impl Armv7m {
         }
     }
 
-    // #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             // requires sp_can_handle_exception_entry(cpu)
@@ -184,31 +182,4 @@ impl Armv7m {
         // unstack
         self.exception_exit(ret_value);
     } 
-
-
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) 
-           requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
-           ensures self: Armv7m { new_cpu: 
-            // sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
-            // bv_add(sp_process(old_cpu.sp), bv32(0x20)) == sp_process(new_cpu.sp)
-            // &&
-            // bv_add(sp_main(new_cpu.sp), bv32(0x20)) == sp_main(old_cpu.sp)
-            get_mem_addr(
-                int(sp_main(old_cpu.sp)), new_cpu.mem
-            ) == get_gpr(r0(), old_cpu)
-            }
-    )]
-    fn full_circle(&mut self) {
-        // executes some kernel logic
-        self.movs_imm(GPR::r0(), BV32::from(10));
-        self.exception_entry(11);
-        // self.preempt(11);
-        // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
-        // process(armv7m);
-        // fake sys call
-        // armv7m.preempt(11);
-        // end up back here
-        // no more instructions for now
-    }
 }

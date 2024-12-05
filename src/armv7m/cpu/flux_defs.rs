@@ -122,44 +122,39 @@ flux_rs::defs! {
     }
 
     fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
-                                    update_mem(
-                                        sp,
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
                                         cpu.mem,
+                                        sp,
                                         get_gpr(r0(), cpu)
-                                    )
-        // map_set(
-        //     map_set(
-        //         map_set(
-        //             map_set(
-        //                 map_set(
-        //                     map_set(
-        //                         map_set(
-        //                             map_set(
-        //                                 cpu.mem,
-        //                                 sp,
-        //                                 get_gpr(r0(), cpu)
-        //                             ),
-        //                             sp + 0x4,
-        //                             get_gpr(r1(), cpu)
-        //                         ),
-        //                         sp + 0x8,
-        //                         get_gpr(r2(), cpu)
-        //                     ),
-        //                     sp + 0xc,
-        //                     get_gpr(r3(), cpu)
-        //                 ),
-        //                 sp + 0x10,
-        //                 get_gpr(r12(), cpu)
-        //             ),
-        //             sp + 0x14,
-        //             get_special_reg(lr(), cpu)
-        //         ),
-        //         sp + 0x18,
-        //         bv32(0)
-        //     ),
-        //     sp + 0x1c,
-        //     get_special_reg(psr(), cpu)
-        // )
+                                    ),
+                                    sp + 0x4,
+                                    get_gpr(r1(), cpu)
+                                ),
+                                sp + 0x8,
+                                get_gpr(r2(), cpu)
+                            ),
+                            sp + 0xc,
+                            get_gpr(r3(), cpu)
+                        ),
+                        sp + 0x10,
+                        get_gpr(r12(), cpu)
+                    ),
+                    sp + 0x14,
+                    get_special_reg(lr(), cpu)
+                ),
+                sp + 0x18,
+                bv32(0)
+            ),
+            sp + 0x1c,
+            get_special_reg(psr(), cpu)
+        )
     }
 
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
