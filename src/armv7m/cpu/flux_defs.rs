@@ -210,6 +210,28 @@ flux_rs::defs! {
         )
     }
 
+    fn sp_can_handle_exception_exit(cpu: Armv7m, exception_num: int) -> bool {
+        is_valid_ram_addr(
+            get_sp_from_isr_ret(
+                sp_post_exception_entry(cpu),
+                get_bx_from_exception_num(
+                    exception_num,
+                    lr_post_exception_entry(cpu, cpu.control)
+                )
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            get_sp_from_isr_ret(
+                sp_post_exception_entry(cpu),
+                get_bx_from_exception_num(
+                    exception_num,
+                    lr_post_exception_entry(cpu, cpu.control)
+                )
+            ) + 0x20
+        )
+    }
+
     fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
         mode == 1 && !control.spsel
     }

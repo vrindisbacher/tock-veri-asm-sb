@@ -6,7 +6,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
-            // requires sp_can_handle_exception_entry(cpu)
+            requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
                     mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
@@ -89,10 +89,10 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            // requires sp_can_handle_exception_entry(cpu)
+            requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_entry(cpu, exception_num) }
     )]
-    pub fn exception_entry(&mut self, exception_number: u8) {
+    fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
         self.exception_taken(exception_number);
     }
@@ -100,10 +100,10 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
-            // requires 
-            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
-            //     &&
-            //     is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
+            requires 
+                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
+                &&
+                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
@@ -120,11 +120,15 @@ impl Armv7m {
         let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
             self.control.spsel = false;
             self.mode = CPUMode::Thread;
-            self.sp.sp_main.into()
+            let fp = self.sp.sp_main.into();
+            self.sp.sp_main = self.sp.sp_main + BV32::from(0x20);
+            fp
         } else {
             self.control.spsel = true;
             self.mode = CPUMode::Thread;
-            self.sp.sp_process.into()
+            let fp = self.sp.sp_process.into();
+            self.sp.sp_process = self.sp.sp_process + BV32::from(0x20);
+            fp
         };
         // R[0] = MemA[frameptr,4];
         // R[1] = MemA[frameptr+0x4,4];
@@ -148,11 +152,6 @@ impl Armv7m {
         self.update_special_reg_with_b32(SpecialRegister::lr(), lr);
         let psr = self.mem.read(frame_ptr + 0x1C);
         self.update_special_reg_with_b32(SpecialRegister::psr(), psr);
-        if return_exec == BV32::from(0xFFFF_FFF9) {
-            self.sp.sp_main = self.sp.sp_main + BV32::from(0x20);
-        } else {
-            self.sp.sp_process = self.sp.sp_process + BV32::from(0x20);
-        };
     }
 
     #[flux_rs::sig(
@@ -168,7 +167,12 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            // requires sp_can_handle_exception_entry(cpu)
+            requires 
+                // Stack Pointer is valid and can grow downwards 20 bytes
+                sp_can_handle_exception_entry(cpu)
+                &&
+                // and Stack Pointer used on exit is valid and can grow upwards 20 bytes
+                sp_can_handle_exception_exit(cpu, exception_num)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
     )]
     pub fn preempt(
