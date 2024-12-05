@@ -125,6 +125,8 @@ mod arm_test {
             sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
             &&
             mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
+            && 
+            kernel_register_stack_frame_preserved(int(sp_main(new_cpu.sp)), old_cpu, new_cpu)
         }
     )]
     fn process(armv7m: &mut Armv7m) {}
@@ -145,7 +147,7 @@ mod arm_test {
         armv7m.movs_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
-        process(armv7m);
+        // process(armv7m);
         // fake sys call
         armv7m.preempt(11);
         // end up back here

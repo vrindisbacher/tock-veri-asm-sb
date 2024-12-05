@@ -121,6 +121,16 @@ flux_rs::defs! {
         )
     }
 
+    fn kernel_register_stack_frame_preserved(sp: int, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
+        map_get(
+            old_cpu.mem,
+            sp
+        ) == map_get(
+            new_cpu.mem,
+            sp
+        )
+    }
+
     fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
         map_set(
             map_set(
