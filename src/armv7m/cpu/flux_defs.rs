@@ -129,11 +129,67 @@ flux_rs::defs! {
             new_cpu.mem,
             sp
         )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x4
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x4
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x8
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x8
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0xc
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0xc
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x10
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x10
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x14
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x14
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x18
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x18
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x1c
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x1c
+        )
     }
 
     fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
         map_set(
-        //     map_set(
+            map_set(
                 map_set(
                     map_set(
                         map_set(
@@ -159,9 +215,9 @@ flux_rs::defs! {
                     sp + 0x14,
                     get_special_reg(lr(), cpu)
                 ),
-        //         sp + 0x18,
-        //         bv32(0)
-        //     ),
+                sp + 0x18,
+                bv32(0)
+            ),
             sp + 0x1c,
             get_special_reg(psr(), cpu)
         )

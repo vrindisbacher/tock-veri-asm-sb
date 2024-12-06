@@ -126,7 +126,11 @@ mod arm_test {
             &&
             mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
             && 
+            sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
+            &&
             kernel_register_stack_frame_preserved(int(sp_main(new_cpu.sp)), old_cpu, new_cpu)
+            &&
+            sp_can_handle_exception_entry(new_cpu)
         }
     )]
     fn process(armv7m: &mut Armv7m) {}
@@ -150,10 +154,13 @@ mod arm_test {
                //
                (
                    // sp main needs a buffer of 0x20 bytes on sp_process to grow downwards
-                   sp_main(old_cpu.sp) > bv_add(sp_process(old_cpu.sp), bv32(0x20))
-                   ||
+                   sp_main(old_cpu.sp) == bv32(0x6000_0020)
+                   &&
+                   sp_process(old_cpu.sp) == bv32(0x8FFF_FFFF)
+                   // sp_main(old_cpu.sp) > bv_add(sp_process(old_cpu.sp), bv32(0x20))
+                   // ||
                    // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
-                   sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
+                   // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
                )
                && sp_can_handle_exception_exit(old_cpu, 11)
            ensures self: Armv7m { new_cpu:
@@ -164,10 +171,8 @@ mod arm_test {
         // executes some kernel logic
         armv7m.movs_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
-        // armv7m.exception_entry(11);
-        // armv7m.exception_exit(ret);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
-        // process(armv7m);
+        process(armv7m);
         // fake sys call
         armv7m.preempt(11);
         // end up back here
