@@ -133,7 +133,7 @@ flux_rs::defs! {
 
     fn mem_post_exception_entry(sp: int, cpu: Armv7m) -> Map<int, BV32> {
         map_set(
-            map_set(
+        //     map_set(
                 map_set(
                     map_set(
                         map_set(
@@ -159,9 +159,9 @@ flux_rs::defs! {
                     sp + 0x14,
                     get_special_reg(lr(), cpu)
                 ),
-                sp + 0x18,
-                bv32(0)
-            ),
+        //         sp + 0x18,
+        //         bv32(0)
+        //     ),
             sp + 0x1c,
             get_special_reg(psr(), cpu)
         )
