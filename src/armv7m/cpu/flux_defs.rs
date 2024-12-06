@@ -14,7 +14,7 @@ flux_rs::defs! {
             control: control_post_exception_entry(cpu),
             psr: psr_post_exception_entry(cpu, exception_num),
             lr: lr_post_exception_entry(cpu, cpu.control),
-            sp: sp_post_exception_entry(cpu), 
+            sp: sp_post_exception_entry(cpu),
             mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
             ..cpu
         }
@@ -34,10 +34,10 @@ flux_rs::defs! {
 
     fn cpu_post_exception_exit(cpu: Armv7m, exception_num: int) -> Armv7m {
         Armv7m {
-            mode: thread_mode(), 
-            control: Control { 
-                spsel: get_bx_from_exception_num(exception_num, get_lr_direct(cpu_post_exception_entry(cpu, exception_num))) != bv32(0xFFFF_FFF9), 
-                ..cpu.control 
+            mode: thread_mode(),
+            control: Control {
+                spsel: get_bx_from_exception_num(exception_num, get_lr_direct(cpu_post_exception_entry(cpu, exception_num))) != bv32(0xFFFF_FFF9),
+                ..cpu.control
             },
             general_regs: gprs_post_exception_exit(
                 get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))),
@@ -52,7 +52,7 @@ flux_rs::defs! {
                 get_mem_direct(cpu_post_exception_entry(cpu, exception_num))
             ),
             sp: sp_post_exception_exit(
-                sp_post_exception_entry(cpu), 
+                sp_post_exception_entry(cpu),
                 get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))
             ),
             ..cpu_post_exception_entry(cpu, exception_num)
@@ -118,6 +118,72 @@ flux_rs::defs! {
             ),
             r12(),
             get_mem_addr(sp + 0x10, cpu.mem)
+        )
+    }
+
+    fn kernel_register_stack_frame_preserved(sp: int, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
+        map_get(
+            old_cpu.mem,
+            sp
+        ) == map_get(
+            new_cpu.mem,
+            sp
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x4
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x4
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x8
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x8
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0xc
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0xc
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x10
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x10
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x14
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x14
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x18
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x18
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            sp + 0x1c
+        ) == map_get(
+            new_cpu.mem,
+            sp + 0x1c
         )
     }
 
@@ -197,6 +263,28 @@ flux_rs::defs! {
             int(
                 get_sp(cpu.sp, cpu.mode, cpu.control)
             )
+        )
+    }
+
+    fn sp_can_handle_exception_exit(cpu: Armv7m, exception_num: int) -> bool {
+        is_valid_ram_addr(
+            get_sp_from_isr_ret(
+                sp_post_exception_entry(cpu),
+                get_bx_from_exception_num(
+                    exception_num,
+                    lr_post_exception_entry(cpu, cpu.control)
+                )
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            get_sp_from_isr_ret(
+                sp_post_exception_entry(cpu),
+                get_bx_from_exception_num(
+                    exception_num,
+                    lr_post_exception_entry(cpu, cpu.control)
+                )
+            ) + 0x20
         )
     }
 
