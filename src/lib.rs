@@ -16,15 +16,6 @@ mod flux_support;
 //   e:   f380 8809       msr     PSP, r0
 //  12:   e891 0ff0       ldmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
 //  16:   dfff            svc     255     @ 0xff
-//
-// Part 2:
-//  18:   e881 0ff0       stmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
-//  1c:   f3ef 8009       mrs     r0, PSP
-//  20:   4616            mov     r6, r2
-//  22:   461f            mov     r7, r3
-//  24:   46e1            mov     r9, ip
-//  26:   e8bd 0d00       ldmia.w sp!, {r8, sl, fp}
-//  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // push onto stack
     armv7m.push_gpr(GPR::r4());
@@ -59,6 +50,86 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     armv7m.svc(0xff);
 }
 
+// Part 2:
+//  18:   e881 0ff0       stmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
+//  1c:   f3ef 8009       mrs     r0, PSP
+//  20:   4616            mov     r6, r2
+//  22:   461f            mov     r7, r3
+//  24:   46e1            mov     r9, ip
+//  26:   e8bd 0d00       ldmia.w sp!, {r8, sl, fp}
+//  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
+pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
+    // armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
+
+    armv7m.mrs(GPR::r0(), SpecialRegister::psp());
+    armv7m.mov(GPR::r6(), GPR::r2());
+    armv7m.mov(GPR::r7(), GPR::r3());
+    armv7m.mov(GPR::r9(), GPR::r12());
+    // armv7m.ldmia_w(…) // needs just two
+    // armv7m.pop_gpr(GPR::r4())
+    // armv7m.pop_gpr(GPR::r5())
+    // armv7m.pop_gpr(GPR::r6())
+    // armv7m.pop_gpr(GPR::r7())
+    // armv7m.pop_gpr(GPR::pc())
+}
+
+#[flux_rs::trusted]
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu]) 
+       // process MUST be running in mode thread unprivileged
+       requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
+       ensures self: Armv7m { new_cpu: 
+        sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
+        &&
+        mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
+        && 
+        sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
+        &&
+        kernel_register_stack_frame_preserved(int(sp_main(new_cpu.sp)), old_cpu, new_cpu)
+        &&
+        sp_can_handle_exception_entry(new_cpu)
+    }
+)]
+fn process(armv7m: &mut Armv7m) {}
+
+
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu]) 
+       requires 
+           mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
+           && 
+           sp_can_handle_exception_entry(old_cpu)
+           &&
+           // Here: 
+           //   1. sp main will grow downwards by 0x20
+           //   2. sp_process will grow upwards by 0x20 
+           //   3. sp_process will grow downwards by 0x20
+           //   4. sp_main will grow upwards by 0x20
+           //
+           (
+               // sp main needs a buffer of 0x20 bytes on sp_process to grow downwards
+               sp_main(old_cpu.sp) == bv32(0x6000_0020)
+               &&
+               sp_process(old_cpu.sp) == bv32(0x8FFF_FFFF)
+               // sp_main(old_cpu.sp) > bv_add(sp_process(old_cpu.sp), bv32(0x20))
+               // ||
+               // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
+               // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
+           )
+           && sp_can_handle_exception_exit(old_cpu, 11)
+       ensures self: Armv7m 
+)]
+pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
+    // context switch asm
+    switch_to_user_part1(armv7m);
+    // run a process
+    process(armv7m);
+    // preempt the process with an arbitrary exception number
+    armv7m.preempt(exception_num);
+    // run the rest of the context switch asm
+    switch_to_user_part2(armv7m);
+}
+
 mod arm_test {
     use crate::{
         armv7m::{
@@ -68,8 +139,6 @@ mod arm_test {
         },
         flux_support::bv32::BV32,
     };
-
-    // process havocs everything except for the fact the sp can take an update
 
     flux_rs::defs! {
         fn sp_main(sp: SP) -> BV32 {
@@ -99,10 +168,6 @@ mod arm_test {
         }
     )]
     fn process(armv7m: &mut Armv7m) {}
-
-    #[flux_rs::trusted]
-    #[flux_rs::sig(fn (self: &strg Armv7m[@cpu]) ensures self: Armv7m { new_cpu: sp_can_handle_exception_entry(new_cpu) })]
-    fn prepare_for_exception(armv7m: &mut Armv7m)  {}
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
@@ -140,21 +205,6 @@ mod arm_test {
         process(armv7m);
         // fake sys call
         armv7m.preempt(11);
-        // end up back here
-        // no more instructions for now
-    }
-
-    #[flux_rs::trusted] 
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) 
-           requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control) && sp_can_handle_exception_entry(old_cpu)
-           ensures self: Armv7m { new_cpu: sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) }
-    )]
-    fn kernel_preempt(armv7m: &mut Armv7m) {
-        // executes some kernel logic
-        armv7m.movs_imm(GPR::r0(), BV32::from(10));
-        // interrupt that sends us back to kernel
-        armv7m.preempt(20);
         // end up back here
         // no more instructions for now
     }
