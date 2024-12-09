@@ -140,7 +140,7 @@ mod arm_test {
     fn prepare_for_exception(armv7m: &mut Armv7m)  {}
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) 
+        fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
            requires 
                mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
                && 
@@ -162,19 +162,19 @@ mod arm_test {
                    // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
                    // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
                )
-               && sp_can_handle_exception_exit(old_cpu, 11)
+               && sp_can_handle_exception_exit(old_cpu, exception_num)
            ensures self: Armv7m { new_cpu:
                sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
             }
     )]
-    fn full_circle(armv7m: &mut Armv7m) {
+    fn full_circle(armv7m: &mut Armv7m, exception_number: u8) {
         // executes some kernel logic
         armv7m.movs_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
         process(armv7m);
         // fake sys call
-        armv7m.preempt(11);
+        armv7m.preempt(exception_number);
         // end up back here
         // no more instructions for now
     }
