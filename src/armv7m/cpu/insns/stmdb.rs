@@ -7,6 +7,7 @@ use crate::{
 };
 
 impl Armv7m {
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@rd], GPR[@rm]) 
             requires is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4)

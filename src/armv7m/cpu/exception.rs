@@ -165,6 +165,7 @@ impl Armv7m {
         }
     }
 
+    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires 
