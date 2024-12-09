@@ -94,7 +94,7 @@ fn process(armv7m: &mut Armv7m) {}
 
 
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu]) 
+    fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
        requires 
            mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
            && 
