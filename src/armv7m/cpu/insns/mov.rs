@@ -16,6 +16,17 @@ impl Armv7m {
     //       APSR.Z = IsZeroBit(result);
     //       APSR.C = carry;
     //       // APSR.V unchanged
+    //
+
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@rd], GPR[@rm]) 
+       ensures self: Armv7m { new_cpu: 
+           new_cpu == Armv7m { general_regs: set_gpr(rd, old_cpu, get_gpr(rm, old_cpu)), ..old_cpu }
+       }
+    )]
+    pub fn mov(&mut self, rd: GPR, rm: GPR) {
+        // No flag updates - just moves rm to rd
+        self.update_general_reg_with_b32(rd, self.get_value_from_general_reg(&rm));
+    }
 
     #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
         ensures self: Armv7m { new_cpu: 

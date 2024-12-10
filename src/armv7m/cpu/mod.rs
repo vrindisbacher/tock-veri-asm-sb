@@ -119,6 +119,9 @@ impl Armv7m {
     #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> BV32[get_special_reg(reg, cpu)])]
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         match register {
+            SpecialRegister::PSP => {
+                self.sp.sp_process
+            }
             SpecialRegister::Sp => {
                 // Thread mode: Main, else
                 // check spsel
@@ -170,6 +173,9 @@ impl Armv7m {
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         match register {
+            SpecialRegister::PSP => {
+                self.sp.sp_process = value;
+            }
             SpecialRegister::Sp => {
                 if self.mode_is_handler() || !self.control.spsel {
                     // updates sp_main

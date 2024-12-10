@@ -223,6 +223,122 @@ flux_rs::defs! {
         )
     }
 
+    fn gprs_post_ldmia_w(
+        cpu: Armv7m,
+        rd: int,
+        rm1: int,
+        rm2: int,
+        rm3: int,
+        rm4: int,
+        rm5: int,
+        rm6: int,
+        rm7: int,
+        rm8: int
+    ) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.general_regs,
+                                        rm1,
+                                        get_mem_addr(int(get_gpr(rd, cpu)), cpu.mem)
+                                    ),
+                                    rm2,
+                                    get_mem_addr(int(get_gpr(rd, cpu)) + 0x4, cpu.mem)
+                                ),
+                                rm3,
+                                get_mem_addr(int(get_gpr(rd, cpu)) + 0x8, cpu.mem)
+                            ),
+                            rm4,
+                            get_mem_addr(int(get_gpr(rd, cpu)) + 0xc, cpu.mem)
+                        ),
+                        rm5,
+                        get_mem_addr(int(get_gpr(rd, cpu)) + 0x10, cpu.mem)
+                    ),
+                    rm6,
+                    get_mem_addr(int(get_gpr(rd, cpu)) + 0x14, cpu.mem)
+                ),
+                rm7,
+                get_mem_addr(int(get_gpr(rd, cpu)) + 0x18, cpu.mem)
+            ),
+            rm8,
+            get_mem_addr(int(get_gpr(rd, cpu)) + 0x1c, cpu.mem)
+        )
+    }
+
+    fn gprs_post_ldmia_w_special(
+        cpu: Armv7m,
+        rd: int,
+        rm1: int,
+        rm2: int,
+        rm3: int,
+    ) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    cpu.general_regs,
+                    rm1,
+                    get_mem_addr(int(get_special_reg(rd, cpu)), cpu.mem)
+                ),
+                rm2,
+                get_mem_addr(int(get_special_reg(rd, cpu)) + 0x4, cpu.mem)
+            ),
+            rm3,
+            get_mem_addr(int(get_special_reg(rd, cpu)) + 0x8, cpu.mem)
+        )
+    }
+
+    fn mem_post_stmia_w(
+        cpu: Armv7m,
+        rd: int,
+        rm1: int,
+        rm2: int,
+        rm3: int,
+        rm4: int,
+        rm5: int,
+        rm6: int,
+        rm7: int,
+        rm8: int
+    ) -> Map<int, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        int(get_gpr(rd, cpu)),
+                                        get_gpr(rm1, cpu),
+                                    ),
+                                    int(get_gpr(rd, cpu)) - 0x4,
+                                    get_gpr(rm2, cpu)
+                                ),
+                                int(get_gpr(rd, cpu)) - 0x8,
+                                get_gpr(rm3, cpu)
+                            ),
+                            int(get_gpr(rd, cpu)) - 0xc,
+                            get_gpr(rm4, cpu)
+                        ),
+                        int(get_gpr(rd, cpu)) - 0x10,
+                        get_gpr(rm5, cpu)
+                    ),
+                    int(get_gpr(rd, cpu)) - 0x14,
+                    get_gpr(rm6, cpu)
+                ),
+                int(get_gpr(rd, cpu)) - 0x18,
+                get_gpr(rm7, cpu)
+            ),
+            int(get_gpr(rd, cpu)) - 0x1c,
+            get_gpr(rm8, cpu)
+        )
+    }
+
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
         if mode_is_handler(cpu.mode) {
             bv32(0xFFFF_FFF1)
@@ -344,8 +460,14 @@ flux_rs::defs! {
         }
     }
 
+    fn get_psp(sp: SP) -> BV32 {
+        sp.sp_process
+    }
+
     fn get_special_reg(reg: int, cpu: Armv7m) -> BV32 {
-        if is_sp(reg) {
+        if is_psp(reg) {
+            get_psp(cpu.sp)
+        } else if is_sp(reg) {
             get_sp(cpu.sp, cpu.mode, cpu.control)
         } else if is_lr(reg) {
             cpu.lr
@@ -376,8 +498,14 @@ flux_rs::defs! {
         }
     }
 
+    fn set_psp(sp: SP, val: BV32) -> SP {
+        SP { sp_process: val, ..sp }
+    }
+
     fn set_spr(reg: int, cpu: Armv7m, val: BV32) -> Armv7m {
-        if is_sp(reg) {
+        if is_psp(reg) {
+            Armv7m { sp: set_psp(cpu.sp, val), ..cpu }
+        } else if is_sp(reg) {
             Armv7m { sp: set_sp(cpu.sp, cpu.mode, cpu.control, val), ..cpu }
         } else if is_lr(reg) {
             Armv7m { lr: val, ..cpu }
@@ -387,6 +515,83 @@ flux_rs::defs! {
             Armv7m { control: set_control(cpu.control, cpu.mode, val), ..cpu }
         } else if is_psr(reg) {
             Armv7m { psr: val, ..cpu }
+        } else {
+            cpu
+        }
+    }
+
+    fn cpu_post_pop_spr(cpu: Armv7m, rd: int) -> Armv7m {
+        if is_psp(rd) {
+            Armv7m {
+                sp: set_psp(cpu.sp, bv_add(get_special_reg(rd, cpu), bv32(0x4))),
+                ..cpu
+            }
+        } else if is_sp(rd) {
+            Armv7m {
+                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_special_reg(rd, cpu), bv32(0x4))),
+                ..cpu
+            }
+        } else if is_lr(rd) {
+            Armv7m {
+                lr: get_mem_addr(int(get_sp(cpu.sp, cpu.mode, cpu.control)), cpu.mem),
+                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv32(int(get_sp(cpu.sp, cpu.mode, cpu.control)) + 0x4)),
+                ..cpu
+            }
+        } else if is_pc(rd) {
+            Armv7m {
+                pc: get_mem_addr(int(get_sp(cpu.sp, cpu.mode, cpu.control)), cpu.mem),
+                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv32(int(get_sp(cpu.sp, cpu.mode, cpu.control)) + 0x4)),
+                ..cpu
+            }
+        } else if is_psr(rd) {
+            Armv7m {
+                psr: get_mem_addr(int(get_sp(cpu.sp, cpu.mode, cpu.control)), cpu.mem),
+                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv32(int(get_sp(cpu.sp, cpu.mode, cpu.control)) + 0x4)),
+                ..cpu
+            }
+        } else {
+            cpu
+        }
+    }
+
+
+    fn cpu_post_stmdb_no_wback(cpu: Armv7m, rd: int, rm: int) -> Armv7m {
+        if is_psp(rd) {
+            Armv7m {
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                sp: set_psp(cpu.sp, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
+                ..cpu
+            }
+        } else if is_sp(rd) {
+            Armv7m {
+                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                ..cpu
+            }
+        } else if is_lr(rd) {
+            Armv7m {
+                lr: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                ..cpu
+            }
+        } else if is_pc(rd) {
+            Armv7m {
+                pc: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                ..cpu
+            }
+        } else if is_control(rd) {
+            Armv7m {
+                control: set_control(cpu.control, cpu.mode, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                ..cpu
+            }
+        } else if is_psr(rd) {
+            Armv7m {
+                psr: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
+                mem: update_mem(int(get_special_reg(rd, cpu)) - 0x4, cpu.mem, get_gpr(rd, cpu)),
+                ..cpu
+            }
         } else {
             cpu
         }
@@ -430,6 +635,10 @@ flux_rs::defs! {
         reg == 13
     }
 
+    fn is_psp(reg: int) -> bool {
+        reg == 19
+    }
+
     fn r0() -> int {
         0
     }
@@ -448,6 +657,34 @@ flux_rs::defs! {
 
     fn r4() -> int {
         4
+    }
+
+    fn r5() -> int {
+        5
+    }
+
+    fn r6() -> int {
+        6
+    }
+
+    fn r7() -> int {
+        7
+    }
+
+    fn r8() -> int {
+        8
+    }
+
+    fn r9() -> int {
+        9
+    }
+
+    fn r10() -> int {
+        10
+    }
+
+    fn r11() -> int {
+        11
     }
 
     fn r12() -> int {
@@ -476,6 +713,10 @@ flux_rs::defs! {
 
     fn ipsr() -> int {
         18
+    }
+
+    fn psp() -> int {
+        19
     }
 
     fn nth_bit_is_set(val: BV32, n: BV32) -> bool {
