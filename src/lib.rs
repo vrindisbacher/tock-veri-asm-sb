@@ -16,6 +16,7 @@ mod flux_support;
 //   e:   f380 8809       msr     PSP, r0
 //  12:   e891 0ff0       ldmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
 //  16:   dfff            svc     255     @ 0xff
+#[flux_rs::trusted]
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // push onto stack
     armv7m.push_gpr(GPR::r4());
@@ -58,19 +59,20 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
 //  24:   46e1            mov     r9, ip
 //  26:   e8bd 0d00       ldmia.w sp!, {r8, sl, fp}
 //  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
+#[flux_rs::trusted]
 pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
-    // armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
+    armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
 
     armv7m.mrs(GPR::r0(), SpecialRegister::psp());
     armv7m.mov(GPR::r6(), GPR::r2());
     armv7m.mov(GPR::r7(), GPR::r3());
     armv7m.mov(GPR::r9(), GPR::r12());
-    // armv7m.ldmia_w(…) // needs just two
-    // armv7m.pop_gpr(GPR::r4())
-    // armv7m.pop_gpr(GPR::r5())
-    // armv7m.pop_gpr(GPR::r6())
-    // armv7m.pop_gpr(GPR::r7())
-    // armv7m.pop_gpr(GPR::pc())
+    armv7m.ldmia_w_special(SpecialRegister::Sp, GPR::r8(), GPR::r10(), GPR::r11()); 
+    armv7m.pop_gpr(GPR::r4());
+    armv7m.pop_gpr(GPR::r5());
+    armv7m.pop_gpr(GPR::r6());
+    armv7m.pop_gpr(GPR::r7());
+    armv7m.pop_spr(SpecialRegister::pc())
 }
 
 #[flux_rs::trusted]

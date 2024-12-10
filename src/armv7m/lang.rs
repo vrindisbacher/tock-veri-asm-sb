@@ -136,6 +136,12 @@ impl SpecialRegister {
     pub fn psr() -> Self {
         Self::PSR
     }
+
+    #[flux_rs::sig(fn () -> SpecialRegister[pc()])]
+    pub fn pc() -> Self {
+        Self::Pc
+    }
+
 }
 
 #[derive(Debug)]
