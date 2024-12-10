@@ -339,6 +339,22 @@ flux_rs::defs! {
         )
     }
 
+    fn gprs_post_switch_to_user_pt1(cpu: Armv7m) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    cpu.general_regs,
+                    r2(),
+                    get_gpr(r6(), cpu)
+                ),
+                r3(),
+                get_gpr(r7(), cpu)
+            ),
+            r12(),
+            get_gpr(r9(), cpu)
+        )
+    }
+
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
         if mode_is_handler(cpu.mode) {
             bv32(0xFFFF_FFF1)
