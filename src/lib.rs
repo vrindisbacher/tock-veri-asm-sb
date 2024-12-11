@@ -34,14 +34,16 @@ mod flux_support;
 )]
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // push onto stack
-    armv7m.push_gpr(GPR::r4());
-    armv7m.push_gpr(GPR::r5());
-    armv7m.push_gpr(GPR::r6());
-    armv7m.push_gpr(GPR::r7());
-    armv7m.push_spr(SpecialRegister::lr());
+    armv7m.push_gpr(GPR::r4());  // sp - 0x4
+    armv7m.push_gpr(GPR::r5());  // sp - 0x8
+    armv7m.push_gpr(GPR::r6());  // sp - 0xc
+    armv7m.push_gpr(GPR::r7());  // sp - 0x10
+    // NOTE: This is because lr holds the value of the next instruction to
+    // execute once switch_to_user returns
+    armv7m.push_spr(SpecialRegister::lr()); // sp - 0x14
 
     // add imm - WTF is this even doing here
-    // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12));
+    // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12)); // sp - 0x18 + 0xc
 
     // some stmdb stuff
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8());
@@ -49,10 +51,9 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10());
     // fp - r11
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
-    // 
     // mov
-    armv7m.mov(GPR::r2(), GPR::r6());
-    armv7m.mov(GPR::r3(), GPR::r7());
+    armv7m.mov(GPR::r2(), GPR::r6()); // not sure about this - already saved?  
+    armv7m.mov(GPR::r3(), GPR::r7()); // // not sure about this - already saved?  
     // note ip is intraprocedure scratch register - r12
     armv7m.mov(GPR::r12(), GPR::r9());
 
@@ -100,14 +101,17 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
 pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
     armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
     armv7m.mrs(GPR::r0(), SpecialRegister::psp());
-    armv7m.mov(GPR::r6(), GPR::r2());
-    armv7m.mov(GPR::r7(), GPR::r3());
+    armv7m.mov(GPR::r6(), GPR::r2()); // this is seemingly useless?
+    armv7m.mov(GPR::r7(), GPR::r3()); // this is also useless?
     armv7m.mov(GPR::r9(), GPR::r12());
     armv7m.ldmia_w_special(SpecialRegister::Sp, GPR::r8(), GPR::r10(), GPR::r11()); 
     armv7m.pop_gpr(GPR::r4());
     armv7m.pop_gpr(GPR::r5());
     armv7m.pop_gpr(GPR::r6());
     armv7m.pop_gpr(GPR::r7());
+    // NOTE: This is because we previously pushed lr (which contains the return address
+    // for the next instruction after switch_to_user finishes)
+    // and we want to branch to it
     armv7m.pop_spr(SpecialRegister::pc())
 }
 
