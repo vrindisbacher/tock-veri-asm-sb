@@ -409,6 +409,46 @@ flux_rs::defs! {
         )
     }
 
+    fn cpu_post_switch_to_user_pt2(cpu: Armv7m) -> Armv7m {
+        cpu
+    }
+
+    fn mem_post_switch_to_user_pt2(cpu: Armv7m) -> Map<int, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        int(get_gpr(r1(), cpu)) - 0x4,
+                                        get_gpr(r4(), cpu)
+                                    ),
+                                    int(get_gpr(r1(), cpu)) - 0x8,
+                                    get_gpr(r5(), cpu)
+                                ),
+                                int(get_gpr(r1(), cpu)) - 0xc,
+                                get_gpr(r6(), cpu)
+                            ),
+                            int(get_gpr(r1(), cpu)) - 0x10,
+                            get_gpr(r7(), cpu)
+                        ),
+                        int(get_gpr(r1(), cpu)) - 0x14,
+                        get_gpr(r8(), cpu),
+                    ),
+                    int(get_gpr(r1(), cpu)) - 0x18,
+                    get_gpr(r9(), cpu),
+                ),
+                int(get_gpr(r1(), cpu)) - 0x1c,
+                get_gpr(r10(), cpu),
+            ),
+            int(get_gpr(r1(), cpu)) - 0x20,
+            get_gpr(r11(), cpu),
+        )
+    }
+
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {
         if mode_is_handler(cpu.mode) {
             bv32(0xFFFF_FFF1)

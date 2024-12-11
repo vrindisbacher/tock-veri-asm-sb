@@ -82,8 +82,16 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
             is_valid_ram_addr(int(get_gpr(r1(), old_cpu))) 
             && 
             is_valid_ram_addr(int(get_gpr(r1(), old_cpu)) - 0x20)
-        ensures self: Armv7m {
-
+        ensures self: Armv7m { new_cpu: 
+            new_cpu.mem == mem_post_switch_to_user_pt2(old_cpu)
+            && 
+            get_gpr(r0(), new_cpu) == sp_process(old_cpu.sp)
+            &&
+            get_gpr(r6(), new_cpu) == get_gpr(r2(), old_cpu)
+            &&
+            get_gpr(r7(), new_cpu) == get_gpr(r3(), old_cpu)
+            &&
+            get_gpr(r9(), new_cpu) == get_gpr(r12(), old_cpu)
         }
         // { new_cpu: new_cpu == Armv7m { }
     // }
