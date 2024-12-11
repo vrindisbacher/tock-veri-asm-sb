@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}};
+use armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}, cpu::SP};
 use flux_support::bv32::BV32;
 
 pub mod armv7m;
@@ -20,39 +20,42 @@ mod flux_support;
     fn (self: &strg Armv7m[@old_cpu])
         // requires that r1 is a valid read addr and r0 is a valid write addr
         requires 
-            is_valid_read_addr(int(get_gpr(r1(), old_cpu))) 
-            && 
-            is_valid_read_addr(int(get_gpr(r1(), old_cpu)) + 0x100) 
-            && 
-            is_valid_write_addr(int(get_gpr(r0(), old_cpu)))
-            && 
-            is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)))
-            && 
-            is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x100)
+            mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+            &&
+            is_valid_ram_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)))
+            &&
+            is_valid_ram_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x24)
+            &&
+            is_valid_ram_addr(int(get_gpr(r1(), old_cpu)))
+            &&
+            is_valid_ram_addr(int(get_gpr(r1(), old_cpu)) + 0x1c)
         ensures self: Armv7m { new_cpu: 
-            new_cpu.general_regs == gprs_post_switch_to_user_pt1(old_cpu)
+            // new_cpu.general_regs == gprs_post_switch_to_user_pt1(old_cpu)
+            // &&
+            // sp_process(new_cpu.sp) == get_gpr(r0(), old_cpu)
+            // && 
+            new_cpu.mem == mem_post_switch_to_user_pt1(old_cpu)
             // mem: mem_post_switch_to_user_pt1()
         }
 )]
-// #[flux_rs::trusted]
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // push onto stack
     armv7m.push_gpr(GPR::r4());
     armv7m.push_gpr(GPR::r5());
-    armv7m.push_gpr(GPR::r6());
-    armv7m.push_gpr(GPR::r7());
-    armv7m.push_spr(SpecialRegister::lr());
+    // armv7m.push_gpr(GPR::r6());
+    // armv7m.push_gpr(GPR::r7());
+    // armv7m.push_spr(SpecialRegister::lr());
 
-    // add imm 
-    armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12));
+    // add imm - WTF is this even doing here
+    // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12));
 
     // some stmdb stuff
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8());
+    // armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8());
     // sl - r10
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10());
+    // armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10());
     // fp - r11
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
-    
+    // armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
+    // 
     // mov
     armv7m.mov(GPR::r2(), GPR::r6());
     armv7m.mov(GPR::r3(), GPR::r7());
@@ -77,14 +80,14 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
 //  24:   46e1            mov     r9, ip
 //  26:   e8bd 0d00       ldmia.w sp!, {r8, sl, fp}
 //  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
-#[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu])
-        // requires that r1 is a valid read addr and r0 is a valid write addr
-        requires is_valid_read_addr(int(get_gpr(r1(), old_cpu))) && is_valid_write_addr(int(get_gpr(r0(), old_cpu)))
-        ensures self: Armv7m 
-        // { new_cpu: new_cpu == Armv7m { }
-    // }
-)]
+// #[flux_rs::sig(
+//     fn (self: &strg Armv7m[@old_cpu])
+//         // requires that r1 is a valid read addr and r0 is a valid write addr
+//         requires is_valid_ram_addr(int(get_gpr(r1(), old_cpu))) && is_valid_ram_addr(int(get_gpr(r0(), old_cpu)))
+//         ensures self: Armv7m 
+//         // { new_cpu: new_cpu == Armv7m { }
+//     // }
+// )]
 #[flux_rs::trusted]
 pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
     armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 

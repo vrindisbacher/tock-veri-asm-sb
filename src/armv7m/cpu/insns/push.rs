@@ -15,8 +15,8 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu], GPR[@reg]) 
             requires is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)))
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mem: update_mem(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)), old_cpu.mem, get_gpr(reg, old_cpu)),
-                    sp: set_sp(old_cpu.sp, old_cpu.mode, old_cpu.control, bv_sub(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x4))),
+                    mem: update_mem(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4, old_cpu.mem, get_gpr(reg, old_cpu)),
+                    sp: set_sp(old_cpu.sp, old_cpu.mode, old_cpu.control, bv32(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4)),
                     ..old_cpu
                 }
             }
@@ -36,8 +36,8 @@ impl Armv7m {
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg]) 
             requires is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)))
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mem: update_mem(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)), old_cpu.mem, get_special_reg(reg, old_cpu)),
-                    sp: set_sp(old_cpu.sp, old_cpu.mode, old_cpu.control, bv_sub(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x4))),
+                    mem: update_mem(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4, old_cpu.mem, get_special_reg(reg, old_cpu)),
+                    sp: set_sp(old_cpu.sp, old_cpu.mode, old_cpu.control, bv32(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4)),
                     ..old_cpu
                 }
             }

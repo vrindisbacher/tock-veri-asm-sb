@@ -340,19 +340,61 @@ flux_rs::defs! {
     }
 
     fn gprs_post_switch_to_user_pt1(cpu: Armv7m) -> Map<GPR, BV32> {
-        map_set(
-            map_set(
-                map_set(
-                    cpu.general_regs,
-                    r2(),
-                    get_gpr(r6(), cpu)
+        gprs_post_ldmia_w(
+            Armv7m {
+                general_regs: map_set(
+                    map_set(
+                        map_set(
+                            cpu.general_regs,
+                            r2(),
+                            get_gpr(r6(), cpu)
+                        ),
+                        r3(),
+                        get_gpr(r7(), cpu)
+                    ),
+                    r12(),
+                    get_gpr(r9(), cpu)
                 ),
-                r3(),
-                get_gpr(r7(), cpu)
-            ),
-            r12(),
-            get_gpr(r9(), cpu)
+                ..cpu
+            },
+            r1(), r4(), r5(), r6(), r7(), r8(), r9(), r10(), r11()
         )
+    }
+
+    fn mem_post_switch_to_user_pt1(cpu: Armv7m) -> Map<int, BV32> {
+        // map_set(
+            // map_set(
+                // map_set(
+                    // map_set(
+                        // map_set(
+                        //     map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        int(sp_main(cpu.sp)) - 0x4,
+                                        get_gpr(r4(), cpu)
+                                    ),
+                                    int(sp_main(cpu.sp)) - 0x8,
+                                    get_gpr(r5(), cpu)
+                                )
+                        //         int(sp_main(cpu.sp)) - 0x1c,
+                        //         get_gpr(r6(), cpu)
+                        //     ),
+                        //     int(sp_main(cpu.sp)) - 0x10,
+                        //     get_gpr(r7(), cpu)
+                        // )
+                    //     int(sp_main(cpu.sp)) - 0x14,
+                    //     cpu.lr
+                    // )
+                //     int(sp_main(cpu.sp)) - 0x18,
+                //     get_gpr(r8(), cpu)
+                // )
+            //     int(sp_main(cpu.sp)) - 0x1c,
+            //     get_gpr(r10(), cpu),
+            // )
+            // int(sp_main(cpu.sp)) - 0x20,
+            // get_gpr(r11(), cpu),
+        // )
     }
 
     fn lr_post_exception_entry(cpu: Armv7m, control: Control) -> BV32 {

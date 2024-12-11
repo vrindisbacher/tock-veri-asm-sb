@@ -10,7 +10,7 @@ impl Armv7m {
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@rd], GPR[@rm]) 
-            requires is_valid_write_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x4)
+            requires is_valid_write_addr(int(get_special_reg(rd, old_cpu)) - 0x4)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_stmdb_no_wback(old_cpu, rd, rm) }
     )]
     pub fn stmdb_no_wback(&mut self, rd: SpecialRegister, rm: GPR) {

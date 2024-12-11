@@ -16,9 +16,9 @@ impl Armv7m {
             GPR[@rm8],
         ) 
         requires 
-            is_valid_read_addr(int(get_gpr(rd, old_cpu)))
+            is_valid_ram_addr(int(get_gpr(rd, old_cpu)))
             &&
-            is_valid_read_addr(int(get_gpr(rd, old_cpu)) + 0x34)
+            is_valid_ram_addr(int(get_gpr(rd, old_cpu)) + 0x1c)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w(old_cpu, rd, rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8),
                 ..old_cpu
@@ -74,9 +74,9 @@ impl Armv7m {
             GPR[@rm3],
         ) 
         requires 
-            is_valid_read_addr(int(get_special_reg(rd, old_cpu)))
+            is_valid_ram_addr(int(get_special_reg(rd, old_cpu)))
             &&
-            is_valid_read_addr(int(get_special_reg(rd, old_cpu)) + 0x8)
+            is_valid_ram_addr(int(get_special_reg(rd, old_cpu)) + 0x8)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w_special(old_cpu, rd, rm1, rm2, rm3),
                 ..old_cpu
