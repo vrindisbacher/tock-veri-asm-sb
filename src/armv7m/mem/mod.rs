@@ -78,7 +78,7 @@ use nvic::{is_valid_nvic_read_addr, is_valid_nvic_write_addr};
 use sys_control::{is_valid_sys_control_space_read_addr, is_valid_sys_control_space_write_addr};
 use sys_tick::{is_valid_sys_tick_read_addr, is_valid_sys_tick_write_addr};
 
-use crate::flux_support::{bv32::BV32, rmap::Regs};
+use crate::flux_support::{bv32::{bv32_gte, bv32_lte, BV32}, rmap::Regs};
 
 #[derive(Debug)]
 #[flux_rs::refined_by(
@@ -95,7 +95,7 @@ impl Memory {
             requires is_valid_read_addr(addr) 
     )]
     pub fn read(&self, address: BV32) -> BV32 {
-        if address >= PPB_START && address <= PPB_END {
+        if bv32_gte(address, PPB_START) && bv32_lte(address, PPB_END) {
             if !(is_valid_mpu_read_addr(address)
                 || is_valid_sys_tick_read_addr(address)
                 || is_valid_sys_control_space_read_addr(address)
@@ -104,7 +104,7 @@ impl Memory {
                 panic!("Read of Invalid PPB address")
             }
             *self.mem.get(&address).unwrap()
-        } else if address >= RAM_START && address <= RAM_END {
+        } else if bv32_gte(address, RAM_START) && bv32_lte(address, RAM_END) {
             *self.mem.get(&address).unwrap()
         } else {
             panic!("Read of unknown memory address (only ppb is defined)")
@@ -117,7 +117,7 @@ impl Memory {
             ensures self: Memory { new_mem: new_mem == update_mem(addr, old_mem, val) }
     )]
     pub fn write(&mut self, address: BV32, value: BV32) {
-        if address >= PPB_START && address <= PPB_END {
+        if bv32_gte(address, PPB_START) && bv32_lte(address, PPB_END) {
             if !(is_valid_mpu_write_addr(address)
                 || is_valid_sys_tick_write_addr(address)
                 || is_valid_sys_control_space_write_addr(address)
@@ -126,7 +126,7 @@ impl Memory {
                 panic!("Write to Invalid PPB address")
             }
             self.mem.set(address, value)
-        } else if address >= RAM_START && address <= RAM_END {
+        } else if bv32_gte(address, RAM_START) && bv32_lte(address, RAM_END) {
             self.mem.set(address, value)
         } else {
             panic!("Write to unknown memory address (only ppb & RAM are defined)")

@@ -147,4 +147,16 @@ impl PartialEq for BV32 {
     }
 }
 
+#[flux_rs::trusted]
+#[flux_rs::sig(fn (BV32[@val1], BV32[@val2]) -> bool[val1 <= val2])]
+pub fn bv32_lte(val1: BV32, val2: BV32) -> bool {
+    val1.0 <= val2.0
+}
+
+#[flux_rs::trusted]
+#[flux_rs::sig(fn (BV32[@val1], BV32[@val2]) -> bool[val1 >= val2])]
+pub fn bv32_gte(val1: BV32, val2: BV32) -> bool {
+    val1.0 >= val2.0
+}
+
 impl Eq for BV32 {}
