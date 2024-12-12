@@ -1,4 +1,4 @@
-use crate::armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}};
+use crate::{armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}}, flux_support::bv32::BV32};
 
 
 impl Armv7m {
@@ -16,9 +16,9 @@ impl Armv7m {
             GPR[@rm8],
         ) 
         requires 
-            is_valid_ram_addr(int(get_gpr(rd, old_cpu)))
+            is_valid_ram_addr(get_gpr(rd, old_cpu))
             &&
-            is_valid_ram_addr(int(get_gpr(rd, old_cpu)) + 0x1c)
+            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x1c)))
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w(old_cpu, rd, rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8),
                 ..old_cpu
@@ -38,28 +38,27 @@ impl Armv7m {
         rm7: GPR,
         rm8: GPR,
     ) {
-        let mut addr = self.get_value_from_general_reg(&rd).into();
-        let val = self.mem.read(addr);
+        let mut addr = self.get_value_from_general_reg(&rd); let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm1, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm2, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm3, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm4, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm5, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm6, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm7, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm8, val);
     }
@@ -74,9 +73,9 @@ impl Armv7m {
             GPR[@rm3],
         ) 
         requires 
-            is_valid_ram_addr(int(get_special_reg(rd, old_cpu)))
+            is_valid_ram_addr(get_special_reg(rd, old_cpu))
             &&
-            is_valid_ram_addr(int(get_special_reg(rd, old_cpu)) + 0x8)
+            is_valid_ram_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w_special(old_cpu, rd, rm1, rm2, rm3),
                 ..old_cpu
@@ -91,13 +90,13 @@ impl Armv7m {
         rm2: GPR,
         rm3: GPR,
     ) {
-        let mut addr = self.get_value_from_special_reg(&rd).into();
+        let mut addr = self.get_value_from_special_reg(&rd);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm1, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm2, val);
-        addr += 0x4;
+        addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm3, val);
     }

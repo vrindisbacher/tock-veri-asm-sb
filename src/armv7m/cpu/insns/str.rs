@@ -28,20 +28,16 @@ impl Armv7m {
         ) 
         requires 
             is_valid_write_addr(
-                to_int(
-                    bv_add(
-                        get_gpr(reg_base, old_cpu), 
-                        left_shift(get_gpr(reg_offset, old_cpu), shift)
-                    )
+                bv_add(
+                    get_gpr(reg_base, old_cpu), 
+                    left_shift(get_gpr(reg_offset, old_cpu), shift)
                 )
             )
         ensures self: Armv7m{ new_cpu: new_cpu == Armv7m { 
                 mem: update_mem(
-                        to_int(
-                            bv_add(
-                                get_gpr(reg_base, old_cpu),
-                                left_shift(get_gpr(reg_offset, old_cpu), shift)
-                            )
+                        bv_add(
+                            get_gpr(reg_base, old_cpu),
+                            left_shift(get_gpr(reg_offset, old_cpu), shift)
                         ),
                         old_cpu.mem,
                         get_gpr(reg_to_store, old_cpu)
@@ -67,7 +63,7 @@ impl Armv7m {
         //  (shift_t, shift_n) = (SRType_LSL, UInt(imm2));
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
         let offset = self.get_value_from_general_reg(&offset_reg) << shift;
-        let addr = (self.get_value_from_general_reg(&base_reg) + offset).into();
+        let addr = (self.get_value_from_general_reg(&base_reg) + offset);
         self.mem
             .write(addr, self.get_value_from_general_reg(&register_to_str))
     }

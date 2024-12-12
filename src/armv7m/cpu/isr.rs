@@ -5,7 +5,7 @@ use super::{Armv7m, Control};
 flux_rs::defs! {
 
     fn isr_bit_loc(old_cpu: Armv7m) -> BV32 {
-        bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) % 32)
+        bv32((int(get_special_reg(ipsr(), old_cpu)) - 16) % 32)
     }
 
     fn isr_r0(old_cpu: Armv7m) -> BV32 {
@@ -16,11 +16,11 @@ flux_rs::defs! {
     }
 
     fn isr_r2(old_cpu: Armv7m) -> BV32 {
-        bv32((to_int(get_special_reg(ipsr(), old_cpu)) - 16) / 32)
+        bv32((int(get_special_reg(ipsr(), old_cpu)) - 16) / 32)
     }
 
     fn isr_offset(old_cpu: Armv7m) -> int {
-        to_int(isr_r2(old_cpu)) * 4
+        int(isr_r2(old_cpu)) * 4
     }
 }
 
@@ -29,12 +29,12 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
-        requires to_int(get_special_reg(ipsr(), old_cpu)) >= 16 && mode_is_handler(old_cpu.mode)
+        requires int(get_special_reg(ipsr(), old_cpu)) >= 16 && mode_is_handler(old_cpu.mode)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 mem: update_mem(
-                     0xe000_e200 + isr_offset(old_cpu),
+                     bv32(0xe000_e200 + isr_offset(old_cpu)),
                      update_mem(
-                         0xe000_e180 + isr_offset(old_cpu),
+                         bv32(0xe000_e180 + isr_offset(old_cpu)),
                          old_cpu.mem,
                          isr_r0(old_cpu)
                     ),

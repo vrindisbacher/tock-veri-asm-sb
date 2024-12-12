@@ -23,13 +23,13 @@ mod flux_support;
         requires 
             mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             &&
-            is_valid_ram_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)))
+            is_valid_ram_addr(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control))
             &&
-            is_valid_ram_addr(int(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control)) - 0x24)
+            is_valid_ram_addr(bv_sub(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x24)))
             &&
-            is_valid_ram_addr(int(get_gpr(r1(), old_cpu)))
+            is_valid_ram_addr(get_gpr(r1(), old_cpu))
             &&
-            is_valid_ram_addr(int(get_gpr(r1(), old_cpu)) + 0x1c)
+            is_valid_ram_addr(bv_add(get_gpr(r1(), old_cpu), bv32(0x1c)))
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1(old_cpu) }
 )]
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
@@ -80,9 +80,9 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
         requires 
             mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             &&
-            is_valid_ram_addr(int(get_gpr(r1(), old_cpu))) 
+            is_valid_ram_addr(get_gpr(r1(), old_cpu))
             && 
-            is_valid_ram_addr(int(get_gpr(r1(), old_cpu)) - 0x20)
+            is_valid_ram_addr(bv_sub(get_gpr(r1(), old_cpu), bv32(0x20)))
         ensures self: Armv7m { new_cpu: 
             new_cpu.mem == mem_post_switch_to_user_pt2(old_cpu)
             && 
@@ -127,7 +127,7 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
         && 
         sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
         &&
-        kernel_register_stack_frame_preserved(int(sp_main(new_cpu.sp)), old_cpu, new_cpu)
+        kernel_register_stack_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
         &&
         sp_can_handle_exception_entry(new_cpu)
     }
@@ -182,16 +182,6 @@ mod arm_test {
         flux_support::bv32::BV32,
     };
 
-    flux_rs::defs! {
-        fn sp_main(sp: SP) -> BV32 {
-            sp.sp_main 
-        }
-
-        fn sp_process(sp: SP) -> BV32 {
-            sp.sp_process
-        }
-    }
-
     #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
@@ -204,7 +194,7 @@ mod arm_test {
             && 
             sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
             &&
-            kernel_register_stack_frame_preserved(int(sp_main(new_cpu.sp)), old_cpu, new_cpu)
+            kernel_register_stack_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
             &&
             sp_can_handle_exception_entry(new_cpu)
         }

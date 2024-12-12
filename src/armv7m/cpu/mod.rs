@@ -54,12 +54,12 @@ pub enum CPUMode {
 
 #[derive(Debug)]
 #[flux_rs::refined_by(sp_main: BV32, sp_process: BV32)]
-#[flux_rs::invariant(is_valid_ram_addr(int(sp_main)))]
-#[flux_rs::invariant(is_valid_ram_addr(int(sp_process)))]
+#[flux_rs::invariant(is_valid_ram_addr(sp_main))]
+#[flux_rs::invariant(is_valid_ram_addr(sp_process))]
 pub struct SP {
-    #[field({ BV32[sp_main] | is_valid_ram_addr(int(sp_main)) })]
+    #[field({ BV32[sp_main] | is_valid_ram_addr(sp_main) })]
     pub sp_main: BV32,
-    #[field({ BV32[sp_process] | is_valid_ram_addr(int(sp_process)) })]
+    #[field({ BV32[sp_process] | is_valid_ram_addr(sp_process) })]
     pub sp_process: BV32,
 }
 
@@ -168,7 +168,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
-            requires is_sp(reg) => is_valid_ram_addr(int(val))
+            requires is_sp(reg) => is_valid_ram_addr(val)
             ensures self: Armv7m { new_cpu: new_cpu == set_spr(reg, old_cpu, val) } 
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {

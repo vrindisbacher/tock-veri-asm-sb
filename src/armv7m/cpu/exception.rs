@@ -9,7 +9,7 @@ impl Armv7m {
             requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
                     sp: sp_post_exception_entry(cpu), 
-                    mem: mem_post_exception_entry(int(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)), cpu),
+                    mem: mem_post_exception_entry(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control), cpu),
                     ..cpu 
                 }
             }
@@ -21,7 +21,6 @@ impl Armv7m {
         let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
         let frame_ptr = (frame_ptr - frame_size); // & !BV32::from(3);
         self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
-        let frame_ptr = frame_ptr.into();
         // MemA[frameptr,4] = R[0];
         // MemA[frameptr+0x4,4] = R[1];
         // MemA[frameptr+0x8,4] = R[2];
@@ -33,20 +32,20 @@ impl Armv7m {
         let r0 = self.get_value_from_general_reg(&GPR::r0());
         self.mem.write(frame_ptr, r0);
         let r1 = self.get_value_from_general_reg(&GPR::r1());
-        self.mem.write(frame_ptr + 0x4, r1);
+        self.mem.write(frame_ptr + BV32::from(0x4), r1);
         let r2 = self.get_value_from_general_reg(&GPR::r2());
-        self.mem.write(frame_ptr + 0x8, r2);
+        self.mem.write(frame_ptr + BV32::from(0x8), r2);
         let r3 = self.get_value_from_general_reg(&GPR::r3());
-        self.mem.write(frame_ptr + 0xC, r3);
+        self.mem.write(frame_ptr + BV32::from(0xC), r3);
         let r12 = self.get_value_from_general_reg(&GPR::r12());
-        self.mem.write(frame_ptr + 0x10, r12);
+        self.mem.write(frame_ptr + BV32::from(0x10), r12);
         let lr = self.get_value_from_special_reg(&SpecialRegister::lr());
-        self.mem.write(frame_ptr + 0x14, lr);
+        self.mem.write(frame_ptr + BV32::from(0x14), lr);
         // putting a dummy value for ret addr
-        self.mem.write(frame_ptr + 0x18, BV32::from(0));
+        self.mem.write(frame_ptr + BV32::from(0x18), BV32::from(0));
         // TODO: Real implementation skips bit 9
         let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
-        self.mem.write(frame_ptr + 0x1C, psr);
+        self.mem.write(frame_ptr + BV32::from(0x1C), psr);
     }
 
     #[flux_rs::sig(
@@ -103,30 +102,30 @@ impl Armv7m {
             requires 
                 is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
                 &&
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x20)
+                is_valid_ram_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32(0x20)))
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
                     general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
-                    lr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x14, cpu.mem),
-                    psr: get_mem_addr(get_sp_from_isr_ret(cpu.sp, return_exec) + 0x1C, cpu.mem),
+                    lr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32( 0x14)), cpu.mem),
+                    psr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32(0x1C)), cpu.mem),
                     sp: sp_post_exception_exit(cpu.sp, return_exec),
                     ..cpu
                 }
-                && is_valid_ram_addr(int(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control)))
+                && is_valid_ram_addr(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control))
             }
     )]
     fn exception_exit(&mut self, return_exec: BV32) {
         let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
             self.control.spsel = false;
             self.mode = CPUMode::Thread;
-            let fp = self.sp.sp_main.into();
+            let fp = self.sp.sp_main;
             self.sp.sp_main = self.sp.sp_main + BV32::from(0x20);
             fp
         } else {
             self.control.spsel = true;
             self.mode = CPUMode::Thread;
-            let fp = self.sp.sp_process.into();
+            let fp = self.sp.sp_process;
             self.sp.sp_process = self.sp.sp_process + BV32::from(0x20);
             fp
         };
@@ -140,17 +139,17 @@ impl Armv7m {
         // psr = MemA[frameptr+0x1C,4];
         let r0 = self.mem.read(frame_ptr);
         self.update_general_reg_with_b32(GPR::r0(), r0);
-        let r1 = self.mem.read(frame_ptr + 0x4);
+        let r1 = self.mem.read(frame_ptr + BV32::from(0x4));
         self.update_general_reg_with_b32(GPR::r1(), r1);
-        let r2 =  self.mem.read(frame_ptr + 0x8);
+        let r2 =  self.mem.read(frame_ptr + BV32::from(0x8));
         self.update_general_reg_with_b32(GPR::r2(), r2);
-        let r3 = self.mem.read(frame_ptr + 0xC);
+        let r3 = self.mem.read(frame_ptr + BV32::from(0xC));
         self.update_general_reg_with_b32(GPR::r3(), r3);
-        let r12 = self.mem.read(frame_ptr + 0x10);
+        let r12 = self.mem.read(frame_ptr + BV32::from(0x10));
         self.update_general_reg_with_b32(GPR::r12(), r12);
-        let lr = self.mem.read(frame_ptr + 0x14);
+        let lr = self.mem.read(frame_ptr + BV32::from(0x14));
         self.update_special_reg_with_b32(SpecialRegister::lr(), lr);
-        let psr = self.mem.read(frame_ptr + 0x1C);
+        let psr = self.mem.read(frame_ptr + BV32::from(0x1C));
         self.update_special_reg_with_b32(SpecialRegister::psr(), psr);
     }
 
