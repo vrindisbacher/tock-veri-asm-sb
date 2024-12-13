@@ -95,7 +95,11 @@ impl Memory {
             requires is_valid_read_addr(addr) 
     )]
     pub fn read(&self, address: BV32) -> BV32 {
-        if bv32_gte(address, PPB_START) && bv32_lte(address, PPB_END) {
+        let ppb_start = PPB_START;
+        let ppb_end = PPB_END;
+        let ram_start = RAM_START;
+        let ram_end = RAM_END;
+        if bv32_gte(address, ppb_start) && bv32_lte(address, ppb_end) {
             if !(is_valid_mpu_read_addr(address)
                 || is_valid_sys_tick_read_addr(address)
                 || is_valid_sys_control_space_read_addr(address)
@@ -104,7 +108,7 @@ impl Memory {
                 panic!("Read of Invalid PPB address")
             }
             *self.mem.get(&address).unwrap()
-        } else if bv32_gte(address, RAM_START) && bv32_lte(address, RAM_END) {
+        } else if bv32_gte(address, ram_start) && bv32_lte(address, ram_end) {
             *self.mem.get(&address).unwrap()
         } else {
             panic!("Read of unknown memory address (only ppb is defined)")
@@ -117,7 +121,11 @@ impl Memory {
             ensures self: Memory { new_mem: new_mem == update_mem(addr, old_mem, val) }
     )]
     pub fn write(&mut self, address: BV32, value: BV32) {
-        if bv32_gte(address, PPB_START) && bv32_lte(address, PPB_END) {
+        let ppb_start = PPB_START;
+        let ppb_end = PPB_END;
+        let ram_start = RAM_START;
+        let ram_end = RAM_END;
+        if bv32_gte(address, ppb_start) && bv32_lte(address, ppb_end) {
             if !(is_valid_mpu_write_addr(address)
                 || is_valid_sys_tick_write_addr(address)
                 || is_valid_sys_control_space_write_addr(address)
@@ -126,7 +134,7 @@ impl Memory {
                 panic!("Write to Invalid PPB address")
             }
             self.mem.set(address, value)
-        } else if bv32_gte(address, RAM_START) && bv32_lte(address, RAM_END) {
+        } else if bv32_gte(address, ram_start) && bv32_lte(address, ram_end) {
             self.mem.set(address, value)
         } else {
             panic!("Write to unknown memory address (only ppb & RAM are defined)")

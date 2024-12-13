@@ -95,69 +95,119 @@ pub const CID3_ADDR: BV32 = BV32::new(0xE000EFFC);
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_sys_control_block_read_addr(addr)])]
 fn is_valid_sys_control_block_read_addr(address: BV32) -> bool {
     // all addresses are read
-    address == CPUID_ADDR
-        || address == ICSR_ADDR
-        || address == VTOR_ADDR
-        || address == AIRCR_ADDR
-        || address == SCR_ADDR
-        || address == CCR_ADDR
-        || address == SHPR1_ADDR
-        || address == SHPR2_ADDR
-        || address == SHPR3_ADDR
-        || address == SHCSR_ADDR
-        || address == CFSR_ADDR
-        || address == HFSR_ADDR
-        || address == DFSR_ADDR
-        || address == MMFAR_ADDR
-        || address == BFAR_ADDR
-        || address == AFSR_ADDR
-        || address == CPACR_ADDR
+    let a1 = CPUID_ADDR;
+    let a2 = ICSR_ADDR;
+    let a3 = VTOR_ADDR;
+    let a4 = AIRCR_ADDR;
+    let a5 = SCR_ADDR;
+    let a6 = CCR_ADDR;
+    let a7 = SHPR1_ADDR;
+    let a8 = SHPR2_ADDR;
+    let a9 = SHPR3_ADDR;
+    let a10 = SHCSR_ADDR;
+    let a11 = CFSR_ADDR;
+    let a12 = HFSR_ADDR;
+    let a13 = DFSR_ADDR;
+    let a14 = MMFAR_ADDR;
+    let a15 = BFAR_ADDR;
+    let a16 = AFSR_ADDR;
+    let a17 = CPACR_ADDR;
+
+    address == a1
+        || address == a2
+        || address == a3
+        || address == a4
+        || address == a5
+        || address == a6
+        || address == a7
+        || address == a8
+        || address == a9
+        || address == a10
+        || address == a11
+        || address == a12
+        || address == a13
+        || address == a14
+        || address == a15
+        || address == a16
+        || address == a17
 }
 
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_sys_control_block_write_addr(addr)])]
 fn is_valid_sys_control_block_write_addr(address: BV32) -> bool {
     // all addresses but CPUID are write
-    address == ICSR_ADDR
-        || address == VTOR_ADDR
-        || address == AIRCR_ADDR
-        || address == SCR_ADDR
-        || address == CCR_ADDR
-        || address == SHPR1_ADDR
-        || address == SHPR2_ADDR
-        || address == SHPR3_ADDR
-        || address == SHCSR_ADDR
-        || address == CFSR_ADDR
-        || address == HFSR_ADDR
-        || address == DFSR_ADDR
-        || address == MMFAR_ADDR
-        || address == BFAR_ADDR
-        || address == AFSR_ADDR
-        || address == CPACR_ADDR
+    let a2 = ICSR_ADDR;
+    let a3 = VTOR_ADDR;
+    let a4 = AIRCR_ADDR;
+    let a5 = SCR_ADDR;
+    let a6 = CCR_ADDR;
+    let a7 = SHPR1_ADDR;
+    let a8 = SHPR2_ADDR;
+    let a9 = SHPR3_ADDR;
+    let a10 = SHCSR_ADDR;
+    let a11 = CFSR_ADDR;
+    let a12 = HFSR_ADDR;
+    let a13 = DFSR_ADDR;
+    let a14 = MMFAR_ADDR;
+    let a15 = BFAR_ADDR;
+    let a16 = AFSR_ADDR;
+    let a17 = CPACR_ADDR;
+    address == a2
+        || address == a3
+        || address == a4
+        || address == a5
+        || address == a6
+        || address == a7
+        || address == a8
+        || address == a9
+        || address == a10
+        || address == a11
+        || address == a12
+        || address == a13
+        || address == a14
+        || address == a15
+        || address == a16
+        || address == a17
 }
 
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_sys_control_id_reg_read_addr(addr)])]
 fn is_valid_sys_control_id_reg_read_addr(address: BV32) -> bool {
     // all but STIR are read
-    address == ICTR_ADDR
-        || address == ACTLR_ADDR
-        || address == PID4_ADDR
-        || address == PID5_ADDR
-        || address == PID6_ADDR
-        || address == PID7_ADDR
-        || address == PID0_ADDR
-        || address == PID1_ADDR
-        || address == PID2_ADDR
-        || address == PID3_ADDR
-        || address == CID0_ADDR
-        || address == CID1_ADDR
-        || address == CID2_ADDR
-        || address == CID3_ADDR
+    let a1 = ICTR_ADDR;
+    let a2 = ACTLR_ADDR;
+    let a3 = PID4_ADDR;
+    let a4 = PID5_ADDR;
+    let a5 = PID6_ADDR;
+    let a6 = PID7_ADDR;
+    let a7 = PID0_ADDR;
+    let a8 = PID1_ADDR;
+    let a9 = PID2_ADDR;
+    let a10 = PID3_ADDR;
+    let a11 = CID0_ADDR;
+    let a12 = CID1_ADDR;
+    let a13 = CID2_ADDR;
+    let a14 = CID3_ADDR;
+    address == a1
+        || address == a2
+        || address == a3
+        || address == a4
+        || address == a5
+        || address == a6
+        || address == a7
+        || address == a8
+        || address == a9
+        || address == a10
+        || address == a11
+        || address == a12
+        || address == a13
+        || address == a14
 }
 
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_sys_control_id_reg_write_addr(addr)])]
 fn is_valid_sys_control_id_reg_write_addr(address: BV32) -> bool {
     // only actlr && stir are write
-    address == ACTLR_ADDR || address == STIR_ADDR
+    let actlr_addr = ACTLR_ADDR;
+    let stir_addr = STIR_ADDR;
+    address == actlr_addr || address == stir_addr
 }
 
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_sys_control_space_read_addr(addr)])]

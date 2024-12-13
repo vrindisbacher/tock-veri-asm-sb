@@ -1,4 +1,4 @@
-use crate::flux_support::bv32::BV32;
+use crate::flux_support::bv32::{bv32_gte, bv32_lte, BV32};
 
 // NVIC
 //
@@ -41,18 +41,30 @@ pub const IPR_END: BV32 = BV32::new(0xE000E7EC);
 
 #[flux_rs::sig(fn (BV32[@addr]) -> bool[is_valid_nvic_addr(addr)])]
 fn is_valid_nvic_addr(address: BV32) -> bool {
-    if address >= ISER_START && address <= ISER_END {
-        (address - ISER_START) % BV32::from(4) == BV32::from(0)
-    } else if address >= ICER_START && address <= ICER_END {
-        (address - ICER_START) % BV32::from(4) == BV32::from(0)
-    } else if address >= ISPR_START && address <= ISPR_END {
-        (address - ISPR_START) % BV32::from(4) == BV32::from(0)
-    } else if address >= ICPR_START && address <= ICPR_END {
-        (address - ICPR_START) % BV32::from(4) == BV32::from(0)
-    } else if address >= IABR_START && address <= IABR_END {
-        (address - IABR_START) % BV32::from(4) == BV32::from(0)
-    } else if address >= IPR_START && address <= IPR_END {
-        (address - IPR_START) % BV32::from(4) == BV32::from(0)
+    let iser_start = ISER_START;
+    let iser_end = ISER_END;
+    let icer_start = ICER_START;
+    let icer_end = ICER_END;
+    let ispr_start = ISPR_START;
+    let ispr_end = ISPR_END;
+    let icpr_start = ICPR_START;
+    let icpr_end = ICPR_END;
+    let iabr_start = IABR_START;
+    let iabr_end = IABR_END;
+    let ipr_start = IPR_START;
+    let ipr_end = IPR_END;
+    if bv32_gte(address, iser_start) && bv32_lte(address, iser_end) {
+        (address - iser_start) % BV32::from(4) == BV32::from(0)
+    } else if bv32_gte(address, icer_start) && bv32_lte(address, icer_end) {
+        (address - icer_start) % BV32::from(4) == BV32::from(0)
+    } else if bv32_gte(address, ispr_start) && bv32_lte(address, ispr_end) {
+        (address - ispr_start) % BV32::from(4) == BV32::from(0)
+    } else if bv32_gte(address, icpr_start) && bv32_lte(address, icpr_end) {
+        (address - icpr_start) % BV32::from(4) == BV32::from(0)
+    } else if bv32_gte(address, iabr_start) && bv32_lte(address, iabr_end) {
+        (address - iabr_start) % BV32::from(4) == BV32::from(0)
+    } else if bv32_gte(address, ipr_start) && bv32_lte(address, ipr_end) {
+        (address - ipr_start) % BV32::from(4) == BV32::from(0)
     } else {
         false
     }
