@@ -640,17 +640,7 @@ flux_rs::defs! {
     }
 
     fn cpu_post_pop_spr(cpu: Armv7m, rd: int) -> Armv7m {
-        if is_psp(rd) {
-            Armv7m {
-                sp: set_psp(cpu.sp, bv_add(get_special_reg(rd, cpu), bv32(0x4))),
-                ..cpu
-            }
-        } else if is_sp(rd) {
-            Armv7m {
-                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_special_reg(rd, cpu), bv32(0x4))),
-                ..cpu
-            }
-        } else if is_lr(rd) {
+        if is_lr(rd) {
             Armv7m {
                 lr: get_mem_addr(get_sp(cpu.sp, cpu.mode, cpu.control), cpu.mem),
                 sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))),
