@@ -7,10 +7,9 @@ use crate::{
 };
 
 impl Armv7m {
-    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@rd], GPR[@rm]) 
-            requires is_valid_write_addr(bv_sub(get_special_reg(rd, old_cpu), bv32(0x4)))
+            requires is_valid_ram_addr(bv_sub(get_special_reg(rd, old_cpu), bv32(0x4)))
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_stmdb_no_wback(old_cpu, rd, rm) }
     )]
     pub fn stmdb_no_wback(&mut self, rd: SpecialRegister, rm: GPR) {
@@ -19,6 +18,6 @@ impl Armv7m {
         let addr = self.get_value_from_special_reg(&rd) - BV32::from(0x4);
         let val = self.get_value_from_general_reg(&rm);
         self.mem.write(addr, val);
-        self.update_special_reg_with_b32(rd, BV32::from(addr));
+        self.update_special_reg_with_b32(rd, addr);
     }
 }
