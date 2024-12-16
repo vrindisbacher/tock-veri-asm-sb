@@ -298,6 +298,28 @@ flux_rs::defs! {
         )
     }
 
+    fn gprs_post_test_hanging(
+        cpu: Armv7m,
+        rd: int,
+        rm1: int,
+        // rm2: int,
+        // rm3: int,
+    ) -> Map<GPR, BV32> {
+        // map_set(
+        //     map_set(
+            map_set(
+                cpu.general_regs,
+                rm1,
+                get_mem_addr(get_special_reg(rd, cpu), cpu.mem)
+            )
+        //         rm2,
+        //         get_mem_addr(bv_add(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem)
+        //     ),
+        //     rm3,
+        //     get_mem_addr(bv_add(get_special_reg(rd, cpu), bv32(0x8)), cpu.mem)
+        // )
+    }
+
     fn mem_post_stmia_w(
         cpu: Armv7m,
         rd: int,
