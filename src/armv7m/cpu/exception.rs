@@ -123,7 +123,6 @@ impl Armv7m {
         // matter
     }
 
-    #[flux_rs::trusted]
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -131,7 +130,7 @@ impl Armv7m {
     )]
     fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
-        self.exception_taken(exception_number);
+        // self.exception_taken(exception_number);
     }
 
     #[flux_rs::trusted]

@@ -10,10 +10,10 @@ flux_rs::defs! {
 
     fn cpu_post_exception_entry(cpu: Armv7m, exception_num: int) -> Armv7m {
         Armv7m {
-            mode: handler_mode(),
-            control: control_post_exception_entry(cpu),
-            psr: psr_post_exception_entry(cpu, exception_num),
-            lr: lr_post_exception_entry(cpu, cpu.control),
+            // mode: handler_mode(),
+            // control: control_post_exception_entry(cpu),
+            // psr: psr_post_exception_entry(cpu, exception_num),
+            // lr: lr_post_exception_entry(cpu, cpu.control),
             sp: sp_post_exception_entry(cpu),
             mem: mem_post_exception_entry(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control), cpu),
             ..cpu

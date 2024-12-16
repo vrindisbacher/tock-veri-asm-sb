@@ -25,8 +25,8 @@ impl Armv7m {
         let sp = self
             .get_value_from_special_reg(&SpecialRegister::sp());
         let val = self.mem.read(sp);
-        self.update_general_reg_with_b32(reg, val);
         let sp = sp + BV32::from(0x4);
+        self.update_general_reg_with_b32(reg, val);
         self.update_special_reg_with_b32(SpecialRegister::sp(), BV32::from(sp));
     }
 

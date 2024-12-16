@@ -135,6 +135,7 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
 fn process(armv7m: &mut Armv7m) {}
 
 
+#[flux_rs::trusted]
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
        requires 
