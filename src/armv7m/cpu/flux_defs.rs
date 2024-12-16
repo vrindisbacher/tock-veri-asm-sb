@@ -229,6 +229,52 @@ flux_rs::defs! {
         )
     }
 
+    fn mem_post_push_stack_write_gpr_vals(
+        sp: BV32,
+        cpu: Armv7m,
+        r0: BV32,
+        r1: BV32,
+        r2: BV32,
+        r3: BV32,
+        r12: BV32,
+        lr: BV32,
+        psr: BV32
+    ) -> Map<BV32, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            map_set(
+                                map_set(
+                                    map_set(
+                                        cpu.mem,
+                                        sp,
+                                        r0
+                                    ),
+                                    bv_add(sp, bv32(0x4)),
+                                    r1
+                                ),
+                                bv_add(sp, bv32(0x8)),
+                                r2
+                            ),
+                            bv_add(sp, bv32(0xc)),
+                            r3
+                        ),
+                        bv_add(sp, bv32(0x10)),
+                        r12
+                    ),
+                    bv_add(sp, bv32(0x14)),
+                    lr
+                ),
+                bv_add(sp, bv32(0x18)),
+                bv32(0) // nonsense value
+            ),
+            bv_add(sp, bv32(0x1c)),
+            psr
+        )
+    }
+
     fn gprs_post_ldmia_w(
         cpu: Armv7m,
         rd: int,
@@ -505,14 +551,58 @@ flux_rs::defs! {
         )
     }
 
+    fn push_stack_sp_precondition(sp: BV32) -> bool {
+        is_valid_ram_addr(bv_add(sp, bv32(0x4)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0x8)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0xc)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0x10)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0x14)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0x18)))
+        &&
+        is_valid_ram_addr(bv_add(sp, bv32(0x1C)))
+    }
+
     fn sp_can_handle_exception_entry(cpu: Armv7m) -> bool {
         // requires we have enough space to push 8 x 4 byte values into mem
         is_valid_ram_addr(
-            get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control)
+            get_sp(cpu.sp, cpu.mode, cpu.control)
         )
         &&
         is_valid_ram_addr(
-            get_sp(cpu.sp, cpu.mode, cpu.control)
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x8))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0xc))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x10))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x14))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x18))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x1c))
+        )
+        &&
+        is_valid_ram_addr(
+            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20))
         )
     }
 
@@ -550,7 +640,7 @@ flux_rs::defs! {
     }
 
     fn sp_main(sp: SP) -> BV32 {
-        sp.sp_main 
+        sp.sp_main
     }
 
     fn sp_process(sp: SP) -> BV32 {

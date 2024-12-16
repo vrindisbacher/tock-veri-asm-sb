@@ -3,7 +3,73 @@ use crate::{armv7m::lang::{SpecialRegister, GPR}, flux_support::bv32::BV32};
 use super::{Armv7m, CPUMode, Control};
 
 impl Armv7m {
-    #[flux_rs::trusted]
+
+    #[flux_rs::sig(
+        fn (&mut Armv7m[@cpu]) -> (
+            BV32[get_gpr(r0(), cpu)],
+            BV32[get_gpr(r1(), cpu)],
+            BV32[get_gpr(r2(), cpu)],
+            BV32[get_gpr(r3(), cpu)],
+            BV32[get_gpr(r12(), cpu)],
+            BV32[get_special_reg(lr(), cpu)],
+            BV32[get_special_reg(psr(), cpu)]
+        )
+    )]
+    fn push_stack_get_gpr_vals(&mut self) -> (BV32, BV32, BV32, BV32, BV32, BV32, BV32) {
+        let r0 = self.get_value_from_general_reg(&GPR::r0());
+        let r1 = self.get_value_from_general_reg(&GPR::r1());
+        let r2 = self.get_value_from_general_reg(&GPR::r2());
+        let r3 = self.get_value_from_general_reg(&GPR::r3());
+        let r12 = self.get_value_from_general_reg(&GPR::r12());
+        let lr = self.get_value_from_special_reg(&SpecialRegister::lr());
+        let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
+        (r0, r1, r2, r3, r12, lr, psr)
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@cpu])
+            requires is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)))
+            ensures self: Armv7m { new_cpu: new_cpu == Armv7m { sp: sp_post_exception_entry(cpu), ..cpu } }
+    )]
+    fn push_stack_update_sp(&mut self) {
+        let frame_size = BV32::from(0x20);
+        let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
+        let frame_ptr = (frame_ptr - frame_size); // & !BV32::from(3);
+        self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@cpu], BV32[@r0], BV32[@r1], BV32[@r2], BV32[@r3], BV32[@r12], BV32[@lr], BV32[@psr]) 
+            requires push_stack_sp_precondition(get_sp(cpu.sp, cpu.mode, cpu.control))
+            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
+                mem: mem_post_push_stack_write_gpr_vals(
+                     get_sp(cpu.sp, cpu.mode, cpu.control),
+                     cpu,
+                     r0,
+                     r1,
+                     r2,
+                     r3,
+                     r12,
+                     lr,
+                     psr
+                ),
+                ..cpu
+            }}
+    )]
+    fn push_stack_write_gpr_vals(&mut self, r0: BV32, r1: BV32, r2: BV32, r3: BV32, r12: BV32, lr: BV32, psr: BV32) {
+        let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
+        self.mem.write(frame_ptr, r0);
+        self.mem.write(frame_ptr + BV32::from(0x4), r1);
+        self.mem.write(frame_ptr + BV32::from(0x8), r2);
+        self.mem.write(frame_ptr + BV32::from(0xC), r3);
+        self.mem.write(frame_ptr + BV32::from(0x10), r12);
+        self.mem.write(frame_ptr + BV32::from(0x14), lr);
+        // putting a dummy value for ret addr
+        self.mem.write(frame_ptr + BV32::from(0x18), BV32::from(0));
+        // TODO: Real implementation skips bit 9
+        self.mem.write(frame_ptr + BV32::from(0x1C), psr);
+    }
+
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -15,37 +81,9 @@ impl Armv7m {
             }
     )]
     fn push_stack(&mut self) {
-        // Assuming 4 byte alignment for now
-        // but maybe this is something to revisit
-        let frame_size = BV32::from(0x20);
-        let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
-        let frame_ptr = (frame_ptr - frame_size); // & !BV32::from(3);
-        self.update_special_reg_with_b32(SpecialRegister::sp(), frame_ptr);
-        // MemA[frameptr,4] = R[0];
-        // MemA[frameptr+0x4,4] = R[1];
-        // MemA[frameptr+0x8,4] = R[2];
-        // MemA[frameptr+0xC,4] = R[3];
-        // MemA[frameptr+0x10,4] = R[12];
-        // MemA[frameptr+0x14,4] = LR;
-        // MemA[frameptr+0x18,4] = ReturnAddress(ExceptionType);
-        // MemA[frameptr+0x1C,4] = (XPSR<31:10>:frameptralign:XPSR<8:0>);
-        let r0 = self.get_value_from_general_reg(&GPR::r0());
-        self.mem.write(frame_ptr, r0);
-        let r1 = self.get_value_from_general_reg(&GPR::r1());
-        self.mem.write(frame_ptr + BV32::from(0x4), r1);
-        let r2 = self.get_value_from_general_reg(&GPR::r2());
-        self.mem.write(frame_ptr + BV32::from(0x8), r2);
-        let r3 = self.get_value_from_general_reg(&GPR::r3());
-        self.mem.write(frame_ptr + BV32::from(0xC), r3);
-        let r12 = self.get_value_from_general_reg(&GPR::r12());
-        self.mem.write(frame_ptr + BV32::from(0x10), r12);
-        let lr = self.get_value_from_special_reg(&SpecialRegister::lr());
-        self.mem.write(frame_ptr + BV32::from(0x14), lr);
-        // putting a dummy value for ret addr
-        self.mem.write(frame_ptr + BV32::from(0x18), BV32::from(0));
-        // TODO: Real implementation skips bit 9
-        let psr = self.get_value_from_special_reg(&SpecialRegister::psr());
-        self.mem.write(frame_ptr + BV32::from(0x1C), psr);
+        let (r0, r1, r2, r3, r12, lr, psr) = self.push_stack_get_gpr_vals();
+        self.push_stack_update_sp();
+        self.push_stack_write_gpr_vals(r0, r1, r2, r3, r12, lr, psr);
     }
 
     #[flux_rs::sig(
