@@ -30,25 +30,25 @@ impl PartialOrd for BV32 {
     }
 
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x <= y])]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ule(x, y)])]
     fn le(&self, other: &Self) -> bool {
         self.0 <= other.0
     }
 
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x < y])]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ult(x, y)])]
     fn lt(&self, other: &Self) -> bool {
         self.0 < other.0
     }
 
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x >= y])]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_uge(x, y)])]
     fn ge(&self, other: &Self) -> bool {
         self.0 >= other.0
     }
 
     #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x > y])]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ugt(x, y)])]
     fn gt(&self, other: &Self) -> bool {
         self.0 > other.0
     }

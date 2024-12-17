@@ -190,17 +190,17 @@ pub mod nvic_defs {
     flux_rs::defs! {
             // all addresses are read / write as long as they are 4 byte aligned
             fn is_valid_nvic_addr(address: BV32) -> bool {
-                if (address >= ISER_START && address <= ISER_END) {
+                if (bv_uge(address, ISER_START) && bv_ule(address, ISER_END)) {
                     bv_urem(bv_sub(address, ISER_START), bv32(4)) == bv32(0)
-                } else if (address >= ICER_START && address <= ICER_END) {
+                } else if (bv_uge(address, ICER_START) && bv_ule(address, ICER_END)) {
                     bv_urem(bv_sub(address, ICER_START), bv32(4)) == bv32(0)
-                } else if (address >= ISPR_START && address <= ISPR_END) {
+                } else if (bv_uge(address, ISPR_START) && bv_ule(address, ISPR_END)) {
                     bv_urem(bv_sub(address, ISPR_START), bv32(4)) == bv32(0)
-                } else if (address >= ICPR_START && address <= ICPR_END) {
+                } else if (bv_uge(address, ICPR_START) && bv_ule(address, ICPR_END)) {
                     bv_urem(bv_sub(address, ICPR_START), bv32(4)) == bv32(0)
-                } else if (address >= IABR_START && address <= IABR_END) {
+                } else if (bv_uge(address, IABR_START) && bv_ule(address, IABR_END)) {
                     bv_urem(bv_sub(address, IABR_START), bv32(4)) == bv32(0)
-                } else if (address >= IPR_START && address <= IPR_END) {
+                } else if (bv_uge(address, IPR_START) && bv_ule(address, IPR_END)) {
                     bv_urem(bv_sub(address, IPR_START), bv32(4)) == bv32(0)
                 } else {
                     false
