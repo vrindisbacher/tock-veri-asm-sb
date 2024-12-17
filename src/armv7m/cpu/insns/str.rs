@@ -18,7 +18,6 @@ impl Armv7m {
     //  MemU[address,4] = R[t];
 
     // NOTE: Dest cannot be LR, PC, or SP
-    #[flux_rs::trusted]
     #[flux_rs::sig(fn (
             self: &strg Armv7m[@old_cpu], 
             GPR[@reg_to_store], 
@@ -64,7 +63,7 @@ impl Armv7m {
         //  if t == 15 || m IN {13,15} then UNPREDICTABLE;
         let offset = self.get_value_from_general_reg(&offset_reg) << shift;
         let addr = (self.get_value_from_general_reg(&base_reg) + offset);
-        self.mem
-            .write(addr, self.get_value_from_general_reg(&register_to_str))
+        let value = self.get_value_from_general_reg(&register_to_str);
+        self.mem.write(addr, value);
     }
 }
