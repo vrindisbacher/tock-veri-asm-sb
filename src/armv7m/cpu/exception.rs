@@ -123,6 +123,7 @@ impl Armv7m {
         // matter
     }
 
+    #[flux_rs::trusted] // z3 hangs in liquid fixpoint
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -130,16 +131,96 @@ impl Armv7m {
     )]
     fn exception_entry(&mut self, exception_number: u8) {
         self.push_stack();
-        // self.exception_taken(exception_number);
+        self.exception_taken(exception_number);
     }
 
-    #[flux_rs::trusted]
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@cpu], BV32[@return_exec]) -> BV32[get_sp_from_isr_ret(cpu.sp, return_exec)]
+            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
+                    mode: thread_mode(),
+                    control: Control {
+                        spsel: return_exec != bv32(0xFFFF_FFF9),
+                        ..cpu.control
+                    },
+                    sp: sp_post_exception_exit(cpu.sp, return_exec),
+                    ..cpu
+                }
+            }
+    )]
+    fn exception_exit_get_fp_update_sp(&mut self, return_exec: BV32) -> BV32 {
+        if return_exec == BV32::from(0xFFFF_FFF9) {
+            self.control.spsel = false;
+            self.mode = CPUMode::Thread;
+            let fp = self.sp.sp_main;
+            self.sp.sp_main = fp + BV32::from(0x20);
+            fp
+        } else {
+            self.control.spsel = true;
+            self.mode = CPUMode::Thread;
+            let fp = self.sp.sp_process;
+            self.sp.sp_process = fp + BV32::from(0x20);
+            fp
+        }
+    }
+
+    #[flux_rs::sig(
+        fn (
+            &Armv7m[@cpu],
+            BV32[@fp]
+        ) -> (
+            BV32[get_mem_addr(fp, cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0x4)), cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0x8)), cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0xC)), cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0x10)), cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0x14)), cpu.mem)],
+            BV32[get_mem_addr(bv_add(fp, bv32(0x1C)), cpu.mem)],
+        )
+        requires sp_can_handle_exception_exit(fp)
+    )]
+    fn exception_exit_read_regs(&self, frame_ptr: BV32) -> (BV32, BV32, BV32, BV32, BV32, BV32, BV32) {
+        let r0 = self.mem.read(frame_ptr);
+        let r1 = self.mem.read(frame_ptr + BV32::from(0x4));
+        let r2 =  self.mem.read(frame_ptr + BV32::from(0x8));
+        let r3 = self.mem.read(frame_ptr + BV32::from(0xC));
+        let r12 = self.mem.read(frame_ptr + BV32::from(0x10));
+        let lr = self.mem.read(frame_ptr + BV32::from(0x14));
+        let psr = self.mem.read(frame_ptr + BV32::from(0x1C));
+        (r0, r1, r2, r3, r12, lr, psr)
+    }
+
+    #[flux_rs::sig(
+        fn (
+            self: &strg Armv7m[@cpu], 
+            BV32[@r0],
+            BV32[@r1],
+            BV32[@r2],
+            BV32[@r3],
+            BV32[@r12],
+            BV32[@lr],
+            BV32[@psr],
+        ) 
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+                general_regs: gprs_post_exception_exit_write_regs(cpu, r0, r1, r2, r3, r12),
+                lr: lr,
+                psr: psr,
+                ..cpu
+            }
+        }
+    )]
+    fn exception_exit_write_regs(&mut self, r0: BV32, r1: BV32, r2: BV32, r3: BV32, r12: BV32, lr: BV32, psr: BV32) {
+        self.update_general_reg_with_b32(GPR::r0(), r0);
+        self.update_general_reg_with_b32(GPR::r1(), r1);
+        self.update_general_reg_with_b32(GPR::r2(), r2);
+        self.update_general_reg_with_b32(GPR::r3(), r3);
+        self.update_general_reg_with_b32(GPR::r12(), r12);
+        self.update_special_reg_with_b32(SpecialRegister::lr(), lr);
+        self.update_special_reg_with_b32(SpecialRegister::psr(), psr);
+    }
+
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
-            requires 
-                is_valid_ram_addr(get_sp_from_isr_ret(cpu.sp, return_exec))
-                &&
-                is_valid_ram_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32(0x20)))
+            requires sp_can_handle_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec))
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
@@ -153,41 +234,9 @@ impl Armv7m {
             }
     )]
     fn exception_exit(&mut self, return_exec: BV32) {
-        let frame_ptr = if return_exec == BV32::from(0xFFFF_FFF9) {
-            self.control.spsel = false;
-            self.mode = CPUMode::Thread;
-            let fp = self.sp.sp_main;
-            self.sp.sp_main = self.sp.sp_main + BV32::from(0x20);
-            fp
-        } else {
-            self.control.spsel = true;
-            self.mode = CPUMode::Thread;
-            let fp = self.sp.sp_process;
-            self.sp.sp_process = self.sp.sp_process + BV32::from(0x20);
-            fp
-        };
-        // R[0] = MemA[frameptr,4];
-        // R[1] = MemA[frameptr+0x4,4];
-        // R[2] = MemA[frameptr+0x8,4];
-        // R[3] = MemA[frameptr+0xC,4];
-        // R[12] = MemA[frameptr+0x10,4];
-        // LR = MemA[frameptr+0x14,4];
-        // BranchTo(MemA[frameptr+0x18,4]); // UNPREDICTABLE if the new PC not halfword aligned
-        // psr = MemA[frameptr+0x1C,4];
-        let r0 = self.mem.read(frame_ptr);
-        self.update_general_reg_with_b32(GPR::r0(), r0);
-        let r1 = self.mem.read(frame_ptr + BV32::from(0x4));
-        self.update_general_reg_with_b32(GPR::r1(), r1);
-        let r2 =  self.mem.read(frame_ptr + BV32::from(0x8));
-        self.update_general_reg_with_b32(GPR::r2(), r2);
-        let r3 = self.mem.read(frame_ptr + BV32::from(0xC));
-        self.update_general_reg_with_b32(GPR::r3(), r3);
-        let r12 = self.mem.read(frame_ptr + BV32::from(0x10));
-        self.update_general_reg_with_b32(GPR::r12(), r12);
-        let lr = self.mem.read(frame_ptr + BV32::from(0x14));
-        self.update_special_reg_with_b32(SpecialRegister::lr(), lr);
-        let psr = self.mem.read(frame_ptr + BV32::from(0x1C));
-        self.update_special_reg_with_b32(SpecialRegister::psr(), psr);
+        let frame_ptr = self.exception_exit_get_fp_update_sp(return_exec);
+        let (r0, r1, r2, r3, r12, lr, psr) = self.exception_exit_read_regs(frame_ptr);
+        self.exception_exit_write_regs(r0, r1, r2, r3, r12, lr, psr);
     }
 
     #[flux_rs::sig(
@@ -201,7 +250,7 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::trusted]
+    #[flux_rs::trusted] // z3 hangs in liquid fixpoint
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires 
@@ -209,7 +258,7 @@ impl Armv7m {
                 sp_can_handle_exception_entry(cpu)
                 &&
                 // and Stack Pointer used on exit is valid and can grow upwards 20 bytes
-                sp_can_handle_exception_exit(cpu, exception_num)
+                sp_can_handle_preempt_exception_exit(cpu, exception_num) 
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
     )]
     pub fn preempt(

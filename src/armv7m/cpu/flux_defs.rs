@@ -10,10 +10,10 @@ flux_rs::defs! {
 
     fn cpu_post_exception_entry(cpu: Armv7m, exception_num: int) -> Armv7m {
         Armv7m {
-            // mode: handler_mode(),
-            // control: control_post_exception_entry(cpu),
-            // psr: psr_post_exception_entry(cpu, exception_num),
-            // lr: lr_post_exception_entry(cpu, cpu.control),
+            mode: handler_mode(),
+            control: control_post_exception_entry(cpu),
+            psr: psr_post_exception_entry(cpu, exception_num),
+            lr: lr_post_exception_entry(cpu, cpu.control),
             sp: sp_post_exception_entry(cpu),
             mem: mem_post_exception_entry(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control), cpu),
             ..cpu
@@ -124,6 +124,37 @@ flux_rs::defs! {
             ),
             r12(),
             get_mem_addr(bv_add(sp, bv32(0x10)), cpu.mem)
+        )
+    }
+
+    fn gprs_post_exception_exit_write_regs(
+        cpu: Armv7m,
+        val_r0: BV32,
+        val_r1: BV32,
+        val_r2: BV32,
+        val_r3: BV32,
+        val_r12: BV32,
+    ) -> Map<GPR, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    map_set(
+                        map_set(
+                            cpu.general_regs,
+                            r0(),
+                            val_r0
+                        ),
+                        r1(),
+                        val_r1
+                    ),
+                    r2(),
+                    val_r2
+                ),
+                r3(),
+                val_r3
+            ),
+            r12(),
+            val_r12
         )
     }
 
@@ -606,27 +637,74 @@ flux_rs::defs! {
         )
     }
 
-    fn sp_can_handle_exception_exit(cpu: Armv7m, exception_num: int) -> bool {
+    fn sp_can_handle_exception_exit(sp: BV32) -> bool {
+        is_valid_ram_addr(sp)
+        &&
         is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x04)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x08)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0xc)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x10)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x14)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x18)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x1c)
+            )
+        )
+        &&
+        is_valid_ram_addr(
+            bv_add(
+                sp,
+                bv32(0x20)
+            )
+        )
+    }
+
+    fn sp_can_handle_preempt_exception_exit(cpu: Armv7m, exception_num: int) -> bool {
+        sp_can_handle_exception_exit(
             get_sp_from_isr_ret(
                 sp_post_exception_entry(cpu),
                 get_bx_from_exception_num(
                     exception_num,
                     lr_post_exception_entry(cpu, cpu.control)
                 )
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                get_sp_from_isr_ret(
-                    sp_post_exception_entry(cpu),
-                    get_bx_from_exception_num(
-                        exception_num,
-                        lr_post_exception_entry(cpu, cpu.control)
-                    )
-                ),
-                bv32(0x20)
             )
         )
     }

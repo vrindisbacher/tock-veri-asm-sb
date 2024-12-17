@@ -159,7 +159,7 @@ fn process(armv7m: &mut Armv7m) {}
                // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
                // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
            )
-           && sp_can_handle_exception_exit(old_cpu, 11)
+           // && sp_can_handle_exception_exit(old_cpu, 11)
        ensures self: Armv7m 
 )]
 pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
@@ -225,7 +225,7 @@ mod arm_test {
                    // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
                    // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
                )
-               && sp_can_handle_exception_exit(old_cpu, exception_num)
+               && sp_can_handle_preempt_exception_exit(old_cpu, exception_num)
            ensures self: Armv7m { new_cpu:
                sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
             }
