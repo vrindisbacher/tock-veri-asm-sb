@@ -123,7 +123,6 @@ impl Armv7m {
         // matter
     }
 
-    #[flux_rs::trusted] // z3 hangs in liquid fixpoint
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires sp_can_handle_exception_entry(cpu)
@@ -250,7 +249,6 @@ impl Armv7m {
         }
     }
 
-    #[flux_rs::trusted] // z3 hangs in liquid fixpoint
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires 

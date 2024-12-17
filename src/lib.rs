@@ -20,16 +20,7 @@ mod flux_support;
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu])
         // requires that r1 is a valid read addr and r0 is a valid write addr
-        requires 
-            mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-            &&
-            is_valid_ram_addr(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control))
-            &&
-            is_valid_ram_addr(bv_sub(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x24)))
-            &&
-            is_valid_ram_addr(get_gpr(r1(), old_cpu))
-            &&
-            is_valid_ram_addr(bv_add(get_gpr(r1(), old_cpu), bv32(0x1c)))
+        requires switch_to_user_pt1_precondition(old_cpu)
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1(old_cpu) }
 )]
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
@@ -52,8 +43,12 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // fp - r11
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
     // mov
-    armv7m.mov(GPR::r2(), GPR::r6()); // not sure about this - already saved?  
-    armv7m.mov(GPR::r3(), GPR::r7()); // // not sure about this - already saved?  
+    // NOTE: these two saves are pretty funny: we can't mark them as 
+    // clobbers directly using rust's register interface but since r6, r7 
+    // are callee saved registers in ARM and we use them in this function
+    // the compiler saves them to the stack anyway
+    armv7m.mov(GPR::r2(), GPR::r6()); 
+    armv7m.mov(GPR::r3(), GPR::r7());
     // note ip is intraprocedure scratch register - r12
     armv7m.mov(GPR::r12(), GPR::r9());
 

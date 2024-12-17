@@ -444,6 +444,60 @@ flux_rs::defs! {
         )
     }
 
+    fn switch_to_user_pt1_precondition(cpu: Armv7m) -> bool {
+        mode_is_thread_privileged(cpu.mode, cpu.control)
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x8)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0xc)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x10)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x14)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x18)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x1c)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x24)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x28)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x2c)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x30)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x34)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x38)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x3c)))
+        &&
+        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x40)))
+        &&
+        is_valid_ram_addr(get_gpr(r0(), cpu))
+        // &&
+        // is_valid_read_addr(get_gpr(r1(), cpu))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x4)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x8)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0xc)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x10)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x14)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x18)))
+        // &&
+        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x1c)))
+    }
+
     fn cpu_post_switch_to_user_pt1(cpu: Armv7m) -> Armv7m {
         cpu_post_exception_exit(Armv7m {
             general_regs: gprs_post_switch_to_user_pt1(cpu),
