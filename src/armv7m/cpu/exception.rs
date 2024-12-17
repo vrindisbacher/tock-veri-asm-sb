@@ -229,7 +229,6 @@ impl Armv7m {
                     sp: sp_post_exception_exit(cpu.sp, return_exec),
                     ..cpu
                 }
-                && is_valid_ram_addr(get_sp(new_cpu.sp, new_cpu.mode, new_cpu.control))
             }
     )]
     fn exception_exit(&mut self, return_exec: BV32) {

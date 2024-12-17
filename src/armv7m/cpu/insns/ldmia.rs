@@ -30,7 +30,7 @@ impl Armv7m {
             &&
             is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x18)))
             &&
-            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x1c)))
+            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x1c)))
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w(old_cpu, rd, rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8),
                 ..old_cpu

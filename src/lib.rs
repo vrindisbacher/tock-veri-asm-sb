@@ -6,24 +6,15 @@ use flux_support::bv32::BV32;
 pub mod armv7m;
 mod flux_support;
 
-// Part 1: 
-//   0:   b5f0            push    {r4, r5, r6, r7, lr}
-//   2:   af03            add     r7, sp, #12
-//   4:   e92d 0d00       stmdb   sp!, {r8, sl, fp}
-//   8:   4632            mov     r2, r6
-//   a:   463b            mov     r3, r7
-//   c:   46cc            mov     ip, r9
-//   e:   f380 8809       msr     PSP, r0
-//  12:   e891 0ff0       ldmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
-//  16:   dfff            svc     255     @ 0xff
-#[flux_rs::trusted]
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu])
-        // requires that r1 is a valid read addr and r0 is a valid write addr
-        requires switch_to_user_pt1_precondition(old_cpu)
-        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1(old_cpu) }
+    fn (self: &strg Armv7m[@old_cpu]) 
+        requires switch_to_user_pt1_save_clobbers_precondition(old_cpu)
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1_save_clobbers(old_cpu) }
 )]
-pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
+fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
+    // IMPORTANT NOTE - this cannot overwrite the address that r0 is pointing 
+    // to or we overwrite the saved process registers
+
     // push onto stack
     armv7m.push_gpr(GPR::r4());  // sp - 0x4
     armv7m.push_gpr(GPR::r5());  // sp - 0x8
@@ -37,16 +28,24 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12)); // sp - 0x18 + 0xc
 
     // some stmdb stuff
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8());
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8()); // sp - 0x18
     // sl - r10
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10());
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10()); // sp - 0x1c
     // fp - r11
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11());
+    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11()); // sp - 0x20
+}
+
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu]) 
+        requires switch_to_user_pt1_reg_restores_precondition(old_cpu)
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1_reg_restores(old_cpu) }
+)]
+pub fn switch_to_user_part1_reg_restores(armv7m: &mut Armv7m) {
     // mov
     // NOTE: these two saves are pretty funny: we can't mark them as 
     // clobbers directly using rust's register interface but since r6, r7 
-    // are callee saved registers in ARM and we use them in this function
-    // the compiler saves them to the stack anyway
+    // are callee saved registers in ARM and we use them 
+    // the compiler saves them on the stack anyway (see push_gpr in clobber saving)
     armv7m.mov(GPR::r2(), GPR::r6()); 
     armv7m.mov(GPR::r3(), GPR::r7());
     // note ip is intraprocedure scratch register - r12
@@ -57,9 +56,28 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
 
     // ldmia
     armv7m.ldmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
+}
 
+// Part 1: 
+//   0:   b5f0            push    {r4, r5, r6, r7, lr}
+//   2:   af03            add     r7, sp, #12
+//   4:   e92d 0d00       stmdb   sp!, {r8, sl, fp}
+//   8:   4632            mov     r2, r6
+//   a:   463b            mov     r3, r7
+//   c:   46cc            mov     ip, r9
+//   e:   f380 8809       msr     PSP, r0
+//  12:   e891 0ff0       ldmia.w r1, {r4, r5, r6, r7, r8, r9, sl, fp}
+//  16:   dfff            svc     255     @ 0xff
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu])
+        requires switch_to_user_pt1_precondition(old_cpu)
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1(old_cpu) }
+)]
+pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
+    switch_to_user_part1_save_clobbers(armv7m);
+    switch_to_user_part1_reg_restores(armv7m);
     // svc
-    armv7m.svc(0xff);
+    armv7m.svc(0xff); // writes to sp - 0x3c
 }
 
 // Part 2:

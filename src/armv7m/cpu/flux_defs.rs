@@ -444,73 +444,75 @@ flux_rs::defs! {
         )
     }
 
-    fn switch_to_user_pt1_precondition(cpu: Armv7m) -> bool {
+    fn switch_to_user_pt1_save_clobbers_precondition(cpu: Armv7m) -> bool {
         mode_is_thread_privileged(cpu.mode, cpu.control)
         &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4)))
+        is_valid_ram_addr(sp_main(cpu.sp))
         &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x8)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0xc)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x10)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x14)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x18)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x1c)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x20)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x24)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x28)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x2c)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x30)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x34)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x38)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x3c)))
-        &&
-        is_valid_ram_addr(bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x40)))
-        &&
+        is_valid_ram_addr(bv_sub(sp_main(cpu.sp), bv32(0x3c)))
+    }
+
+    fn switch_to_user_pt1_reg_restores_precondition(cpu: Armv7m) -> bool {
         is_valid_ram_addr(get_gpr(r0(), cpu))
-        // &&
-        // is_valid_read_addr(get_gpr(r1(), cpu))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x4)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x8)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0xc)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x10)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x14)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x18)))
-        // &&
-        // is_valid_read_addr(bv_add(get_gpr(r1(), cpu), bv32(0x1c)))
+        &&
+        is_valid_ram_addr(bv_add(get_gpr(r0(), cpu), bv32(0x20)))
+        &&
+        is_valid_ram_addr(get_gpr(r1(), cpu))
+        &&
+        is_valid_ram_addr(bv_add(get_gpr(r1(), cpu), bv32(0x1c)))
+    }
+
+    fn switch_to_user_pt1_precondition(cpu: Armv7m) -> bool {
+        switch_to_user_pt1_save_clobbers_precondition(cpu)
+        &&
+        switch_to_user_pt1_reg_restores_precondition(cpu)
+        &&
+        sp_can_handle_exception_entry(
+            cpu_post_switch_to_user_pt1_reg_restores(
+                cpu_post_switch_to_user_pt1_save_clobbers(cpu)
+            )
+        )
+        &&
+        sp_can_handle_preempt_exception_exit(
+            cpu_post_switch_to_user_pt1_reg_restores(
+                cpu_post_switch_to_user_pt1_save_clobbers(cpu)
+            ),
+            11
+        )
+    }
+
+    fn cpu_post_switch_to_user_pt1_reg_restores(cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            general_regs: gprs_post_switch_to_user_pt1_reg_restores(cpu),
+            sp: SP {
+                sp_process: get_gpr(r0(), cpu),
+                ..cpu.sp
+            },
+            ..cpu
+        }
+    }
+
+    fn cpu_post_switch_to_user_pt1_save_clobbers(cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            mem: mem_post_switch_to_user_pt1_save_clobbers(cpu),
+            sp: SP {
+                sp_main: bv_sub(sp_main(cpu.sp), bv32(0x20)),
+                ..cpu.sp
+            },
+            ..cpu
+        }
     }
 
     fn cpu_post_switch_to_user_pt1(cpu: Armv7m) -> Armv7m {
-        cpu_post_exception_exit(Armv7m {
-            general_regs: gprs_post_switch_to_user_pt1(cpu),
-            sp: SP {
-                sp_process: get_gpr(r0(), cpu),
-                sp_main: bv_sub(sp_main(cpu.sp), bv32(0x28))
-            },
-            mem: mem_post_switch_to_user_pt1(cpu),
-            ..cpu
-        }, 11)
+        cpu_post_exception_exit(
+            cpu_post_switch_to_user_pt1_reg_restores(
+                cpu_post_switch_to_user_pt1_save_clobbers(cpu)
+            ),
+            11
+        )
     }
 
-    fn gprs_post_switch_to_user_pt1(cpu: Armv7m) -> Map<GPR, BV32> {
+    fn gprs_post_switch_to_user_pt1_reg_restores(cpu: Armv7m) -> Map<GPR, BV32> {
         gprs_post_ldmia_w(
             Armv7m {
                 general_regs: map_set(
@@ -532,7 +534,7 @@ flux_rs::defs! {
         )
     }
 
-    fn mem_post_switch_to_user_pt1(cpu: Armv7m) -> Map<BV32, BV32> {
+    fn mem_post_switch_to_user_pt1_save_clobbers(cpu: Armv7m) -> Map<BV32, BV32> {
         map_set(
             map_set(
                 map_set(
@@ -637,17 +639,7 @@ flux_rs::defs! {
     }
 
     fn push_stack_sp_precondition(sp: BV32) -> bool {
-        is_valid_ram_addr(bv_add(sp, bv32(0x4)))
-        &&
-        is_valid_ram_addr(bv_add(sp, bv32(0x8)))
-        &&
-        is_valid_ram_addr(bv_add(sp, bv32(0xc)))
-        &&
-        is_valid_ram_addr(bv_add(sp, bv32(0x10)))
-        &&
-        is_valid_ram_addr(bv_add(sp, bv32(0x14)))
-        &&
-        is_valid_ram_addr(bv_add(sp, bv32(0x18)))
+        is_valid_ram_addr(sp)
         &&
         is_valid_ram_addr(bv_add(sp, bv32(0x1C)))
     }
@@ -656,34 +648,6 @@ flux_rs::defs! {
         // requires we have enough space to push 8 x 4 byte values into mem
         is_valid_ram_addr(
             get_sp(cpu.sp, cpu.mode, cpu.control)
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x8))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0xc))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x10))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x14))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x18))
-        )
-        &&
-        is_valid_ram_addr(
-            bv_sub(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x1c))
         )
         &&
         is_valid_ram_addr(
@@ -697,56 +661,7 @@ flux_rs::defs! {
         is_valid_ram_addr(
             bv_add(
                 sp,
-                bv32(0x04)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0x08)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0xc)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0x10)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0x14)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0x18)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
                 bv32(0x1c)
-            )
-        )
-        &&
-        is_valid_ram_addr(
-            bv_add(
-                sp,
-                bv32(0x20)
             )
         )
     }
@@ -907,47 +822,15 @@ flux_rs::defs! {
         }
     }
 
-
     fn cpu_post_stmdb_no_wback(cpu: Armv7m, rd: int, rm: int) -> Armv7m {
-        if is_psp(rd) {
             Armv7m {
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                sp: set_psp(cpu.sp, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
-                ..cpu
+                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rm, cpu)),
+                ..set_spr(
+                    rd,
+                    cpu,
+                    bv_sub(get_special_reg(rd, cpu), bv32(0x4))
+                )
             }
-        } else if is_sp(rd) {
-            Armv7m {
-                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                ..cpu
-            }
-        } else if is_lr(rd) {
-            Armv7m {
-                lr: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                ..cpu
-            }
-        } else if is_pc(rd) {
-            Armv7m {
-                pc: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                ..cpu
-            }
-        } else if is_control(rd) {
-            Armv7m {
-                control: set_control(cpu.control, cpu.mode, bv_sub(get_special_reg(rd, cpu), bv32(0x4))),
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                ..cpu
-            }
-        } else if is_psr(rd) {
-            Armv7m {
-                psr: bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rd, cpu)),
-                ..cpu
-            }
-        } else {
-            cpu
-        }
     }
 
     fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
