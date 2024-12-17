@@ -7,8 +7,15 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
+
 #[no_mangle]
+#[inline(never)]
+pub fn do_stuff(user_stack: *const usize, process_regs: &mut [usize; 8]) -> *const usize {
+    unsafe { switch_to_user_arm_v7m(user_stack, process_regs) }
+}
+
 #[cfg(any(doc, all(target_arch = "arm", target_os = "none")))]
+#[inline(never)]
 pub unsafe fn switch_to_user_arm_v7m(
     mut user_stack: *const usize,
     process_regs: &mut [usize; 8],

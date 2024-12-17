@@ -18,16 +18,53 @@ flux_rs::defs! {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash)]
 #[flux_rs::opaque]
 #[flux_rs::refined_by(x: bitvec<32>)]
 pub struct BV32(u32);
+
+impl PartialOrd for BV32 {
+    #[flux_rs::trusted]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ule(x, y)])]
+    fn le(&self, other: &Self) -> bool {
+        self.0 <= other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ult(x, y)])]
+    fn lt(&self, other: &Self) -> bool {
+        self.0 < other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_uge(x, y)])]
+    fn ge(&self, other: &Self) -> bool {
+        self.0 >= other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[bv_ugt(x, y)])]
+    fn gt(&self, other: &Self) -> bool {
+        self.0 > other.0
+    }
+}
 
 impl BV32 {
     #[flux_rs::trusted]
     #[flux_rs::sig(fn (BV32[@x], BV32[@y]) -> BV32[bv_add(x, y)])]
     pub fn wrapping_add(self, other: BV32) -> BV32 {
         BV32(self.0.wrapping_add(other.0))
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (u32[@val]) -> BV32[bv32(val)])]
+    pub const fn new(value: u32) -> BV32 {
+        BV32(value)
     }
 }
 
@@ -140,3 +177,5 @@ impl PartialEq for BV32 {
         self.0 != other.0
     }
 }
+
+impl Eq for BV32 {}
