@@ -1,4 +1,4 @@
-use crate::flux_support::bv32::{bv32_gte, bv32_lte, BV32};
+use crate::flux_support::bv32::BV32;
 
 // NVIC
 //
@@ -53,17 +53,17 @@ fn is_valid_nvic_addr(address: BV32) -> bool {
     let iabr_end = IABR_END;
     let ipr_start = IPR_START;
     let ipr_end = IPR_END;
-    if bv32_gte(address, iser_start) && bv32_lte(address, iser_end) {
+    if address >= iser_start && address <= iser_end {
         (address - iser_start) % BV32::from(4) == BV32::from(0)
-    } else if bv32_gte(address, icer_start) && bv32_lte(address, icer_end) {
+    } else if address >= icer_start && address <= icer_end {
         (address - icer_start) % BV32::from(4) == BV32::from(0)
-    } else if bv32_gte(address, ispr_start) && bv32_lte(address, ispr_end) {
+    } else if address >= ispr_start && address <= ispr_end {
         (address - ispr_start) % BV32::from(4) == BV32::from(0)
-    } else if bv32_gte(address, icpr_start) && bv32_lte(address, icpr_end) {
+    } else if address >= icpr_start && address <= icpr_end {
         (address - icpr_start) % BV32::from(4) == BV32::from(0)
-    } else if bv32_gte(address, iabr_start) && bv32_lte(address, iabr_end) {
+    } else if address >= iabr_start && address <= iabr_end {
         (address - iabr_start) % BV32::from(4) == BV32::from(0)
-    } else if bv32_gte(address, ipr_start) && bv32_lte(address, ipr_end) {
+    } else if address >= ipr_start && address <= ipr_end {
         (address - ipr_start) % BV32::from(4) == BV32::from(0)
     } else {
         false

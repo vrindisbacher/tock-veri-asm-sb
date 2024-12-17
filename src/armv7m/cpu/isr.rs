@@ -16,7 +16,7 @@ flux_rs::defs! {
     }
 
     fn isr_r2(old_cpu: Armv7m) -> BV32 {
-        right_shift(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(32))
+        right_shift(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(5))
     }
 
     fn isr_offset(old_cpu: Armv7m) -> BV32 {
@@ -29,7 +29,10 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
-        requires get_special_reg(ipsr(), old_cpu) >= bv32(16) && mode_is_handler(old_cpu.mode)
+        requires 
+            get_special_reg(ipsr(), old_cpu) >= bv32(16)
+            &&
+            mode_is_handler(old_cpu.mode)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 mem: update_mem(
                      bv_add(bv32(0xe000_e200), isr_offset(old_cpu)),

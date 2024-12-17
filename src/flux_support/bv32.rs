@@ -18,10 +18,41 @@ flux_rs::defs! {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialOrd)]
+#[derive(Debug, Clone, Copy, Hash)]
 #[flux_rs::opaque]
 #[flux_rs::refined_by(x: bitvec<32>)]
 pub struct BV32(u32);
+
+impl PartialOrd for BV32 {
+    #[flux_rs::trusted]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x <= y])]
+    fn le(&self, other: &Self) -> bool {
+        self.0 <= other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x < y])]
+    fn lt(&self, other: &Self) -> bool {
+        self.0 < other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x >= y])]
+    fn ge(&self, other: &Self) -> bool {
+        self.0 >= other.0
+    }
+
+    #[flux_rs::trusted]
+    #[flux_rs::sig(fn (&BV32[@x], &BV32[@y]) -> bool[x > y])]
+    fn gt(&self, other: &Self) -> bool {
+        self.0 > other.0
+    }
+}
 
 impl BV32 {
     #[flux_rs::trusted]
@@ -145,18 +176,6 @@ impl PartialEq for BV32 {
     fn ne(&self, other: &Self) -> bool {
         self.0 != other.0
     }
-}
-
-#[flux_rs::trusted]
-#[flux_rs::sig(fn (BV32[@val1], BV32[@val2]) -> bool[val1 <= val2])]
-pub fn bv32_lte(val1: BV32, val2: BV32) -> bool {
-    val1.0 <= val2.0
-}
-
-#[flux_rs::trusted]
-#[flux_rs::sig(fn (BV32[@val1], BV32[@val2]) -> bool[val1 >= val2])]
-pub fn bv32_gte(val1: BV32, val2: BV32) -> bool {
-    val1.0 >= val2.0
 }
 
 impl Eq for BV32 {}
