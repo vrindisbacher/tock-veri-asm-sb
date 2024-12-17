@@ -16,8 +16,8 @@ impl Armv7m {
         // this is basically identical to push because there is no write back
         // only difference is that it doesn't update sp directly
         let addr = self.get_value_from_special_reg(&rd) - BV32::from(0x4);
+        self.update_special_reg_with_b32(rd, addr);
         let val = self.get_value_from_general_reg(&rm);
         self.mem.write(addr, val);
-        self.update_special_reg_with_b32(rd, addr);
     }
 }

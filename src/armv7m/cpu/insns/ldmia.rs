@@ -16,21 +16,21 @@ impl Armv7m {
             GPR[@rm8],
         ) 
         requires 
-            is_valid_ram_addr(get_gpr(rd, old_cpu))
+            is_valid_read_addr(get_gpr(rd, old_cpu))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x4)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x4)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x8)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x8)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0xc)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0xc)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x10)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x10)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x14)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x14)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x18)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x18)))
             &&
-            is_valid_ram_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x1c)))
+            is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x1c)))
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w(old_cpu, rd, rm1, rm2, rm3, rm4, rm5, rm6, rm7, rm8),
                 ..old_cpu
@@ -84,11 +84,11 @@ impl Armv7m {
             GPR[@rm3],
         ) 
         requires 
-            is_valid_ram_addr(get_special_reg(rd, old_cpu))
+            is_valid_read_addr(get_special_reg(rd, old_cpu))
             &&
-            is_valid_ram_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
             &&
-            is_valid_ram_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_ldmia_w_special(old_cpu, rd, rm1, rm2, rm3),
                 ..old_cpu
@@ -117,11 +117,11 @@ impl Armv7m {
             BV32[get_mem_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)), old_cpu.mem)],
         )
         requires 
-            is_valid_ram_addr(get_special_reg(rd, old_cpu))
+            is_valid_read_addr(get_special_reg(rd, old_cpu))
             &&
-            is_valid_ram_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
             &&
-            is_valid_ram_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
     )]
     pub fn ldmia_w_special_get_vals(
         &mut self,
