@@ -229,7 +229,7 @@ flux_rs::defs! {
 
     fn is_valid_ram_addr(address: BV32) -> bool {
         // TODO(VR): alignment?
-        address >= RAM_START && address <= RAM_END
+        bv_uge(address, RAM_START) && bv_ule(address, RAM_END)
     }
 
     fn is_valid_read_addr(address: BV32) -> bool {

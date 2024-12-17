@@ -26,11 +26,10 @@ flux_rs::defs! {
 
 impl Armv7m {
 
-
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) 
         requires 
-            get_special_reg(ipsr(), old_cpu) >= bv32(16)
+            bv_uge(get_special_reg(ipsr(), old_cpu), bv32(16))
             &&
             mode_is_handler(old_cpu.mode)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
