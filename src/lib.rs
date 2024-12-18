@@ -169,6 +169,7 @@ fn process(armv7m: &mut Armv7m) {}
             &&
             sp_main(old_cpu.sp) == bv32(0x6050_0000) 
        ensures self: Armv7m { new_cpu: 
+           // r0, r2, r3, and r12 are clobbered but are caller saved
            get_gpr(r1(), new_cpu) == get_gpr(r1(), old_cpu)
            &&
            get_gpr(r4(), new_cpu) == get_gpr(r4(), old_cpu)
@@ -186,6 +187,10 @@ fn process(armv7m: &mut Armv7m) {}
            get_gpr(r10(), new_cpu) == get_gpr(r10(), old_cpu)
            &&
            get_gpr(r11(), new_cpu) == get_gpr(r11(), old_cpu)
+           &&
+           get_special_reg(lr(), new_cpu) == get_special_reg(lr(), old_cpu)
+           &&
+           get_special_reg(psr(), new_cpu) == get_special_reg(psr(), old_cpu)
            &&
            new_cpu.pc == old_cpu.lr
        }
@@ -249,12 +254,8 @@ fn kernel(armv7m: &mut Armv7m) {}
             mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
             &&
             // the hardware stacked r1 (which has the addr of our stored registers
-            // field) is valid
-            is_valid_ram_addr(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem))
-            &&
-            is_valid_ram_addr(
-                bv_add(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem), bv32(0x1c))
-            )
+            // field) is valid and is far enough away from sp_main
+            get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem) == bv32(0x7000_0020)
             &&
             // sp process and sp main are far apart
             sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
@@ -263,8 +264,35 @@ fn kernel(armv7m: &mut Armv7m) {}
         ensures self: Armv7m { new_cpu: 
             sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
             &&
+            get_gpr(r0(), old_cpu) == get_gpr(r0(), new_cpu)
+            &&
+            get_gpr(r1(), old_cpu) == get_gpr(r1(), new_cpu)
+            &&
+            get_gpr(r2(), old_cpu) == get_gpr(r2(), new_cpu)
+            &&
             get_gpr(r3(), old_cpu) == get_gpr(r3(), new_cpu)
-            // get_gpr(r4(), old_cpu) == get_gpr(r4(), new_cpu)
+            &&
+            get_gpr(r4(), old_cpu) == get_gpr(r4(), new_cpu)
+            &&
+            get_gpr(r5(), new_cpu) == get_gpr(r5(), old_cpu)
+            &&
+            get_gpr(r6(), new_cpu) == get_gpr(r6(), old_cpu)
+            &&
+            get_gpr(r7(), new_cpu) == get_gpr(r7(), old_cpu)
+            &&
+            get_gpr(r8(), new_cpu) == get_gpr(r8(), old_cpu)
+            &&
+            get_gpr(r9(), new_cpu) == get_gpr(r9(), old_cpu)
+            &&
+            get_gpr(r10(), new_cpu) == get_gpr(r10(), old_cpu)
+            &&
+            get_gpr(r11(), new_cpu) == get_gpr(r11(), old_cpu)
+            &&
+            get_gpr(r12(), new_cpu) == get_gpr(r12(), old_cpu)
+            &&
+            get_special_reg(lr(), new_cpu) == get_special_reg(lr(), old_cpu)
+            &&
+            get_special_reg(psr(), new_cpu) == get_special_reg(psr(), old_cpu)
         }
 )]
 pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: u8) {
@@ -272,30 +300,11 @@ pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: 
     // arbitrary code executing gets preempted
     armv7m.preempt(exception_num);
 
-    // first hardware stacked register = r0 process
-    let process_sp_first = armv7m.mem.read(armv7m.sp.sp_process);
-    // NOTE: This passes
-    assert(process_sp_first == r0_process);
-
     // run second half of switch to user code
     switch_to_user_part2(armv7m); // sp process is put into r0
-  
-    // r0 = sp_process
-    let r0 = *armv7m.general_regs.get(&GPR::r0()).unwrap();
-    let sp_process = armv7m.sp.sp_process;
-    assert(r0 == sp_process);
-
-    // first hardware stacked register = r0 process
-    let process_sp_first = armv7m.mem.read(armv7m.sp.sp_process);
-    // NOTE: This does not - which means switch_to_user is 
-    // possibly overwriting this memory?
-    assert(process_sp_first == r0_process);
 
     // random kernel code that blows up our state
     kernel(armv7m); // the kernel has to save r0 here and restore it
-
-    // sanity check the checking
-    assert(false);
 
     // back to process
     switch_to_user_part1(armv7m);
