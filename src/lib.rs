@@ -151,7 +151,7 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
         && 
         sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
         &&
-        kernel_register_stack_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
+        register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
         &&
         sp_can_handle_exception_entry(new_cpu)
     }
@@ -235,94 +235,10 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
             sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
             &&
             // and we need to preserve where the process regs are saved
-            map_get(
-                old_cpu.mem,
-                get_gpr(r1(), old_cpu)
-            ) == map_get(
-                new_cpu.mem,
-                get_gpr(r1(), old_cpu)
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x4))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x4))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x8))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x8))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0xc))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0xc))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x10))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x10))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x14))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x14))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x18))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x18))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x1c))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(get_gpr(r1(), old_cpu), bv32(0x1c))
-            )
+            register_frame_preserved(get_gpr(r1(), old_cpu), old_cpu, new_cpu)
             // and we need to preserve the hardware stacked process registers stack frame
             &&
-            map_get(
-                old_cpu.mem,
-                sp_process(old_cpu.sp)
-            ) == map_get(
-                new_cpu.mem,
-                sp_process(new_cpu.sp)
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(sp_process(old_cpu.sp), bv32(0x4))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(sp_process(new_cpu.sp), bv32(0x4))
-            )
-            &&
-            map_get(
-                old_cpu.mem,
-                bv_add(sp_process(old_cpu.sp), bv32(0x8))
-            ) == map_get(
-                new_cpu.mem,
-                bv_add(sp_process(new_cpu.sp), bv32(0x8))
-            )
+            register_frame_preserved(sp_process(old_cpu.sp), old_cpu, new_cpu)
         }
 )]
 fn kernel(armv7m: &mut Armv7m) {}
@@ -333,29 +249,52 @@ fn kernel(armv7m: &mut Armv7m) {}
             mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
             &&
             // the hardware stacked r1 (which has the addr of our stored registers
-            // field is valid
+            // field) is valid
             is_valid_ram_addr(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem))
             &&
             is_valid_ram_addr(
                 bv_add(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem), bv32(0x1c))
             )
             &&
+            // sp process and sp main are far apart
             sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
+            &&
+            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
         ensures self: Armv7m { new_cpu: 
-            get_gpr(r1(), old_cpu) == get_gpr(r1(), new_cpu)
-            // old_cpu.general_regs == new_cpu.general_regs
+            sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
+            &&
+            get_gpr(r3(), old_cpu) == get_gpr(r3(), new_cpu)
+            // get_gpr(r4(), old_cpu) == get_gpr(r4(), new_cpu)
         }
 )]
 pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: u8) {
+    let r0_process = *armv7m.general_regs.get(&GPR::r0()).unwrap();
     // arbitrary code executing gets preempted
     armv7m.preempt(exception_num);
 
-    // kick in a switch_to_user_part2
-    switch_to_user_part2(armv7m);
+    // first hardware stacked register = r0 process
+    let process_sp_first = armv7m.mem.read(armv7m.sp.sp_process);
+    // NOTE: This passes
+    assert(process_sp_first == r0_process);
+
+    // run second half of switch to user code
+    switch_to_user_part2(armv7m); // sp process is put into r0
+  
+    // r0 = sp_process
+    let r0 = *armv7m.general_regs.get(&GPR::r0()).unwrap();
+    let sp_process = armv7m.sp.sp_process;
+    assert(r0 == sp_process);
+
+    // first hardware stacked register = r0 process
+    let process_sp_first = armv7m.mem.read(armv7m.sp.sp_process);
+    // NOTE: This does not - which means switch_to_user is 
+    // possibly overwriting this memory?
+    assert(process_sp_first == r0_process);
 
     // random kernel code that blows up our state
-    kernel(armv7m);
+    kernel(armv7m); // the kernel has to save r0 here and restore it
 
+    // sanity check the checking
     assert(false);
 
     // back to process
@@ -385,7 +324,7 @@ mod arm_test {
             && 
             sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
             &&
-            kernel_register_stack_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
+            register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
             &&
             sp_can_handle_exception_entry(new_cpu)
         }

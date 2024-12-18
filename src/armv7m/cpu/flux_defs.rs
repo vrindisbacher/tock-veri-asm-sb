@@ -158,133 +158,133 @@ flux_rs::defs! {
         )
     }
 
-    fn kernel_register_stack_frame_preserved(sp: BV32, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
+    fn register_frame_preserved(addr: BV32, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
         map_get(
             old_cpu.mem,
-            sp
+            addr
         ) == map_get(
             new_cpu.mem,
-            sp
+            addr
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x4))
+            bv_add(addr, bv32(0x4))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x4))
+            bv_add(addr, bv32(0x4))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x8))
+            bv_add(addr, bv32(0x8))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x8))
+            bv_add(addr, bv32(0x8))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0xc))
+            bv_add(addr, bv32(0xc))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0xc))
+            bv_add(addr, bv32(0xc))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x10))
+            bv_add(addr, bv32(0x10))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x10))
+            bv_add(addr, bv32(0x10))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x14))
+            bv_add(addr, bv32(0x14))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x14))
+            bv_add(addr, bv32(0x14))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x18))
+            bv_add(addr, bv32(0x18))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x18))
+            bv_add(addr, bv32(0x18))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x1c))
+            bv_add(addr, bv32(0x1c))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x1c))
+            bv_add(addr, bv32(0x1c))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x20))
+            bv_add(addr, bv32(0x20))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x20))
+            bv_add(addr, bv32(0x20))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x24))
+            bv_add(addr, bv32(0x24))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x24))
+            bv_add(addr, bv32(0x24))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x28))
+            bv_add(addr, bv32(0x28))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x28))
+            bv_add(addr, bv32(0x28))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x2c))
+            bv_add(addr, bv32(0x2c))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x2c))
+            bv_add(addr, bv32(0x2c))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x30))
+            bv_add(addr, bv32(0x30))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x30))
+            bv_add(addr, bv32(0x30))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x34))
+            bv_add(addr, bv32(0x34))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x34))
+            bv_add(addr, bv32(0x34))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x38))
+            bv_add(addr, bv32(0x38))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x38))
+            bv_add(addr, bv32(0x38))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x3c))
+            bv_add(addr, bv32(0x3c))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x3c))
+            bv_add(addr, bv32(0x3c))
         )
     }
 
