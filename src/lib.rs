@@ -7,8 +7,11 @@ use armv7m::{
 };
 use flux_support::bv32::BV32;
 
-pub mod armv7m;
+mod armv7m;
 mod flux_support;
+
+#[flux_rs::sig(fn (bool[true]))]
+pub fn assert(b: bool) {}
 
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu]) 
@@ -19,24 +22,16 @@ fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
     // IMPORTANT NOTE - this cannot overwrite the address that r0 is pointing
     // to or we overwrite the saved process registers
 
-    // push onto stack
-    armv7m.push_gpr(GPR::r4()); // sp - 0x4
-    armv7m.push_gpr(GPR::r5()); // sp - 0x8
-    armv7m.push_gpr(GPR::r6()); // sp - 0xc
-    armv7m.push_gpr(GPR::r7()); // sp - 0x10
-                                // NOTE: This is because lr holds the value of the next instruction to
-                                // execute once switch_to_user returns
-    armv7m.push_spr(SpecialRegister::lr()); // sp - 0x14
+    // push 
+    // NOTE: pushing lr is because lr holds the value of the next instruction to
+    // execute once switch_to_user returns
+    armv7m.push(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::lr());
 
     // add imm - WTF is this even doing here
     // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12)); // sp - 0x18 + 0xc
 
-    // some stmdb stuff
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8()); // sp - 0x18
-                                                             // sl - r10
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10()); // sp - 0x1c
-                                                              // fp - r11
-    armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11()); // sp - 0x20
+    // stmdb
+    armv7m.stmdb_wback(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
 }
 
 #[flux_rs::sig(
@@ -122,15 +117,8 @@ pub fn switch_to_user_part2_restore_clobbers(armv7m: &mut Armv7m) {
     armv7m.mov(GPR::r6(), GPR::r2());
     armv7m.mov(GPR::r7(), GPR::r3());
     armv7m.mov(GPR::r9(), GPR::r12());
-    armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); // sp, sp + 0x4, sp + 0x8
-    armv7m.pop_gpr(GPR::r4()); // sp + 0xc
-    armv7m.pop_gpr(GPR::r5()); // sp + 0x10
-    armv7m.pop_gpr(GPR::r6()); // sp + 0x14
-    armv7m.pop_gpr(GPR::r7()); // sp + 0x18
-                               // NOTE: This is because we previously pushed lr (which contains the return address
-                               // for the next instruction after switch_to_user finishes)
-                               // and we want to branch to it
-    armv7m.pop_spr(SpecialRegister::pc()) // sp + 0x1c
+    armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
+    armv7m.pop(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::pc()); 
 }
 
 // Part 2:
@@ -170,46 +158,63 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
 )]
 fn process(armv7m: &mut Armv7m) {}
 
-#[flux_rs::trusted]
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
        requires 
-           mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
-           && 
-           sp_can_handle_exception_entry(old_cpu)
+            mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+            &&
+            get_gpr(r0(), old_cpu) == bv32(0x8FFF_FFFF) 
+            &&
+            get_gpr(r1(), old_cpu) == bv32(0x7000_0020)
+            &&
+            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
+       ensures self: Armv7m { new_cpu: 
+           get_gpr(r1(), new_cpu) == get_gpr(r1(), old_cpu)
            &&
-           // Here: 
-           //   1. sp main will grow downwards by 0x20
-           //   2. sp_process will grow upwards by 0x20 
-           //   3. sp_process will grow downwards by 0x20
-           //   4. sp_main will grow upwards by 0x20
-           //
-           (
-               // sp main needs a buffer of 0x20 bytes on sp_process to grow downwards
-               sp_main(old_cpu.sp) == bv32(0x6000_0020)
-               &&
-               sp_process(old_cpu.sp) == bv32(0x8FFF_FFFF)
-               // sp_main(old_cpu.sp) > bv_add(sp_process(old_cpu.sp), bv32(0x20))
-               // ||
-               // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
-               // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
-           )
-           // && sp_can_handle_exception_exit(old_cpu, 11)
-       ensures self: Armv7m 
+           get_gpr(r4(), new_cpu) == get_gpr(r4(), old_cpu)
+           // &&
+           // get_gpr(r5(), new_cpu) == get_gpr(r5(), old_cpu)
+           // &&
+           // get_gpr(r6(), new_cpu) == get_gpr(r6(), old_cpu)
+           // &&
+           // get_gpr(r7(), new_cpu) == get_gpr(r7(), old_cpu)
+           // &&
+           // get_gpr(r8(), new_cpu) == get_gpr(r8(), old_cpu)
+           // &&
+           // get_gpr(r9(), new_cpu) == get_gpr(r9(), old_cpu)
+           // &&
+           // get_gpr(r10(), new_cpu) == get_gpr(r10(), old_cpu)
+           // &&
+           // get_gpr(r11(), new_cpu) == get_gpr(r11(), old_cpu)
+           // &&
+           // new_cpu.pc == old_cpu.lr
+       }
 )]
 pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
+    // get r1 at the beginning of this so we can assert some 
+    // facts with it later
+    let original_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
+
     // context switch asm
     switch_to_user_part1(armv7m);
+
     // run a process
     process(armv7m);
     // preempt the process with an arbitrary exception number
     armv7m.preempt(exception_num);
+
+    // r1 can absolutely not change here - otherwise 
+    // we will save registers to the wrong place
+    let curr_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
+    assert(original_r1 == curr_r1);
+    
     // run the rest of the context switch asm
     switch_to_user_part2(armv7m);
 }
 
 mod arm_test {
     use crate::{
+        assert,
         armv7m::{
             cpu::{Armv7m, SP},
             lang::{SpecialRegister, GPR},
@@ -267,7 +272,7 @@ mod arm_test {
     )]
     fn full_circle(armv7m: &mut Armv7m, exception_number: u8) {
         // executes some kernel logic
-        armv7m.movs_imm(GPR::r0(), BV32::from(10));
+        armv7m.movw_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
         process(armv7m);

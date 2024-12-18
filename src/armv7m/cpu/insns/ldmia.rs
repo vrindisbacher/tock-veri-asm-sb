@@ -111,6 +111,9 @@ impl Armv7m {
     pub fn ldmia_w_special(&mut self, rd: SpecialRegister, rm1: GPR, rm2: GPR, rm3: GPR) {
         // NOTE: This is variant ldmia.w rd! { ... } so updates to rd are written back to the
         // register
+        // 
+        // lowest memory values are written to lowest registers but we can cheat a bit here
+        // because our use case passes regs in order
         let (val1, val2, val3) = self.ldmia_w_special_get_vals(rd);
         self.ldmia_w_special_update_gprs(rm1, val1, rm2, val2, rm3, val3);
     }
