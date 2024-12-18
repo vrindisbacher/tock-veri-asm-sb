@@ -1,9 +1,11 @@
-use crate::{armv7m::lang::{SpecialRegister, GPR}, flux_support::bv32::BV32};
+use crate::{
+    armv7m::lang::{SpecialRegister, GPR},
+    flux_support::bv32::BV32,
+};
 
 use super::{Armv7m, CPUMode, Control};
 
 impl Armv7m {
-
     #[flux_rs::sig(
         fn (&mut Armv7m[@cpu]) -> (
             BV32[get_gpr(r0(), cpu)],
@@ -56,7 +58,16 @@ impl Armv7m {
                 ..cpu
             }}
     )]
-    fn push_stack_write_gpr_vals(&mut self, r0: BV32, r1: BV32, r2: BV32, r3: BV32, r12: BV32, lr: BV32, psr: BV32) {
+    fn push_stack_write_gpr_vals(
+        &mut self,
+        r0: BV32,
+        r1: BV32,
+        r2: BV32,
+        r3: BV32,
+        r12: BV32,
+        lr: BV32,
+        psr: BV32,
+    ) {
         let frame_ptr = self.get_value_from_special_reg(&SpecialRegister::sp());
         self.mem.write(frame_ptr, r0);
         self.mem.write(frame_ptr + BV32::from(0x4), r1);
@@ -177,10 +188,13 @@ impl Armv7m {
         )
         requires sp_can_handle_exception_exit(fp)
     )]
-    fn exception_exit_read_regs(&self, frame_ptr: BV32) -> (BV32, BV32, BV32, BV32, BV32, BV32, BV32) {
+    fn exception_exit_read_regs(
+        &self,
+        frame_ptr: BV32,
+    ) -> (BV32, BV32, BV32, BV32, BV32, BV32, BV32) {
         let r0 = self.mem.read(frame_ptr);
         let r1 = self.mem.read(frame_ptr + BV32::from(0x4));
-        let r2 =  self.mem.read(frame_ptr + BV32::from(0x8));
+        let r2 = self.mem.read(frame_ptr + BV32::from(0x8));
         let r3 = self.mem.read(frame_ptr + BV32::from(0xC));
         let r12 = self.mem.read(frame_ptr + BV32::from(0x10));
         let lr = self.mem.read(frame_ptr + BV32::from(0x14));
@@ -207,7 +221,16 @@ impl Armv7m {
             }
         }
     )]
-    fn exception_exit_write_regs(&mut self, r0: BV32, r1: BV32, r2: BV32, r3: BV32, r12: BV32, lr: BV32, psr: BV32) {
+    fn exception_exit_write_regs(
+        &mut self,
+        r0: BV32,
+        r1: BV32,
+        r2: BV32,
+        r3: BV32,
+        r12: BV32,
+        lr: BV32,
+        psr: BV32,
+    ) {
         self.update_general_reg_with_b32(GPR::r0(), r0);
         self.update_general_reg_with_b32(GPR::r1(), r1);
         self.update_general_reg_with_b32(GPR::r2(), r2);
@@ -258,15 +281,12 @@ impl Armv7m {
                 sp_can_handle_preempt_exception_exit(cpu, exception_num) 
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
     )]
-    pub fn preempt(
-        &mut self,
-        exception_number: u8,
-    ) {
+    pub fn preempt(&mut self, exception_number: u8) {
         // stack
         self.exception_entry(exception_number);
         // call isr
         let ret_value = self.run_isr(exception_number);
         // unstack
         self.exception_exit(ret_value);
-    } 
+    }
 }

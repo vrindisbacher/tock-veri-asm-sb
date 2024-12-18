@@ -21,8 +21,7 @@ impl Armv7m {
             }
     )]
     pub fn push_gpr(&mut self, reg: GPR) {
-        let sp = self
-            .get_value_from_special_reg(&SpecialRegister::sp()) - BV32::from(0x4);
+        let sp = self.get_value_from_special_reg(&SpecialRegister::sp()) - BV32::from(0x4);
         let val = self.get_value_from_general_reg(&reg);
         self.mem.write(sp, val);
         self.update_special_reg_with_b32(SpecialRegister::sp(), BV32::from(sp));
@@ -40,8 +39,7 @@ impl Armv7m {
     )]
     pub fn push_spr(&mut self, reg: SpecialRegister) {
         // address = SP - 4*BitCount(registers);
-        let sp = self
-            .get_value_from_special_reg(&SpecialRegister::sp()) - BV32::from(0x4);
+        let sp = self.get_value_from_special_reg(&SpecialRegister::sp()) - BV32::from(0x4);
         let val = self.get_value_from_special_reg(&reg);
         self.mem.write(sp, val);
         self.update_special_reg_with_b32(SpecialRegister::sp(), BV32::from(sp));

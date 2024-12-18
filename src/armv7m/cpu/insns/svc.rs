@@ -1,7 +1,6 @@
 use crate::armv7m::cpu::Armv7m;
 
 impl Armv7m {
-
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@svc_num]) 
             requires 

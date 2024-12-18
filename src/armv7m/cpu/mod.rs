@@ -1,8 +1,8 @@
+mod exception;
 mod flux_defs;
 mod insns;
-mod psr;
-mod exception;
 mod isr;
+mod psr;
 
 use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
@@ -119,9 +119,7 @@ impl Armv7m {
     #[flux_rs::sig(fn (&Armv7m[@cpu], &SpecialRegister[@reg]) -> BV32[get_special_reg(reg, cpu)])]
     fn get_value_from_special_reg(&self, register: &SpecialRegister) -> BV32 {
         match register {
-            SpecialRegister::PSP => {
-                self.sp.sp_process
-            }
+            SpecialRegister::PSP => self.sp.sp_process,
             SpecialRegister::Sp => {
                 // Thread mode: Main, else
                 // check spsel
