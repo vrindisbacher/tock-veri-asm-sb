@@ -158,69 +158,133 @@ flux_rs::defs! {
         )
     }
 
-    fn kernel_register_stack_frame_preserved(sp: BV32, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
+    fn register_frame_preserved(addr: BV32, old_cpu: Armv7m, new_cpu: Armv7m) -> bool {
         map_get(
             old_cpu.mem,
-            sp
+            addr
         ) == map_get(
             new_cpu.mem,
-            sp
+            addr
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x4))
+            bv_add(addr, bv32(0x4))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x4))
+            bv_add(addr, bv32(0x4))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x8))
+            bv_add(addr, bv32(0x8))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x8))
+            bv_add(addr, bv32(0x8))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0xc))
+            bv_add(addr, bv32(0xc))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0xc))
+            bv_add(addr, bv32(0xc))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x10))
+            bv_add(addr, bv32(0x10))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x10))
+            bv_add(addr, bv32(0x10))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x14))
+            bv_add(addr, bv32(0x14))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x14))
+            bv_add(addr, bv32(0x14))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x18))
+            bv_add(addr, bv32(0x18))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x18))
+            bv_add(addr, bv32(0x18))
         )
         &&
         map_get(
             old_cpu.mem,
-            bv_add(sp, bv32(0x1c))
+            bv_add(addr, bv32(0x1c))
         ) == map_get(
             new_cpu.mem,
-            bv_add(sp, bv32(0x1c))
+            bv_add(addr, bv32(0x1c))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x20))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x20))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x24))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x24))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x28))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x28))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x2c))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x2c))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x30))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x30))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x34))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x34))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x38))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x38))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(addr, bv32(0x3c))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(addr, bv32(0x3c))
         )
     }
 
@@ -522,28 +586,28 @@ flux_rs::defs! {
                                 map_set(
                                     map_set(
                                         cpu.mem,
-                                        bv_sub(sp_main(cpu.sp), bv32(0x4)),
+                                        bv_sub(sp_main(cpu.sp), bv32(0x14)),
                                         get_gpr(r4(), cpu)
                                     ),
-                                    bv_sub(sp_main(cpu.sp), bv32(0x8)),
+                                    bv_sub(sp_main(cpu.sp), bv32(0x10)),
                                     get_gpr(r5(), cpu)
                                 ),
                                 bv_sub(sp_main(cpu.sp), bv32(0xc)),
                                 get_gpr(r6(), cpu)
                             ),
-                            bv_sub(sp_main(cpu.sp), bv32(0x10)),
+                            bv_sub(sp_main(cpu.sp), bv32(0x8)),
                             get_gpr(r7(), cpu)
                         ),
-                        bv_sub(sp_main(cpu.sp), bv32(0x14)),
+                        bv_sub(sp_main(cpu.sp), bv32(0x4)),
                         cpu.lr
                     ),
-                    bv_sub(sp_main(cpu.sp), bv32(0x18)),
+                    bv_sub(sp_main(cpu.sp), bv32(0x20)),
                     get_gpr(r8(), cpu),
                 ),
                 bv_sub(sp_main(cpu.sp), bv32(0x1c)),
                 get_gpr(r10(), cpu),
             ),
-            bv_sub(sp_main(cpu.sp), bv32(0x20)),
+            bv_sub(sp_main(cpu.sp), bv32(0x18)),
             get_gpr(r11(), cpu),
         )
     }
@@ -703,11 +767,11 @@ flux_rs::defs! {
     }
 
     fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
-        mode == 1 && !control.spsel
+        mode == 1 && !control.spsel // TODO: Fix this && !control.npriv
     }
 
     fn mode_is_thread_unprivileged(mode: int, control: Control) -> bool {
-        mode == 1 && control.spsel
+        mode == 1 && control.spsel // TODO: Fix this && control.npriv
     }
 
     fn sp_main(sp: SP) -> BV32 {
@@ -858,13 +922,63 @@ flux_rs::defs! {
         )
     }
 
-    fn cpu_post_stmdb_no_wback(cpu: Armv7m, rd: int, rm: int) -> Armv7m {
+    fn mem_post_stmdb_wback(
+        cpu: Armv7m,
+        rd: int,
+        r1: int,
+        r2: int,
+        r3: int,
+    ) -> Map<BV32, BV32> {
+        map_set(
+            map_set(
+                map_set(
+                    cpu.mem,
+                    bv_sub(get_special_reg(rd, cpu), bv32(0xc)),
+                    get_gpr(r1, cpu)
+                ),
+                bv_sub(get_special_reg(rd, cpu), bv32(0x8)),
+                get_gpr(r2, cpu)
+            ),
+            bv_sub(get_special_reg(rd, cpu), bv32(0x4)),
+            get_gpr(r3, cpu)
+        )
+    }
+
+    fn cpu_post_pop(cpu: Armv7m, r1: int, r2: int, r3: int, r4: int, r5: int) -> Armv7m {
+        set_spr(
+            sp(),
+            set_spr(
+                r5,
+                Armv7m {
+                    general_regs: gprs_post_pop(
+                        cpu,
+                        get_sp(cpu.sp, cpu.mode, cpu.control),
+                        r1,
+                        r2,
+                        r3,
+                        r4
+                    ),
+                    ..cpu
+                },
+                get_mem_addr(
+                    bv_add(
+                        get_sp(cpu.sp, cpu.mode, cpu.control),
+                        bv32(0x10)
+                    ),
+                    cpu.mem
+                )
+            ),
+            bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x14))
+        )
+    }
+
+    fn cpu_post_stmdb_wback(cpu: Armv7m, rd: int, r1: int, r2: int, r3: int) -> Armv7m {
             Armv7m {
-                mem: update_mem(bv_sub(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem, get_gpr(rm, cpu)),
+                mem: mem_post_stmdb_wback(cpu, rd, r1, r2, r3),
                 ..set_spr(
                     rd,
                     cpu,
-                    bv_sub(get_special_reg(rd, cpu), bv32(0x4))
+                    bv_sub(get_special_reg(rd, cpu), bv32(0xc))
                 )
             }
     }
