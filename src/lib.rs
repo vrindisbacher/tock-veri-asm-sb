@@ -172,27 +172,26 @@ fn process(armv7m: &mut Armv7m) {}
            get_gpr(r1(), new_cpu) == get_gpr(r1(), old_cpu)
            &&
            get_gpr(r4(), new_cpu) == get_gpr(r4(), old_cpu)
-           // &&
-           // get_gpr(r5(), new_cpu) == get_gpr(r5(), old_cpu)
-           // &&
-           // get_gpr(r6(), new_cpu) == get_gpr(r6(), old_cpu)
-           // &&
-           // get_gpr(r7(), new_cpu) == get_gpr(r7(), old_cpu)
-           // &&
-           // get_gpr(r8(), new_cpu) == get_gpr(r8(), old_cpu)
-           // &&
-           // get_gpr(r9(), new_cpu) == get_gpr(r9(), old_cpu)
-           // &&
-           // get_gpr(r10(), new_cpu) == get_gpr(r10(), old_cpu)
-           // &&
-           // get_gpr(r11(), new_cpu) == get_gpr(r11(), old_cpu)
-           // &&
-           // new_cpu.pc == old_cpu.lr
+           &&
+           get_gpr(r5(), new_cpu) == get_gpr(r5(), old_cpu)
+           &&
+           get_gpr(r6(), new_cpu) == get_gpr(r6(), old_cpu)
+           &&
+           get_gpr(r7(), new_cpu) == get_gpr(r7(), old_cpu)
+           &&
+           get_gpr(r8(), new_cpu) == get_gpr(r8(), old_cpu)
+           &&
+           get_gpr(r9(), new_cpu) == get_gpr(r9(), old_cpu)
+           &&
+           get_gpr(r10(), new_cpu) == get_gpr(r10(), old_cpu)
+           &&
+           get_gpr(r11(), new_cpu) == get_gpr(r11(), old_cpu)
+           &&
+           new_cpu.pc == old_cpu.lr
        }
 )]
 pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
-    // get r1 at the beginning of this so we can assert some 
-    // facts with it later
+    // get r1 at the beginning of this so we can assert some facts with it later
     let original_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
 
     // context switch asm
@@ -200,6 +199,7 @@ pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
 
     // run a process
     process(armv7m);
+
     // preempt the process with an arbitrary exception number
     armv7m.preempt(exception_num);
 
@@ -207,7 +207,7 @@ pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
     // we will save registers to the wrong place
     let curr_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
     assert(original_r1 == curr_r1);
-    
+ 
     // run the rest of the context switch asm
     switch_to_user_part2(armv7m);
 }
@@ -280,5 +280,26 @@ mod arm_test {
         armv7m.preempt(exception_number);
         // end up back here
         // no more instructions for now
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu])
+            requires
+                mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+                &&
+                sp_main(old_cpu.sp) == bv32(0x6050_0000) 
+            ensures self: Armv7m { new_cpu: 
+               get_gpr(r4(), new_cpu) == get_gpr(r4(), old_cpu)
+            }
+    )]
+    fn push_stmdb_pop_ldmia(armv7m: &mut Armv7m) {
+        armv7m.push(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::lr());
+        armv7m.stmdb_wback(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
+        
+        // clobber 
+        armv7m.movw_imm(GPR::r4(), BV32::from(100));
+
+        armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
+        armv7m.pop(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::pc()); 
     }
 }

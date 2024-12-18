@@ -222,6 +222,70 @@ flux_rs::defs! {
             new_cpu.mem,
             bv_add(sp, bv32(0x1c))
         )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x20))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x20))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x24))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x24))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x28))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x28))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x2c))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x2c))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x30))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x30))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x34))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x34))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x38))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x38))
+        )
+        &&
+        map_get(
+            old_cpu.mem,
+            bv_add(sp, bv32(0x3c))
+        ) == map_get(
+            new_cpu.mem,
+            bv_add(sp, bv32(0x3c))
+        )
     }
 
     fn mem_post_exception_entry(sp: BV32, cpu: Armv7m) -> Map<BV32, BV32> {
