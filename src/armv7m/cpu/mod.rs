@@ -52,14 +52,6 @@ pub enum CPUMode {
     Thread,
 }
 
-impl PartialEq for CPUMode {
-    #[flux_rs::trusted]
-    #[flux_rs::sig(fn (&CPUMode[@m1], &CPUMode[@m2]) -> bool[m1 == m2])]
-    fn eq(&self, other: &Self) -> bool {
-        self == other
-    }
-}
-
 #[derive(Debug)]
 #[flux_rs::refined_by(sp_main: BV32, sp_process: BV32)]
 #[flux_rs::invariant(is_valid_ram_addr(sp_main))]

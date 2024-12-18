@@ -767,11 +767,11 @@ flux_rs::defs! {
     }
 
     fn mode_is_thread_privileged(mode: int, control: Control) -> bool {
-        mode == 1 && !control.spsel // TODO: Fix this && !control.npriv 
+        mode == 1 && !control.spsel // TODO: Fix this && !control.npriv
     }
 
     fn mode_is_thread_unprivileged(mode: int, control: Control) -> bool {
-        mode == 1 && control.spsel // TODO: Fix this && control.npriv 
+        mode == 1 && control.spsel // TODO: Fix this && control.npriv
     }
 
     fn sp_main(sp: SP) -> BV32 {

@@ -28,7 +28,6 @@ flux_rs::defs! {
 }
 
 impl Armv7m {
-
     #[flux_rs::sig(
         fn (
             self: &strg Armv7m[@old_cpu],

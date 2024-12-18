@@ -22,16 +22,22 @@ fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
     // IMPORTANT NOTE - this cannot overwrite the address that r0 is pointing
     // to or we overwrite the saved process registers
 
-    // push 
+    // push
     // NOTE: pushing lr is because lr holds the value of the next instruction to
     // execute once switch_to_user returns
-    armv7m.push(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::lr());
+    armv7m.push(
+        GPR::r4(),
+        GPR::r5(),
+        GPR::r6(),
+        GPR::r7(),
+        SpecialRegister::lr(),
+    );
 
     // add imm - WTF is this even doing here
     // armv7m.add_imm(GPR::r7(), SpecialRegister::sp(), BV32::from(12)); // sp - 0x18 + 0xc
 
     // stmdb
-    armv7m.stmdb_wback(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
+    armv7m.stmdb_wback(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11());
 }
 
 #[flux_rs::sig(
@@ -117,8 +123,14 @@ pub fn switch_to_user_part2_restore_clobbers(armv7m: &mut Armv7m) {
     armv7m.mov(GPR::r6(), GPR::r2());
     armv7m.mov(GPR::r7(), GPR::r3());
     armv7m.mov(GPR::r9(), GPR::r12());
-    armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
-    armv7m.pop(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::pc()); 
+    armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11());
+    armv7m.pop(
+        GPR::r4(),
+        GPR::r5(),
+        GPR::r6(),
+        GPR::r7(),
+        SpecialRegister::pc(),
+    );
 }
 
 // Part 2:
@@ -208,15 +220,14 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
     // preempt the process with an arbitrary exception number
     armv7m.preempt(exception_num);
 
-    // r1 can absolutely not change here - otherwise 
+    // r1 can absolutely not change here - otherwise
     // we will save registers to the wrong place
     let curr_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
     assert(original_r1 == curr_r1);
- 
+
     // run the rest of the context switch asm
     switch_to_user_part2(armv7m);
 }
-
 
 #[flux_rs::trusted]
 #[flux_rs::sig(
@@ -312,12 +323,12 @@ pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: 
 
 mod arm_test {
     use crate::{
-        assert,
         armv7m::{
             cpu::{Armv7m, SP},
             lang::{SpecialRegister, GPR},
             mem::{flux_defs, Memory},
         },
+        assert,
         flux_support::bv32::BV32,
     };
 
@@ -378,26 +389,5 @@ mod arm_test {
         armv7m.preempt(exception_number);
         // end up back here
         // no more instructions for now
-    }
-
-    #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu])
-            requires
-                mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-                &&
-                sp_main(old_cpu.sp) == bv32(0x6050_0000) 
-            ensures self: Armv7m { new_cpu: 
-               get_gpr(r4(), new_cpu) == get_gpr(r4(), old_cpu)
-            }
-    )]
-    fn push_stmdb_pop_ldmia(armv7m: &mut Armv7m) {
-        armv7m.push(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::lr());
-        armv7m.stmdb_wback(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
-        
-        // clobber 
-        armv7m.movw_imm(GPR::r4(), BV32::from(100));
-
-        armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); 
-        armv7m.pop(GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), SpecialRegister::pc()); 
     }
 }

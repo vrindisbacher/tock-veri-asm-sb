@@ -6,8 +6,7 @@ use crate::{
     flux_support::bv32::BV32,
 };
 
-flux_rs::defs! {
-}
+flux_rs::defs! {}
 
 impl Armv7m {
     #[flux_rs::sig(
@@ -20,7 +19,7 @@ impl Armv7m {
                 
     )]
     pub fn stmdb_wback(&mut self, rd: SpecialRegister, r1: GPR, r2: GPR, r3: GPR) {
-        // this is identical to push - especially in this case because it is only 
+        // this is identical to push - especially in this case because it is only
         // used with sp!
         let mut addr = self.get_value_from_special_reg(&rd) - BV32::from(0xc);
 
@@ -37,7 +36,7 @@ impl Armv7m {
         let val3 = self.get_value_from_general_reg(&r3);
         self.mem.write(addr, val3);
         addr = addr + BV32::from(0x4);
-        
+
         self.update_special_reg_with_b32(rd, addr - BV32::from(0xc));
     }
 }

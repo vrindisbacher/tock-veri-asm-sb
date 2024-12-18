@@ -9,7 +9,7 @@ use crate::{
 flux_rs::defs! {
     fn mem_post_push(
         cpu: Armv7m,
-        r1: int, 
+        r1: int,
         r2: int,
         r3: int,
         r4: int,
@@ -39,8 +39,7 @@ flux_rs::defs! {
     }
 }
 
-impl Armv7m {    
-
+impl Armv7m {
     #[flux_rs::sig(
         fn (
             self: &strg Armv7m[@old_cpu], 
@@ -70,7 +69,7 @@ impl Armv7m {
         // NOTE: using set number of registers because of instrs we need to report
         let mut sp = self.get_value_from_special_reg(&SpecialRegister::sp()) - BV32::from(0x14);
 
-        // NOTE: write the lowest first - in this case we can cheat a little bit 
+        // NOTE: write the lowest first - in this case we can cheat a little bit
         // because we know that the args passed go from least to greatest
 
         let val1 = self.get_value_from_general_reg(&r1);
