@@ -190,7 +190,7 @@ fn process(armv7m: &mut Armv7m) {}
            new_cpu.pc == old_cpu.lr
        }
 )]
-pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
+pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8) {
     // get r1 at the beginning of this so we can assert some facts with it later
     let original_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
 
@@ -210,6 +210,156 @@ pub fn tock_control_flow(armv7m: &mut Armv7m, exception_num: u8) {
  
     // run the rest of the context switch asm
     switch_to_user_part2(armv7m);
+}
+
+
+#[flux_rs::trusted]
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu])
+        requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+        ensures self: Armv7m { new_cpu: 
+            // r1 and r0 need to be saved for the process -
+            // in principle this is stored somewhere and reloaded
+            // but we'll just fake it here
+            get_gpr(r0(), old_cpu) == get_gpr(r0(), new_cpu)
+            &&
+            get_gpr(r1(), old_cpu) == get_gpr(r1(), new_cpu)
+            &&
+            // mode is preserved
+            mode_is_thread_privileged(new_cpu.mode, new_cpu.control)
+            &&
+            // fake the resulting sp - so we know there is no overlap
+            sp_main(new_cpu.sp) == bv32(0x6040_0000) 
+            &&
+            // sp process is preserved
+            sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
+            &&
+            // and we need to preserve where the process regs are saved
+            map_get(
+                old_cpu.mem,
+                get_gpr(r1(), old_cpu)
+            ) == map_get(
+                new_cpu.mem,
+                get_gpr(r1(), old_cpu)
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x4))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x4))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x8))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x8))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0xc))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0xc))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x10))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x10))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x14))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x14))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x18))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x18))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x1c))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(get_gpr(r1(), old_cpu), bv32(0x1c))
+            )
+            // and we need to preserve the hardware stacked process registers stack frame
+            &&
+            map_get(
+                old_cpu.mem,
+                sp_process(old_cpu.sp)
+            ) == map_get(
+                new_cpu.mem,
+                sp_process(new_cpu.sp)
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(sp_process(old_cpu.sp), bv32(0x4))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(sp_process(new_cpu.sp), bv32(0x4))
+            )
+            &&
+            map_get(
+                old_cpu.mem,
+                bv_add(sp_process(old_cpu.sp), bv32(0x8))
+            ) == map_get(
+                new_cpu.mem,
+                bv_add(sp_process(new_cpu.sp), bv32(0x8))
+            )
+        }
+)]
+fn kernel(armv7m: &mut Armv7m) {}
+
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
+        requires 
+            mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
+            &&
+            // the hardware stacked r1 (which has the addr of our stored registers
+            // field is valid
+            is_valid_ram_addr(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem))
+            &&
+            is_valid_ram_addr(
+                bv_add(get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem), bv32(0x1c))
+            )
+            &&
+            sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
+        ensures self: Armv7m { new_cpu: 
+            get_gpr(r1(), old_cpu) == get_gpr(r1(), new_cpu)
+            // old_cpu.general_regs == new_cpu.general_regs
+        }
+)]
+pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: u8) {
+    // arbitrary code executing gets preempted
+    armv7m.preempt(exception_num);
+
+    // kick in a switch_to_user_part2
+    switch_to_user_part2(armv7m);
+
+    // random kernel code that blows up our state
+    kernel(armv7m);
+
+    assert(false);
+
+    // back to process
+    switch_to_user_part1(armv7m);
 }
 
 mod arm_test {
