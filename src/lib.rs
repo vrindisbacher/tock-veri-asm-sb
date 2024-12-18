@@ -1,6 +1,10 @@
 #![allow(unused)]
 
-use armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}, cpu::SP};
+use armv7m::{
+    cpu::Armv7m,
+    cpu::SP,
+    lang::{SpecialRegister, GPR},
+};
 use flux_support::bv32::BV32;
 
 pub mod armv7m;
@@ -12,16 +16,16 @@ mod flux_support;
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1_save_clobbers(old_cpu) }
 )]
 fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
-    // IMPORTANT NOTE - this cannot overwrite the address that r0 is pointing 
+    // IMPORTANT NOTE - this cannot overwrite the address that r0 is pointing
     // to or we overwrite the saved process registers
 
     // push onto stack
-    armv7m.push_gpr(GPR::r4());  // sp - 0x4
-    armv7m.push_gpr(GPR::r5());  // sp - 0x8
-    armv7m.push_gpr(GPR::r6());  // sp - 0xc
-    armv7m.push_gpr(GPR::r7());  // sp - 0x10
-    // NOTE: This is because lr holds the value of the next instruction to
-    // execute once switch_to_user returns
+    armv7m.push_gpr(GPR::r4()); // sp - 0x4
+    armv7m.push_gpr(GPR::r5()); // sp - 0x8
+    armv7m.push_gpr(GPR::r6()); // sp - 0xc
+    armv7m.push_gpr(GPR::r7()); // sp - 0x10
+                                // NOTE: This is because lr holds the value of the next instruction to
+                                // execute once switch_to_user returns
     armv7m.push_spr(SpecialRegister::lr()); // sp - 0x14
 
     // add imm - WTF is this even doing here
@@ -29,9 +33,9 @@ fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
 
     // some stmdb stuff
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r8()); // sp - 0x18
-    // sl - r10
+                                                             // sl - r10
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r10()); // sp - 0x1c
-    // fp - r11
+                                                              // fp - r11
     armv7m.stmdb_no_wback(SpecialRegister::sp(), GPR::r11()); // sp - 0x20
 }
 
@@ -42,11 +46,11 @@ fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
 )]
 pub fn switch_to_user_part1_reg_restores(armv7m: &mut Armv7m) {
     // mov
-    // NOTE: these two saves are pretty funny: we can't mark them as 
-    // clobbers directly using rust's register interface but since r6, r7 
-    // are callee saved registers in ARM and we use them 
+    // NOTE: these two saves are pretty funny: we can't mark them as
+    // clobbers directly using rust's register interface but since r6, r7
+    // are callee saved registers in ARM and we use them
     // the compiler saves them on the stack anyway (see push_gpr in clobber saving)
-    armv7m.mov(GPR::r2(), GPR::r6()); 
+    armv7m.mov(GPR::r2(), GPR::r6());
     armv7m.mov(GPR::r3(), GPR::r7());
     // note ip is intraprocedure scratch register - r12
     armv7m.mov(GPR::r12(), GPR::r9());
@@ -55,10 +59,20 @@ pub fn switch_to_user_part1_reg_restores(armv7m: &mut Armv7m) {
     armv7m.msr(SpecialRegister::psp(), GPR::r0());
 
     // ldmia
-    armv7m.ldmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
+    armv7m.ldmia_w(
+        GPR::r1(),
+        GPR::r4(),
+        GPR::r5(),
+        GPR::r6(),
+        GPR::r7(),
+        GPR::r8(),
+        GPR::r9(),
+        GPR::r10(),
+        GPR::r11(),
+    );
 }
 
-// Part 1: 
+// Part 1:
 //   0:   b5f0            push    {r4, r5, r6, r7, lr}
 //   2:   af03            add     r7, sp, #12
 //   4:   e92d 0d00       stmdb   sp!, {r8, sl, fp}
@@ -76,8 +90,47 @@ pub fn switch_to_user_part1_reg_restores(armv7m: &mut Armv7m) {
 pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
     switch_to_user_part1_save_clobbers(armv7m);
     switch_to_user_part1_reg_restores(armv7m);
-    // svc
-    armv7m.svc(0xff); // writes to sp - 0x3c
+    armv7m.svc(0xff);
+}
+
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu])
+        requires switch_to_user_pt2_save_registers_precondition(old_cpu)
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt2_save_registers(old_cpu) }
+)]
+pub fn switch_to_user_part2_save_registers(armv7m: &mut Armv7m) {
+    armv7m.stmia_w(
+        GPR::r1(),
+        GPR::r4(),
+        GPR::r5(),
+        GPR::r6(),
+        GPR::r7(),
+        GPR::r8(),
+        GPR::r9(),
+        GPR::r10(),
+        GPR::r11(),
+    );
+}
+
+#[flux_rs::sig(
+    fn (self: &strg Armv7m[@old_cpu])
+        requires switch_to_user_pt2_restore_clobbers_precondition(old_cpu)
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt2_restore_clobbers(old_cpu) }
+)]
+pub fn switch_to_user_part2_restore_clobbers(armv7m: &mut Armv7m) {
+    armv7m.mrs(GPR::r0(), SpecialRegister::psp());
+    armv7m.mov(GPR::r6(), GPR::r2());
+    armv7m.mov(GPR::r7(), GPR::r3());
+    armv7m.mov(GPR::r9(), GPR::r12());
+    armv7m.ldmia_w_special(SpecialRegister::sp(), GPR::r8(), GPR::r10(), GPR::r11()); // sp, sp + 0x4, sp + 0x8
+    armv7m.pop_gpr(GPR::r4()); // sp + 0xc
+    armv7m.pop_gpr(GPR::r5()); // sp + 0x10
+    armv7m.pop_gpr(GPR::r6()); // sp + 0x14
+    armv7m.pop_gpr(GPR::r7()); // sp + 0x18
+                               // NOTE: This is because we previously pushed lr (which contains the return address
+                               // for the next instruction after switch_to_user finishes)
+                               // and we want to branch to it
+    armv7m.pop_spr(SpecialRegister::pc()) // sp + 0x1c
 }
 
 // Part 2:
@@ -90,42 +143,12 @@ pub fn switch_to_user_part1(armv7m: &mut Armv7m) {
 //  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu])
-        requires 
-            mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-            &&
-            is_valid_ram_addr(get_gpr(r1(), old_cpu))
-            && 
-            is_valid_ram_addr(bv_sub(get_gpr(r1(), old_cpu), bv32(0x20)))
-        ensures self: Armv7m { new_cpu: 
-            new_cpu.mem == mem_post_switch_to_user_pt2(old_cpu)
-            && 
-            get_gpr(r0(), new_cpu) == sp_process(old_cpu.sp)
-            &&
-            get_gpr(r6(), new_cpu) == get_gpr(r2(), old_cpu)
-            &&
-            get_gpr(r7(), new_cpu) == get_gpr(r3(), old_cpu)
-            &&
-            get_gpr(r9(), new_cpu) == get_gpr(r12(), old_cpu)
-        }
-        // { new_cpu: new_cpu == Armv7m { }
-    // }
+        requires switch_to_user_pt2_precondition(old_cpu) 
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt2(old_cpu) }
 )]
-#[flux_rs::trusted]
 pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
-    armv7m.stmia_w(GPR::r1(), GPR::r4(), GPR::r5(), GPR::r6(), GPR::r7(), GPR::r8(), GPR::r9(), GPR::r10(), GPR::r11()); 
-    armv7m.mrs(GPR::r0(), SpecialRegister::psp());
-    armv7m.mov(GPR::r6(), GPR::r2()); // this is seemingly useless?
-    armv7m.mov(GPR::r7(), GPR::r3()); // this is also useless?
-    armv7m.mov(GPR::r9(), GPR::r12());
-    armv7m.ldmia_w_special(SpecialRegister::Sp, GPR::r8(), GPR::r10(), GPR::r11()); 
-    armv7m.pop_gpr(GPR::r4());
-    armv7m.pop_gpr(GPR::r5());
-    armv7m.pop_gpr(GPR::r6());
-    armv7m.pop_gpr(GPR::r7());
-    // NOTE: This is because we previously pushed lr (which contains the return address
-    // for the next instruction after switch_to_user finishes)
-    // and we want to branch to it
-    armv7m.pop_spr(SpecialRegister::pc())
+    switch_to_user_part2_save_registers(armv7m);
+    switch_to_user_part2_restore_clobbers(armv7m);
 }
 
 #[flux_rs::trusted]
@@ -146,7 +169,6 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
     }
 )]
 fn process(armv7m: &mut Armv7m) {}
-
 
 #[flux_rs::trusted]
 #[flux_rs::sig(

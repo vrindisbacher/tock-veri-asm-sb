@@ -1,5 +1,10 @@
-use crate::{armv7m::{cpu::Armv7m, lang::{SpecialRegister, GPR}}, flux_support::bv32::BV32};
-
+use crate::{
+    armv7m::{
+        cpu::Armv7m,
+        lang::{SpecialRegister, GPR},
+    },
+    flux_support::bv32::BV32,
+};
 
 impl Armv7m {
     #[flux_rs::sig(
@@ -50,7 +55,8 @@ impl Armv7m {
         rm7: GPR,
         rm8: GPR,
     ) {
-        let mut addr = self.get_value_from_general_reg(&rd); let val = self.mem.read(addr);
+        let mut addr = self.get_value_from_general_reg(&rd);
+        let val = self.mem.read(addr);
         self.update_general_reg_with_b32(rm1, val);
         addr = addr + BV32::from(0x4);
         let val = self.mem.read(addr);
@@ -89,27 +95,29 @@ impl Armv7m {
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
             &&
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                general_regs: gprs_post_ldmia_w_special(old_cpu, rd, rm1, rm2, rm3),
-                ..old_cpu
-            }
+            &&
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0xc)))
+        ensures self: Armv7m { new_cpu: new_cpu == set_spr(
+                rd,
+                Armv7m {
+                    general_regs: gprs_post_ldmia_w_special(old_cpu, rd, rm1, rm2, rm3),
+                    ..old_cpu
+                },
+                bv_add(get_special_reg(rd, old_cpu), bv32(0xc))
+            )
         }
 
     )]
-    pub fn ldmia_w_special(
-        &mut self,
-        rd: SpecialRegister,
-        rm1: GPR,
-        rm2: GPR,
-        rm3: GPR,
-    ) {
+    pub fn ldmia_w_special(&mut self, rd: SpecialRegister, rm1: GPR, rm2: GPR, rm3: GPR) {
+        // NOTE: This is variant ldmia.w rd! { ... } so updates to rd are written back to the
+        // register
         let (val1, val2, val3) = self.ldmia_w_special_get_vals(rd);
         self.ldmia_w_special_update_gprs(rm1, val1, rm2, val2, rm3, val3);
     }
 
     #[flux_rs::sig(
         fn (
-            &mut Armv7m[@old_cpu],
+            self: &strg Armv7m[@old_cpu],
             SpecialRegister[@rd],
         ) -> (
             BV32[get_mem_addr(get_special_reg(rd, old_cpu), old_cpu.mem)],
@@ -122,15 +130,19 @@ impl Armv7m {
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
             &&
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)))
+            &&
+            is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0xc)))
+        ensures self: Armv7m { new_cpu: new_cpu == set_spr(rd, old_cpu, bv_add(get_special_reg(rd, old_cpu), bv32(0xc))) }
     )]
-    pub fn ldmia_w_special_get_vals(
-        &mut self,
-        rd: SpecialRegister,
-    ) -> (BV32, BV32, BV32) {
+    fn ldmia_w_special_get_vals(&mut self, rd: SpecialRegister) -> (BV32, BV32, BV32) {
         let mut addr = self.get_value_from_special_reg(&rd);
         let val1 = self.mem.read(addr);
-        let val2 = self.mem.read(addr + BV32::from(0x4));
-        let val3 = self.mem.read(addr + BV32::from(0x8));
+        addr = addr + BV32::from(0x4);
+        let val2 = self.mem.read(addr);
+        addr = addr + BV32::from(0x4);
+        let val3 = self.mem.read(addr);
+        addr = addr + BV32::from(0x4);
+        self.update_special_reg_with_b32(rd, addr);
         (val1, val2, val3)
     }
 
@@ -161,7 +173,15 @@ impl Armv7m {
             ..cpu
         } }
     )]
-    pub fn ldmia_w_special_update_gprs(&mut self, rm1: GPR, val1: BV32, rm2: GPR, val2: BV32, rm3: GPR, val3: BV32) {
+    fn ldmia_w_special_update_gprs(
+        &mut self,
+        rm1: GPR,
+        val1: BV32,
+        rm2: GPR,
+        val2: BV32,
+        rm3: GPR,
+        val3: BV32,
+    ) {
         self.update_general_reg_with_b32(rm1, val1);
         self.update_general_reg_with_b32(rm2, val2);
         self.update_general_reg_with_b32(rm3, val3);

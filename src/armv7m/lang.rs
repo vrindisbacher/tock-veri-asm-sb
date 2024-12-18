@@ -141,7 +141,6 @@ impl SpecialRegister {
     pub fn pc() -> Self {
         Self::Pc
     }
-
 }
 
 #[derive(Debug)]

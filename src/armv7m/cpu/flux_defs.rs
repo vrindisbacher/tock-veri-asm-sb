@@ -375,28 +375,6 @@ flux_rs::defs! {
         )
     }
 
-    fn gprs_post_test_hanging(
-        cpu: Armv7m,
-        rd: int,
-        rm1: int,
-        // rm2: int,
-        // rm3: int,
-    ) -> Map<GPR, BV32> {
-        // map_set(
-        //     map_set(
-            map_set(
-                cpu.general_regs,
-                rm1,
-                get_mem_addr(get_special_reg(rd, cpu), cpu.mem)
-            )
-        //         rm2,
-        //         get_mem_addr(bv_add(get_special_reg(rd, cpu), bv32(0x4)), cpu.mem)
-        //     ),
-        //     rm3,
-        //     get_mem_addr(bv_add(get_special_reg(rd, cpu), bv32(0x8)), cpu.mem)
-        // )
-    }
-
     fn mem_post_stmia_w(
         cpu: Armv7m,
         rd: int,
@@ -421,25 +399,25 @@ flux_rs::defs! {
                                         get_gpr(rd, cpu),
                                         get_gpr(rm1, cpu),
                                     ),
-                                    bv_sub(get_gpr(rd, cpu), bv32(0x4)),
+                                    bv_add(get_gpr(rd, cpu), bv32(0x4)),
                                     get_gpr(rm2, cpu)
                                 ),
-                                bv_sub(get_gpr(rd, cpu), bv32(0x8)),
+                                bv_add(get_gpr(rd, cpu), bv32(0x8)),
                                 get_gpr(rm3, cpu)
                             ),
-                            bv_sub(get_gpr(rd, cpu), bv32(0xc)),
+                            bv_add(get_gpr(rd, cpu), bv32(0xc)),
                             get_gpr(rm4, cpu)
                         ),
-                        bv_sub(get_gpr(rd, cpu), bv32(0x10)),
+                        bv_add(get_gpr(rd, cpu), bv32(0x10)),
                         get_gpr(rm5, cpu)
                     ),
-                    bv_sub(get_gpr(rd, cpu), bv32(0x14)),
+                    bv_add(get_gpr(rd, cpu), bv32(0x14)),
                     get_gpr(rm6, cpu)
                 ),
-                bv_sub(get_gpr(rd, cpu), bv32(0x18)),
+                bv_add(get_gpr(rd, cpu), bv32(0x18)),
                 get_gpr(rm7, cpu)
             ),
-            bv_sub(get_gpr(rd, cpu), bv32(0x1c)),
+            bv_add(get_gpr(rd, cpu), bv32(0x1c)),
             get_gpr(rm8, cpu)
         )
     }
@@ -570,11 +548,53 @@ flux_rs::defs! {
         )
     }
 
-    fn cpu_post_switch_to_user_pt2(cpu: Armv7m) -> Armv7m {
-        cpu
+    fn switch_to_user_pt2_save_registers_precondition(cpu: Armv7m) -> bool {
+        // need r1 to be valid store
+        is_valid_ram_addr(get_gpr(r1(), cpu))
+        &&
+        is_valid_ram_addr(bv_add(get_gpr(r1(), cpu), bv32(0x1c)))
     }
 
-    fn mem_post_switch_to_user_pt2(cpu: Armv7m) -> Map<BV32, BV32> {
+    fn switch_to_user_pt2_restore_clobbers_precondition(cpu: Armv7m) -> bool {
+        mode_is_thread_privileged(cpu.mode, cpu.control)
+        &&
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20)))
+    }
+
+    fn switch_to_user_pt2_precondition(cpu: Armv7m) -> bool {
+        switch_to_user_pt2_save_registers_precondition(cpu)
+        &&
+        switch_to_user_pt2_restore_clobbers_precondition(cpu)
+    }
+
+    fn cpu_post_switch_to_user_pt2(cpu: Armv7m) -> Armv7m {
+        cpu_post_switch_to_user_pt2_restore_clobbers(
+            cpu_post_switch_to_user_pt2_save_registers(cpu)
+        )
+    }
+
+    fn cpu_post_switch_to_user_pt2_save_registers(cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            mem: mem_post_stmia_w(cpu, r1(), r4(), r5(), r6(), r7(), r8(), r9(), r10(), r11()),
+            ..cpu
+        }
+    }
+
+    fn cpu_post_switch_to_user_pt2_restore_clobbers(cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            general_regs: gprs_post_switch_to_user_pt2_restore_clobbers(cpu),
+            sp: SP {
+                sp_main: bv_add(sp_main(cpu.sp), bv32(0x20)),
+                ..cpu.sp
+            },
+            pc: get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x1c)), cpu.mem),
+            ..cpu
+        }
+    }
+
+    fn gprs_post_switch_to_user_pt2_restore_clobbers(cpu: Armv7m) -> Map<GPR, BV32> {
         map_set(
             map_set(
                 map_set(
@@ -583,30 +603,34 @@ flux_rs::defs! {
                             map_set(
                                 map_set(
                                     map_set(
-                                        cpu.mem,
-                                        bv_sub(get_gpr(r1(), cpu), bv32(0x4)),
-                                        get_gpr(r4(), cpu)
+                                        map_set(
+                                            cpu.general_regs,
+                                            r0(),
+                                            get_special_reg(psp(), cpu)
+                                        ),
+                                        r9(),
+                                        get_gpr(r12(), cpu)
                                     ),
-                                    bv_sub(get_gpr(r1(), cpu), bv32(0x8)),
-                                    get_gpr(r5(), cpu)
+                                    r8(),
+                                    get_mem_addr(sp_main(cpu.sp), cpu.mem)
                                 ),
-                                bv_sub(get_gpr(r1(), cpu), bv32(0xc)),
-                                get_gpr(r6(), cpu)
+                                r10(),
+                                get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x4)), cpu.mem)
                             ),
-                            bv_sub(get_gpr(r1(), cpu), bv32(0x10)),
-                            get_gpr(r7(), cpu)
+                            r11(),
+                            get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x8)), cpu.mem)
                         ),
-                        bv_sub(get_gpr(r1(), cpu), bv32(0x14)),
-                        get_gpr(r8(), cpu),
+                        r4(),
+                        get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0xc)), cpu.mem)
                     ),
-                    bv_sub(get_gpr(r1(), cpu), bv32(0x18)),
-                    get_gpr(r9(), cpu),
+                    r5(),
+                    get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x10)), cpu.mem)
                 ),
-                bv_sub(get_gpr(r1(), cpu), bv32(0x1c)),
-                get_gpr(r10(), cpu),
+                r6(),
+                get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x14)), cpu.mem)
             ),
-            bv_sub(get_gpr(r1(), cpu), bv32(0x20)),
-            get_gpr(r11(), cpu),
+            r7(),
+            get_mem_addr(bv_add(sp_main(cpu.sp), bv32(0x18)), cpu.mem)
         )
     }
 
@@ -798,28 +822,40 @@ flux_rs::defs! {
         }
     }
 
-    fn cpu_post_pop_spr(cpu: Armv7m, rd: int) -> Armv7m {
-        if is_lr(rd) {
-            Armv7m {
-                lr: get_mem_addr(get_sp(cpu.sp, cpu.mode, cpu.control), cpu.mem),
-                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))),
-                ..cpu
-            }
-        } else if is_pc(rd) {
-            Armv7m {
-                pc: get_mem_addr(get_sp(cpu.sp, cpu.mode, cpu.control), cpu.mem),
-                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))),
-                ..cpu
-            }
-        } else if is_psr(rd) {
-            Armv7m {
-                psr: get_mem_addr(get_sp(cpu.sp, cpu.mode, cpu.control), cpu.mem),
-                sp: set_sp(cpu.sp, cpu.mode, cpu.control, bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4))),
-                ..cpu
-            }
-        } else {
-            cpu
-        }
+    fn pop_spr_get_mem_addr_and_incr_precondition(cpu: Armv7m) -> bool {
+        is_valid_ram_addr(get_sp(cpu.sp, cpu.mode, cpu.control))
+        &&
+        is_valid_ram_addr(bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4)))
+    }
+
+    fn pop_spr_update_reg_precondition(cpu: Armv7m, reg: int, val: BV32) -> bool {
+        (is_sp(reg) || is_psp(reg)) => is_valid_ram_addr(val)
+    }
+
+    fn pop_spr_get_mem_addr_and_incr_ret_val(cpu: Armv7m) -> BV32 {
+        get_mem_addr(get_sp(cpu.sp, cpu.mode, cpu.control), cpu.mem)
+    }
+
+    fn cpu_post_pop_spr_get_mem_addr_and_incr(cpu: Armv7m) -> Armv7m {
+        set_spr(sp(), cpu, bv_add(get_sp(cpu.sp, cpu.mode, cpu.control), bv32(0x4)))
+    }
+
+    fn cpu_post_pop_spr_update_reg(cpu: Armv7m, reg: int, val: BV32) -> Armv7m {
+        set_spr(reg, cpu, val)
+    }
+
+    fn pop_spr_precondition(cpu: Armv7m, reg: int) -> bool {
+        pop_spr_get_mem_addr_and_incr_precondition(cpu)
+        &&
+        pop_spr_update_reg_precondition(cpu, reg, pop_spr_get_mem_addr_and_incr_ret_val(cpu))
+    }
+
+    fn cpu_post_pop_spr(cpu: Armv7m, reg: int) -> Armv7m {
+        cpu_post_pop_spr_update_reg(
+            cpu_post_pop_spr_get_mem_addr_and_incr(cpu),
+            reg,
+            pop_spr_get_mem_addr_and_incr_ret_val(cpu)
+        )
     }
 
     fn cpu_post_stmdb_no_wback(cpu: Armv7m, rd: int, rm: int) -> Armv7m {
