@@ -253,7 +253,8 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
-            requires exception_num == 11 || exception_num >= 15
+            requires mode_is_handler(cpu.mode) && get_special_reg(ipsr(), cpu) == bv32(exception_num)
+            // (exception_num == 11 || exception_num == 15 || (exception_num >= 16 => bv_uge(get_special_reg(ipsr(), cpu), bv32(16))))
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_run_isr(cpu, exception_num)  }
     )]
     fn run_isr(&mut self, exception_number: u8) -> BV32 {
@@ -268,6 +269,8 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
             requires 
+                (exception_num == 11 || exception_num >= 15)
+                &&
                 // Stack Pointer is valid and can grow downwards 20 bytes
                 sp_can_handle_exception_entry(cpu)
                 &&
@@ -278,9 +281,17 @@ impl Armv7m {
     pub fn preempt(&mut self, exception_number: u8) {
         // stack
         self.exception_entry(exception_number);
+        // TODO: get rid of this assume - it should hold automagically
+        assume(self.psr & BV32::from(0xff) == BV32::from(exception_number as u32));
         // call isr
         let ret_value = self.run_isr(exception_number);
         // unstack
         self.exception_exit(ret_value);
+    }
+}
+#[flux_rs::sig(fn(b:bool) ensures b)]
+pub const fn assume(b: bool) {
+    if !b {
+        panic!("assume fails")
     }
 }

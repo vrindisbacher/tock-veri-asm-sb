@@ -173,6 +173,8 @@ fn process(armv7m: &mut Armv7m) {}
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
        requires 
+            (exception_num == 11 || exception_num >= 15)
+            &&
             mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             &&
             get_gpr(r0(), old_cpu) == bv32(0x8FFF_FFFF) 
@@ -262,6 +264,8 @@ fn kernel(armv7m: &mut Armv7m) {}
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
         requires 
+            (exception_num == 11 || exception_num >= 15)
+            &&
             mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
             &&
             // the hardware stacked r1 (which has the addr of our stored registers
@@ -354,6 +358,8 @@ mod arm_test {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
            requires 
+               (exception_num == 11 || exception_num >= 15)
+               &&
                mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
                && 
                sp_can_handle_exception_entry(old_cpu)
