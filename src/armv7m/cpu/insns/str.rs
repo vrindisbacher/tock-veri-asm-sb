@@ -32,7 +32,7 @@ impl Armv7m {
                     left_shift(get_gpr(reg_offset, old_cpu), shift)
                 )
             )
-        ensures self: Armv7m{ new_cpu: new_cpu == Armv7m { 
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
                 mem: update_mem(
                         bv_add(
                             get_gpr(reg_base, old_cpu),
@@ -65,5 +65,27 @@ impl Armv7m {
         let addr = (self.get_value_from_general_reg(&base_reg) + offset);
         let value = self.get_value_from_general_reg(&register_to_str);
         self.mem.write(addr, value);
+    }
+
+    #[flux_rs::sig(fn (
+            self: &strg Armv7m[@old_cpu], 
+            GPR[@rt], 
+            GPR[@rn], 
+        ) 
+        requires is_valid_write_addr(get_gpr(rn, old_cpu))
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+                mem: update_mem(
+                        get_gpr(rn, old_cpu),
+                        old_cpu.mem,
+                        get_gpr(rt, old_cpu)
+                ), 
+                ..old_cpu 
+            }
+        }
+    )]
+    pub fn str_no_wback(&mut self, rt: GPR, rn: GPR) {
+        let addr = self.get_value_from_general_reg(&rn);
+        let val = self.get_value_from_general_reg(&rt);
+        self.mem.write(addr, val);
     }
 }
