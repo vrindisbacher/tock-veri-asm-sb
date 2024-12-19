@@ -5,27 +5,7 @@ use crate::{
 
 use super::{Armv7m, Control};
 
-flux_rs::defs! {
-
-    fn isr_bit_loc(old_cpu: Armv7m) -> BV32 {
-        bv_and(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(31))
-    }
-
-    fn isr_r0(old_cpu: Armv7m) -> BV32 {
-        left_shift(
-            bv32(1),
-            isr_bit_loc(old_cpu)
-        )
-    }
-
-    fn isr_r2(old_cpu: Armv7m) -> BV32 {
-        right_shift(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(5))
-    }
-
-    fn isr_offset(old_cpu: Armv7m) -> BV32 {
-        left_shift(isr_r2(old_cpu), bv32(2))
-    }
-}
+flux_rs::defs! {}
 
 impl Armv7m {
     #[flux_rs::sig(
@@ -34,34 +14,7 @@ impl Armv7m {
             bv_uge(get_special_reg(ipsr(), old_cpu), bv32(16))
             &&
             mode_is_handler(old_cpu.mode)
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                mem: update_mem(
-                     bv_add(bv32(0xe000_e200), isr_offset(old_cpu)),
-                     update_mem(
-                         bv_add(bv32(0xe000_e180), isr_offset(old_cpu)),
-                         old_cpu.mem,
-                         isr_r0(old_cpu)
-                    ),
-                    isr_r0(old_cpu)
-                ),
-                general_regs: map_set(
-                    map_set(
-                        map_set(
-                            old_cpu.general_regs,
-                            r0(),
-                            isr_r0(old_cpu)
-                        ),
-                        r2(),
-                        isr_r2(old_cpu)
-                    ),
-                    r3(),
-                    bv32(0xe000_e200)
-                ),
-                control: Control { npriv: false, ..old_cpu.control },
-                lr: bv32(0xFFFF_FFF9),
-                ..old_cpu
-            }
-        }
+        ensures self: Armv7m { new_cpu: new_cpu == cpu_post_generic_isr(old_cpu) }
     )]
     pub fn generic_isr(&mut self) -> BV32 {
         // r0 = 0
@@ -113,42 +66,59 @@ impl Armv7m {
         return self.get_value_from_special_reg(&SpecialRegister::Lr);
     }
 
-    fn svc_isr(&mut self) -> BV32 {
-        todo!()
-    }
-
-    // Use the CONTROL register to set the thread mode to privileged to switch
-    // back to kernel mode.
-    //
-    // CONTROL[1]: Stack status
-    //   0 = Default stack (MSP) is used
-    //   1 = Alternate stack is used
-    // CONTROL[0]: Mode
-    //   0 = Privileged in thread mode
-    //   1 = User state in thread mode
-    // mov r0, #0                        // r0 = 0
-    // msr CONTROL, r0                   // CONTROL = 0
-    // CONTROL writes must be followed by an Instruction Synchronization Barrier
-    // (ISB). https://developer.arm.com/documentation/dai0321/latest
-    // isb                               // synchronization barrier
-
-    // Set the link register to the special EXC_RETURN value of 0xFFFFFFF9 which
-    // instructs the CPU to run in thread mode with the main (kernel) stack.
-    // ldr lr, =0xFFFFFFF9               // LR = 0xFFFFFFF9
-
-    // This will resume in the switch_to_user function where application state
-    // is saved and the scheduler can choose what to do next.
-    // bx lr
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) -> BV32[bv32(0xFFFF_FFF9)]
             requires mode_is_handler(old_cpu.mode)
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    general_regs: map_set(old_cpu.general_regs, r0(), bv32(0)),
-                    control: Control { npriv: false, ..old_cpu.control },
-                    lr: bv32(0xFFFF_FFF9),
-                    ..old_cpu
-                }
-            }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_svc_to_kernel_isr(old_cpu) }
+    )]
+    fn svc_isr_to_kernel(&mut self) -> BV32 {
+        // sys call fired is a pub static mut so it has some location -
+        // giving it an arbitrary ram addr
+        //
+        // basically we just want to set SYSCALL FIRED pub static mut to 1
+        self.pseudo_ldr(GPR::R0, BV32::from(0x8000_0000));
+        self.movw_imm(GPR::R1, BV32::from(1));
+        self.str_no_wback(GPR::R1, GPR::R0);
+        // now do everything else
+        self.movw_imm(GPR::R0, BV32::from(0));
+        self.msr(SpecialRegister::Control, GPR::R0);
+        self.isb(Some(IsbOpt::Sys));
+        self.pseudo_ldr_special(SpecialRegister::lr(), BV32::from(0xFFFF_FFF9));
+        // self.bx(SpecialRegister::Lr);
+        return self.get_value_from_special_reg(&SpecialRegister::lr());
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) -> BV32[bv32(0xFFFF_FFFD)]
+            requires mode_is_handler(old_cpu.mode)
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_svc_to_app_isr(old_cpu) }
+    )]
+    fn svc_isr_to_app(&mut self) -> BV32 {
+        self.movw_imm(GPR::R0, BV32::from(1));
+        self.msr(SpecialRegister::Control, GPR::R0);
+        self.isb(Some(IsbOpt::Sys));
+        self.pseudo_ldr_special(SpecialRegister::lr(), BV32::from(0xFFFF_FFFD));
+        return self.get_value_from_special_reg(&SpecialRegister::lr());
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) -> BV32[svc_isr_ret_val(old_cpu)]
+            requires mode_is_handler(old_cpu.mode)
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_svc_isr(old_cpu) }
+    )]
+    fn svc_isr(&mut self) -> BV32 {
+        // TODO: should really be a cmp & bne but tough to model that so using ite for now
+        if self.get_value_from_special_reg(&SpecialRegister::lr()) == BV32::from(0xFFFF_FFF9) {
+            return self.svc_isr_to_app();
+        } else {
+            return self.svc_isr_to_kernel();
+        }
+    }
+
+    #[flux_rs::sig(
+        fn (self: &strg Armv7m[@old_cpu]) -> BV32[bv32(0xFFFF_FFF9)]
+            requires mode_is_handler(old_cpu.mode)
+            ensures self: Armv7m { new_cpu: new_cpu ==  cpu_post_sys_tick_isr(old_cpu) }
     )]
     fn sys_tick_isr(&mut self) -> BV32 {
         self.movw_imm(GPR::R0, BV32::from(0));

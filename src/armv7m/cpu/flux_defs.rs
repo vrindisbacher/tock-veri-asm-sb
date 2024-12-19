@@ -851,8 +851,8 @@ flux_rs::defs! {
 
     fn set_control(control: Control, mode: int, val: BV32) -> Control {
         Control {
-            npriv: nth_bit_is_set(val, bv32(1)),
-            spsel: if !mode_is_handler(mode) { nth_bit_is_set(val, bv32(2)) } else { control.spsel }
+            npriv: nth_bit_is_set(val, bv32(0)),
+            spsel: if !mode_is_handler(mode) { nth_bit_is_set(val, bv32(1)) } else { control.spsel }
         }
     }
 
@@ -981,6 +981,99 @@ flux_rs::defs! {
                     bv_sub(get_special_reg(rd, cpu), bv32(0xc))
                 )
             }
+    }
+
+    fn generic_isr_bit_loc(old_cpu: Armv7m) -> BV32 {
+        bv_and(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(31))
+    }
+
+    fn generic_isr_r0(old_cpu: Armv7m) -> BV32 {
+        left_shift(
+            bv32(1),
+            generic_isr_bit_loc(old_cpu)
+        )
+    }
+
+    fn generic_isr_r2(old_cpu: Armv7m) -> BV32 {
+        right_shift(bv_sub(get_special_reg(ipsr(), old_cpu), bv32(16)), bv32(5))
+    }
+
+    fn generic_isr_offset(old_cpu: Armv7m) -> BV32 {
+        left_shift(generic_isr_r2(old_cpu), bv32(2))
+    }
+
+    fn cpu_post_generic_isr(old_cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            mem: update_mem(
+                 bv_add(bv32(0xe000_e200), generic_isr_offset(old_cpu)),
+                 update_mem(
+                     bv_add(bv32(0xe000_e180), generic_isr_offset(old_cpu)),
+                     old_cpu.mem,
+                     generic_isr_r0(old_cpu)
+                ),
+                generic_isr_r0(old_cpu)
+            ),
+            general_regs: map_set(
+                map_set(
+                    map_set(
+                        old_cpu.general_regs,
+                        r0(),
+                        generic_isr_r0(old_cpu)
+                    ),
+                    r2(),
+                    generic_isr_r2(old_cpu)
+                ),
+                r3(),
+                bv32(0xe000_e200)
+            ),
+            control: Control { npriv: false, ..old_cpu.control },
+            lr: bv32(0xFFFF_FFF9),
+            ..old_cpu
+        }
+    }
+
+    fn cpu_post_svc_to_kernel_isr(old_cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            mem: map_set(old_cpu.mem, bv32(0x8000_0000), bv32(1)),
+            general_regs: map_set(map_set(old_cpu.general_regs, r0(), bv32(0)), r1(), bv32(1)),
+            control: Control { npriv: false, ..old_cpu.control },
+            lr: bv32(0xFFFF_FFF9),
+            ..old_cpu
+        }
+    }
+
+    fn cpu_post_svc_to_app_isr(old_cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            general_regs: map_set(old_cpu.general_regs, r0(), bv32(1)),
+            control: Control { npriv: true, ..old_cpu.control },
+            lr: bv32(0xFFFF_FFFD),
+            ..old_cpu
+        }
+    }
+
+    fn svc_isr_ret_val(old_cpu: Armv7m) -> BV32 {
+        if get_special_reg(lr(), old_cpu) == bv32(0xFFFF_FFF9) {
+            bv32(0xFFFF_FFFD)
+        } else {
+           bv32(0xFFFF_FFF9)
+        }
+    }
+
+    fn cpu_post_svc_isr(old_cpu: Armv7m) -> Armv7m {
+        if get_special_reg(lr(), old_cpu) == bv32(0xFFFF_FFF9) {
+            cpu_post_svc_to_app_isr(old_cpu)
+        } else {
+            cpu_post_svc_to_kernel_isr(old_cpu)
+        }
+    }
+
+    fn cpu_post_sys_tick_isr(old_cpu: Armv7m) -> Armv7m {
+        Armv7m {
+            general_regs: map_set(old_cpu.general_regs, r0(), bv32(0)),
+            control: Control { npriv: false, ..old_cpu.control },
+            lr: bv32(0xFFFF_FFF9),
+            ..old_cpu
+        }
     }
 
     fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
