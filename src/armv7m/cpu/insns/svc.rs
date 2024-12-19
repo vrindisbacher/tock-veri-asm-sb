@@ -9,9 +9,10 @@ impl Armv7m {
                 &&
                 // and Stack Pointer used on exit is valid and can grow upwards 20 bytes
                 sp_can_handle_preempt_exception_exit(cpu, 11)
-            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, 11) }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_preempt(cpu, 11) }
     )]
     pub fn svc(&mut self, svc_num: u8) {
+        // TODO: Finish this instruction
         self.preempt(11);
     }
 }

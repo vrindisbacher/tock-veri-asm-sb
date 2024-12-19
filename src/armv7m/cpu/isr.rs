@@ -106,7 +106,7 @@ impl Armv7m {
             requires mode_is_handler(old_cpu.mode)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_svc_isr(old_cpu) }
     )]
-    fn svc_isr(&mut self) -> BV32 {
+    pub fn svc_isr(&mut self) -> BV32 {
         // TODO: should really be a cmp & bne but tough to model that so using ite for now
         if self.get_value_from_special_reg(&SpecialRegister::lr()) == BV32::from(0xFFFF_FFF9) {
             return self.svc_isr_to_app();
@@ -120,7 +120,7 @@ impl Armv7m {
             requires mode_is_handler(old_cpu.mode)
             ensures self: Armv7m { new_cpu: new_cpu ==  cpu_post_sys_tick_isr(old_cpu) }
     )]
-    fn sys_tick_isr(&mut self) -> BV32 {
+    pub fn sys_tick_isr(&mut self) -> BV32 {
         self.movw_imm(GPR::R0, BV32::from(0));
         self.msr(SpecialRegister::Control, GPR::R0);
         self.isb(Some(IsbOpt::Sys));

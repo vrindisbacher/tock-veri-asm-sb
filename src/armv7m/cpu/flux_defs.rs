@@ -32,37 +32,26 @@ flux_rs::defs! {
         cpu.mem
     }
 
-    fn cpu_post_exception_exit(cpu: Armv7m, exception_num: int) -> Armv7m {
+    fn cpu_post_exception_exit(cpu: Armv7m, return_exec: BV32) -> Armv7m {
         Armv7m {
             mode: thread_mode(),
-            control: Control {
-                spsel: get_bx_from_exception_num(exception_num, get_lr_direct(cpu_post_exception_entry(cpu, exception_num))) != bv32(0xFFFF_FFF9),
-                ..cpu.control
-            },
-            general_regs: gprs_post_exception_exit(
-                get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))),
-                cpu_post_exception_entry(cpu, exception_num)
-            ),
-            lr: get_mem_addr(
-                bv_add(
-                    get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))),
-                    bv32(0x14)
-                ),
-                get_mem_direct(cpu_post_exception_entry(cpu, exception_num))
-            ),
-            psr: get_mem_addr(
-                bv_add(
-                    get_sp_from_isr_ret(sp_post_exception_entry(cpu), get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))),
-                    bv32(0x1C)
-                ),
-                get_mem_direct(cpu_post_exception_entry(cpu, exception_num))
-            ),
-            sp: sp_post_exception_exit(
-                sp_post_exception_entry(cpu),
-                get_bx_from_exception_num(exception_num, lr_post_exception_entry(cpu, cpu.control))
-            ),
-            ..cpu_post_exception_entry(cpu, exception_num)
+            control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
+            general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
+            lr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32( 0x14)), cpu.mem),
+            psr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32(0x1C)), cpu.mem),
+            sp: sp_post_exception_exit(cpu.sp, return_exec),
+            ..cpu
         }
+    }
+
+    fn cpu_post_preempt(cpu: Armv7m, exception_num: int) -> Armv7m {
+        cpu_post_exception_exit(
+            cpu_post_run_isr(
+                cpu_post_exception_entry(cpu, exception_num),
+                exception_num
+            ),
+            get_bx_from_exception_num(exception_num, get_lr_direct(cpu_post_exception_entry(cpu, exception_num)))
+        )
     }
 
     fn get_bx_from_exception_num(exception_num: int, lr: BV32) -> BV32 {
@@ -546,7 +535,7 @@ flux_rs::defs! {
     }
 
     fn cpu_post_switch_to_user_pt1(cpu: Armv7m) -> Armv7m {
-        cpu_post_exception_exit(
+        cpu_post_preempt(
             cpu_post_switch_to_user_pt1_reg_restores(
                 cpu_post_switch_to_user_pt1_save_clobbers(cpu)
             ),
@@ -1073,6 +1062,19 @@ flux_rs::defs! {
             control: Control { npriv: false, ..old_cpu.control },
             lr: bv32(0xFFFF_FFF9),
             ..old_cpu
+        }
+    }
+
+    fn cpu_post_run_isr(cpu: Armv7m, exception_num: int) -> Armv7m {
+        if exception_num == 11 {
+            cpu_post_svc_isr(cpu)
+        } else if exception_num == 15 {
+            cpu_post_sys_tick_isr(cpu)
+        } else if exception_num >= 16 {
+            cpu_post_generic_isr(cpu)
+        } else {
+            // should not reach this
+            cpu
         }
     }
 

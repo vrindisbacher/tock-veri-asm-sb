@@ -243,16 +243,7 @@ impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec])
             requires sp_can_handle_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec))
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
-                    mode: thread_mode(),
-                    control: Control { spsel: return_exec != bv32(0xFFFF_FFF9), ..cpu.control },
-                    general_regs: gprs_post_exception_exit(get_sp_from_isr_ret(cpu.sp, return_exec), cpu),
-                    lr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32( 0x14)), cpu.mem),
-                    psr: get_mem_addr(bv_add(get_sp_from_isr_ret(cpu.sp, return_exec), bv32(0x1C)), cpu.mem),
-                    sp: sp_post_exception_exit(cpu.sp, return_exec),
-                    ..cpu
-                }
-            }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, return_exec) }
     )]
     fn exception_exit(&mut self, return_exec: BV32) {
         let frame_ptr = self.exception_exit_get_fp_update_sp(return_exec);
@@ -261,13 +252,16 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (&Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
+        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) -> BV32[get_bx_from_exception_num(exception_num, cpu.lr)]
+            requires exception_num == 11 || exception_num >= 15
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_run_isr(cpu, exception_num)  }
     )]
-    fn run_isr(&self, exception_number: u8) -> BV32 {
-        if exception_number == 11 && self.lr == BV32::from(0xFFFF_FFF9) {
-            BV32::from(0xFFFF_FFFD)
-        } else {
-            BV32::from(0xFFFF_FFF9)
+    fn run_isr(&mut self, exception_number: u8) -> BV32 {
+        match exception_number {
+            11 => self.svc_isr(),
+            15 => self.sys_tick_isr(),
+            16..=255 => self.generic_isr(),
+            _ => panic!("Unhandled"),
         }
     }
 
@@ -279,7 +273,7 @@ impl Armv7m {
                 &&
                 // and Stack Pointer used on exit is valid and can grow upwards 20 bytes
                 sp_can_handle_preempt_exception_exit(cpu, exception_num) 
-            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_exit(cpu, exception_num) }
+            ensures self: Armv7m { new_cpu: new_cpu == cpu_post_preempt(cpu, exception_num) }
     )]
     pub fn preempt(&mut self, exception_number: u8) {
         // stack
