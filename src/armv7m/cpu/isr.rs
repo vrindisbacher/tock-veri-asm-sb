@@ -25,7 +25,7 @@ impl Armv7m {
         self.isb(Some(IsbOpt::Sys));
         // NOTE: using pseudo instr here
         // lr = 0xFFFFFFF9
-        self.pseudo_ldr_special(SpecialRegister::Lr, BV32::from(0xFFFFFFF9));
+        self.pseudo_ldr_special(SpecialRegister::lr(), BV32::from(0xFFFFFFF9));
         // r0 = ipsr
         self.mrs(GPR::R0, SpecialRegister::IPSR);
         // Note: this seems to be a useless instruction?
@@ -63,7 +63,7 @@ impl Armv7m {
         // mem[0xe000_e200 + ((ipsr - 16 >> 5) << 2)] = (1 << ipsr - 16 & 31) i.e. "bit for the ipsr # is set"
         self.strw_lsl_reg(GPR::R0, GPR::R3, GPR::R2, BV32::from(2));
         // self.bx(SpecialRegister::Lr);
-        return self.get_value_from_special_reg(&SpecialRegister::Lr);
+        return self.get_value_from_special_reg(&SpecialRegister::lr());
     }
 
     #[flux_rs::sig(
@@ -124,8 +124,8 @@ impl Armv7m {
         self.movw_imm(GPR::R0, BV32::from(0));
         self.msr(SpecialRegister::Control, GPR::R0);
         self.isb(Some(IsbOpt::Sys));
-        self.pseudo_ldr_special(SpecialRegister::Lr, BV32::from(0xFFFF_FFF9));
+        self.pseudo_ldr_special(SpecialRegister::lr(), BV32::from(0xFFFF_FFF9));
         // self.bx(SpecialRegister::Lr);
-        return self.get_value_from_special_reg(&SpecialRegister::Lr);
+        return self.get_value_from_special_reg(&SpecialRegister::lr());
     }
 }
