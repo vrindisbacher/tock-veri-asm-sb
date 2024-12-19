@@ -346,7 +346,8 @@ mod arm_test {
             &&
             mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
             && 
-            sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
+            // sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
+            kernel_process_sp_non_overlapping_post_process(new_cpu)
             &&
             register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
             &&
@@ -361,26 +362,8 @@ mod arm_test {
                (exception_num == 11 || exception_num >= 15)
                &&
                mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
-               && 
-               sp_can_handle_exception_entry(old_cpu)
                &&
-               // Here: 
-               //   1. sp main will grow downwards by 0x20
-               //   2. sp_process will grow upwards by 0x20 
-               //   3. sp_process will grow downwards by 0x20
-               //   4. sp_main will grow upwards by 0x20
-               //
-               (
-                   // sp main needs a buffer of 0x20 bytes on sp_process to grow downwards
-                   sp_main(old_cpu.sp) == bv32(0x6000_0020)
-                   &&
-                   sp_process(old_cpu.sp) == bv32(0x8FFF_FFFF)
-                   // sp_main(old_cpu.sp) > bv_add(sp_process(old_cpu.sp), bv32(0x20))
-                   // ||
-                   // or sp process needs a buffer of 0x20 bytes on sp process to grow upwards
-                   // sp_process(old_cpu.sp) < bv_sub(sp_main(old_cpu.sp), bv32(0x20))
-               )
-               && sp_can_handle_preempt_exception_exit(old_cpu, exception_num)
+               kernel_process_sp_non_overlapping_pre_process(old_cpu)
            ensures self: Armv7m { new_cpu:
                sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
             }

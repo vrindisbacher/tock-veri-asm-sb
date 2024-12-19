@@ -1078,6 +1078,51 @@ flux_rs::defs! {
         }
     }
 
+    fn kernel_process_sp_non_overlapping_post_process(cpu: Armv7m) -> bool {
+        // NOTE: 
+        // 1. The kernel ram sits below process ram
+        // 2. On exception entry, the process stack grows down 0x20 bytes
+        // 3. On exception exit, the main stack grows upwards 0x20 bytes 
+        //
+        // So we need at least 40 bytes of space
+        bv_ult(bv_add(sp_main(cpu.sp), bv32(0x40)), sp_process(cpu.sp))
+        &&
+        // main stack can grow upwards by 0x20
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20))) 
+        &&
+        // process stack can grow downwards by 0x20
+        is_valid_ram_addr(sp_process(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_sub(sp_process(cpu.sp), bv32(0x20)))
+    }
+
+    fn kernel_process_sp_non_overlapping_pre_process(cpu: Armv7m) -> bool {
+        // NOTE: 
+        // 1. The kernel ram sits below process ram
+        // 2. For exception entry, we write 0x20 bytes onto the 
+        //    kernel stack -> i.e. downwards this means we cannot 
+        //    overwrite process memory
+        // 3. For exception exit to process code, the process sp grows
+        //    upwards by 0x20 bytes so we can't overwrite kernel mem
+        //
+        //  Ultimately this means that sp_process needs to be at least 0x20 bytes 
+        //  more than sp main
+        bv_ult(sp_main(cpu.sp), sp_process(cpu.sp))
+        // bv_ult(bv_add(sp_main(cpu.sp), bv32(0x20)), sp_process(cpu.sp))
+        &&
+        // main stack can grow downwards by 0x20
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_sub(sp_main(cpu.sp), bv32(0x20))) 
+        &&
+        // process stack can grow upwards by 0x20
+        is_valid_ram_addr(sp_process(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_process(cpu.sp), bv32(0x20)))
+    }
+
     fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
 
     fn mode_is_handler(mode: int) -> bool {
