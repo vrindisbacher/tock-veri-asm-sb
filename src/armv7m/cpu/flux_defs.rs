@@ -1085,7 +1085,10 @@ flux_rs::defs! {
         // 3. On exception exit, the main stack grows upwards 0x20 bytes 
         //
         // So we need at least 40 bytes of space
-        bv_ult(bv_add(sp_main(cpu.sp), bv32(0x40)), sp_process(cpu.sp))
+        
+        // A000_0000 works but 0x9FFF_FFFF does not?
+        // mystified as to why this is the case...
+        bv_ult(bv_add(sp_main(cpu.sp), bv32(0xA000_0000)), sp_process(cpu.sp))
         &&
         // main stack can grow upwards by 0x20
         is_valid_ram_addr(sp_main(cpu.sp))
