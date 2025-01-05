@@ -264,3 +264,21 @@ flux_rs::defs! {
         map_set(old_mem, address, value)
     }
 }
+
+flux_rs::defs! {
+    fn bv32(val: int) -> bitvec<32> {
+        bv_int_to_bv32(val)
+    }
+
+    fn int(val: bitvec<32>) -> int {
+        bv_bv32_to_int(val)
+    }
+
+    fn not(val: bitvec<32>) -> bitvec<32> {
+        bv_not(val)
+    }
+
+    fn and(val1: bitvec<32>, val2: bitvec<32>) -> bitvec<32> {
+        bv_and(val1, val2)
+    }
+}
