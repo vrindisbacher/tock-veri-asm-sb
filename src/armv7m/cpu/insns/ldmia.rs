@@ -1,11 +1,9 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
 
+use flux_rs::bitvec::BV32;
 impl Armv7m {
     #[flux_rs::sig(
         fn (
@@ -19,8 +17,8 @@ impl Armv7m {
             GPR[@rm6],
             GPR[@rm7],
             GPR[@rm8],
-        ) 
-        requires 
+        )
+        requires
             is_valid_read_addr(get_gpr(rd, old_cpu))
             &&
             is_valid_read_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x4)))
@@ -88,8 +86,8 @@ impl Armv7m {
             GPR[@rm1],
             GPR[@rm2],
             GPR[@rm3],
-        ) 
-        requires 
+        )
+        requires
             is_valid_read_addr(get_special_reg(rd, old_cpu))
             &&
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
@@ -127,7 +125,7 @@ impl Armv7m {
             BV32[get_mem_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)), old_cpu.mem)],
             BV32[get_mem_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x8)), old_cpu.mem)],
         )
-        requires 
+        requires
             is_valid_read_addr(get_special_reg(rd, old_cpu))
             &&
             is_valid_read_addr(bv_add(get_special_reg(rd, old_cpu), bv32(0x4)))
@@ -149,9 +147,9 @@ impl Armv7m {
         (val1, val2, val3)
     }
 
-    #[flux_rs::sig(fn 
+    #[flux_rs::sig(fn
         (
-            self: &strg Armv7m[@cpu], 
+            self: &strg Armv7m[@cpu],
             GPR[@rm1],
             BV32[@val1],
             GPR[@rm2],

@@ -1,4 +1,4 @@
-use crate::flux_support::bv32::BV32;
+use flux_rs::bitvec::BV32;
 
 // NVIC
 //

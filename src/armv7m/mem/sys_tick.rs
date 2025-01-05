@@ -5,7 +5,7 @@
 // 0xE000E020- 0xE000E0FC	-	-	-	Reserved
 //
 
-use crate::flux_support::bv32::BV32;
+use flux_rs::bitvec::BV32;
 
 use super::flux_defs::sys_tick_defs::*;
 

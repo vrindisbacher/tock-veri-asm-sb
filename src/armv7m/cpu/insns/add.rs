@@ -1,10 +1,8 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
+use flux_rs::bitvec::BV32;
 
 impl Armv7m {
     pub fn add_imm(&mut self, rd: GPR, rn: SpecialRegister, imm: BV32) {

@@ -1,10 +1,8 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
+use flux_rs::bitvec::BV32;
 
 impl Armv7m {
     // flattening the list into 8 regs because we know this is r4 - r11
@@ -20,8 +18,8 @@ impl Armv7m {
             GPR[@rm6],
             GPR[@rm7],
             GPR[@rm8],
-        ) 
-        requires 
+        )
+        requires
             is_valid_write_addr(get_gpr(rd, old_cpu))
             &&
             is_valid_write_addr(bv_add(get_gpr(rd, old_cpu), bv32(0x4)))

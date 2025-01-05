@@ -1,22 +1,20 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
+use flux_rs::bitvec::BV32;
 
 flux_rs::defs! {}
 
 impl Armv7m {
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@rd], GPR[@r1], GPR[@r2], GPR[@r3]) 
-            requires 
+        fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@rd], GPR[@r1], GPR[@r2], GPR[@r3])
+            requires
                 is_valid_ram_addr(get_special_reg(rd, old_cpu))
                 &&
                 is_valid_ram_addr(bv_sub(get_special_reg(rd, old_cpu), bv32(0xc)))
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_stmdb_wback(old_cpu, rd, r1, r2, r3) }
-                
+
     )]
     pub fn stmdb_wback(&mut self, rd: SpecialRegister, r1: GPR, r2: GPR, r3: GPR) {
         // this is identical to push - especially in this case because it is only

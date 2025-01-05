@@ -1,7 +1,6 @@
-use crate::{
-    armv7m::lang::{SpecialRegister, GPR},
-    flux_support::bv32::BV32,
-};
+use crate::armv7m::lang::{SpecialRegister, GPR};
+
+use flux_rs::bitvec::BV32;
 
 use super::super::Armv7m;
 
@@ -23,8 +22,8 @@ impl Armv7m {
     //   else
     //      R[t] = data;
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-        ensures self: Armv7m { new_cpu: 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val])
+        ensures self: Armv7m { new_cpu:
             new_cpu == Armv7m { general_regs: set_gpr(reg, old_cpu, val), ..old_cpu }
         }
     )]
@@ -45,7 +44,7 @@ impl Armv7m {
         self.movw_imm(register, value);
     }
 
-    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val]) 
+    #[flux_rs::sig(fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
         // right now requires that the register is the link register
         requires is_lr(reg)
         ensures self: Armv7m { new_cpu: new_cpu == Armv7m { lr: val, ..old_cpu } }

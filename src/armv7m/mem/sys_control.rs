@@ -19,7 +19,7 @@
 // 0xE000EDF0 - 0xE000EEFC	-	-	-	See Debug register support in the SCS
 //
 
-use crate::flux_support::bv32::BV32;
+use flux_rs::bitvec::BV32;
 
 use super::flux_defs::sys_control_block_defs::*;
 use super::flux_defs::sys_control_id_reg_defs::*;

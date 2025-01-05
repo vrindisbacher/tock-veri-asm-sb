@@ -1,6 +1,8 @@
-use crate::{armv7m::lang::SpecialRegister, flux_support::bv32::BV32};
+use crate::armv7m::lang::SpecialRegister;
 
 use super::super::Armv7m;
+
+use flux_rs::bitvec::BV32;
 
 impl Armv7m {
     // BX (see p. A7-215 in the manual)
