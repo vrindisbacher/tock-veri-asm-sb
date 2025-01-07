@@ -160,12 +160,10 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
         sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
         &&
         mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
-        && 
-        sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
         &&
         register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
         &&
-        sp_can_handle_exception_entry(new_cpu)
+        control_flow_kernel_to_kernel_sp_non_overlapping_post_process(new_cpu)
     }
 )]
 fn process(armv7m: &mut Armv7m) {}
@@ -177,11 +175,7 @@ fn process(armv7m: &mut Armv7m) {}
             &&
             mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             &&
-            get_gpr(r0(), old_cpu) == bv32(0x8FFF_FFFF) 
-            &&
-            get_gpr(r1(), old_cpu) == bv32(0x7000_0020)
-            &&
-            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
+            control_flow_kernel_to_kernel_sp_non_overlapping_pre_process(old_cpu)
        ensures self: Armv7m { new_cpu: 
            // r0, r2, r3, and r12 are clobbered but are caller saved
            get_gpr(r1(), new_cpu) == get_gpr(r1(), old_cpu)
@@ -246,12 +240,6 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
             // mode is preserved
             mode_is_thread_privileged(new_cpu.mode, new_cpu.control)
             &&
-            // fake the resulting sp - so we know there is no overlap
-            sp_main(new_cpu.sp) == bv32(0x6040_0000) 
-            &&
-            // sp process is preserved
-            sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
-            &&
             // and we need to preserve where the process regs are saved
             register_frame_preserved(get_gpr(r1(), old_cpu), old_cpu, new_cpu)
             // and we need to preserve the hardware stacked process registers stack frame
@@ -268,14 +256,16 @@ fn kernel(armv7m: &mut Armv7m) {}
             &&
             mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
             &&
-            // the hardware stacked r1 (which has the addr of our stored registers
-            // field) is valid and is far enough away from sp_main
-            get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem) == bv32(0x7000_0020)
-            &&
-            // sp process and sp main are far apart
-            sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
-            &&
-            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
+            control_flow_process_to_process_sp_precondition(old_cpu)
+            // &&
+            // // the hardware stacked r1 (which has the addr of our stored registers
+            // // field) is valid and is far enough away from sp_main
+            // get_mem_addr(bv_add(sp_main(old_cpu.sp), bv32(0x4)), old_cpu.mem) == bv32(0x7000_0020)
+            // &&
+            // // sp process and sp main are far apart
+            // sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
+            // &&
+            // sp_main(old_cpu.sp) == bv32(0x6050_0000) 
         ensures self: Armv7m { new_cpu: 
             sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
             &&
@@ -311,7 +301,6 @@ fn kernel(armv7m: &mut Armv7m) {}
         }
 )]
 pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: u8) {
-    let r0_process = *armv7m.general_regs.get(&GPR::r0()).unwrap();
     // arbitrary code executing gets preempted
     armv7m.preempt(exception_num);
 
@@ -372,9 +361,11 @@ mod arm_test {
         // executes some kernel logic
         armv7m.movw_imm(GPR::r0(), BV32::from(10));
         armv7m.preempt(11);
+
         // process that havocs all state except the main sp and the fact it's in thread mode unprivileged
         process(armv7m);
-        // fake sys call
+
+        // preempt
         armv7m.preempt(exception_number);
         // end up back here
         // no more instructions for now

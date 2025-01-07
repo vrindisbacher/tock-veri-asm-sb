@@ -146,6 +146,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@cpu], BV32[@return_exec]) -> BV32[get_sp_from_isr_ret(cpu.sp, return_exec)]
+            requires exception_exit_get_fp_update_sp_precondition(cpu, return_exec)
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: thread_mode(),
                     control: Control {
@@ -289,6 +290,7 @@ impl Armv7m {
         self.exception_exit(ret_value);
     }
 }
+
 #[flux_rs::sig(fn(b:bool) ensures b)]
 pub const fn assume(b: bool) {
     if !b {

@@ -76,7 +76,7 @@ impl Armv7m {
         // giving it an arbitrary ram addr
         //
         // basically we just want to set SYSCALL FIRED pub static mut to 1
-        self.pseudo_ldr(GPR::R0, BV32::from(0x8000_0000));
+        self.pseudo_ldr(GPR::R0, BV32::from(0x6000_0000));
         self.movw_imm(GPR::R1, BV32::from(1));
         self.str_no_wback(GPR::R1, GPR::R0);
         // now do everything else

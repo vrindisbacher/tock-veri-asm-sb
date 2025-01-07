@@ -75,6 +75,14 @@ flux_rs::defs! {
         }
     }
 
+    fn exception_exit_get_fp_update_sp_precondition(cpu: Armv7m, return_exec: BV32) -> bool {
+        if return_exec == bv32(0xFFFF_FFF9) {
+            is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20)))
+        } else {
+            is_valid_ram_addr(bv_add(sp_process(cpu.sp), bv32(0x20)))
+        }
+    }
+
     fn get_sp_from_isr_ret(sp: SP, return_exec: BV32) -> BV32 {
         if return_exec == bv32(0xFFFF_FFFF9) {
             sp.sp_main
@@ -1023,7 +1031,8 @@ flux_rs::defs! {
 
     fn cpu_post_svc_to_kernel_isr(old_cpu: Armv7m) -> Armv7m {
         Armv7m {
-            mem: map_set(old_cpu.mem, bv32(0x8000_0000), bv32(1)),
+            // TODO: Do better than this random hardcoded addr
+            mem: map_set(old_cpu.mem, bv32(0x6000_0000), bv32(1)),
             general_regs: map_set(map_set(old_cpu.general_regs, r0(), bv32(0)), r1(), bv32(1)),
             control: Control { npriv: false, ..old_cpu.control },
             lr: bv32(0xFFFF_FFF9),
@@ -1078,22 +1087,54 @@ flux_rs::defs! {
         }
     }
 
-    fn kernel_process_sp_non_overlapping_post_process(cpu: Armv7m) -> bool {
-        // NOTE: 
-        // 1. The kernel ram sits below process ram
-        // 2. On exception entry, the process stack grows down 0x20 bytes
-        // 3. On exception exit, the main stack grows upwards 0x20 bytes 
-        //
-        // So we need at least 40 bytes of space
-        
-        // A000_0000 works but 0x9FFF_FFFF does not?
-        // mystified as to why this is the case...
-        bv_ult(bv_add(sp_main(cpu.sp), bv32(0xA000_0000)), sp_process(cpu.sp))
+    fn control_flow_kernel_to_kernel_sp_non_overlapping_post_process(cpu: Armv7m) -> bool {
+        bv_ult(bv_add(sp_main(cpu.sp), bv32(0x40)), sp_process(cpu.sp))
         &&
         // main stack can grow upwards by 0x20
         is_valid_ram_addr(sp_main(cpu.sp))
         &&
-        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20))) 
+        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x40)))
+        &&
+        // process stack can grow downwards by 0x20
+        is_valid_ram_addr(sp_process(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_sub(sp_process(cpu.sp), bv32(0x20)))
+    }
+
+    fn control_flow_kernel_to_kernel_sp_non_overlapping_pre_process(cpu: Armv7m) -> bool {
+        // TODO - Set SYSCALL_FIRED to 0x6000_0000 so need this in order to avoid overwriting
+        bv_ugt(sp_main(cpu.sp), bv32(0x6000_0020))
+        &&
+        bv_ult(sp_main(cpu.sp), sp_process(cpu.sp))
+        &&
+        // main stack can grow downwards by 0x20
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_sub(sp_main(cpu.sp), bv32(0x40)))
+        &&
+        // process stack can grow upwards by 0x20
+        is_valid_ram_addr(sp_process(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_process(cpu.sp), bv32(0x20)))
+    }
+
+    fn control_flow_process_to_process_kernel_sp_postcondition(cpu: Armv7m) -> bool {
+        // TODO - Set SYSCALL_FIRED to 0x6000_0000 so need this in order to avoid overwriting
+        bv_ugt(sp_main(cpu.sp), bv32(0x6000_0020))
+        &&
+        bv_ult(sp_main(cpu.sp), sp_process(cpu.sp))
+    }
+
+    fn control_flow_process_to_process_sp_precondition(cpu: Armv7m) -> bool {
+        // TODO - Set SYSCALL_FIRED to 0x6000_0000 so need this in order to avoid overwriting
+        bv_ugt(sp_main(cpu.sp), bv32(0x6000_0020))
+        &&
+        bv_ult(bv_add(sp_main(cpu.sp), bv32(0x40)), sp_process(cpu.sp))
+        &&
+        // main stack can grow upwards by 0x20
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20)))
         &&
         // process stack can grow downwards by 0x20
         is_valid_ram_addr(sp_process(cpu.sp))
@@ -1102,28 +1143,65 @@ flux_rs::defs! {
     }
 
     fn kernel_process_sp_non_overlapping_pre_process(cpu: Armv7m) -> bool {
-        // NOTE: 
+        // NOTE:
         // 1. The kernel ram sits below process ram
-        // 2. For exception entry, we write 0x20 bytes onto the 
-        //    kernel stack -> i.e. downwards this means we cannot 
-        //    overwrite process memory
-        // 3. For exception exit to process code, the process sp grows
-        //    upwards by 0x20 bytes so we can't overwrite kernel mem
+        // 2. On exception entry, the main stack grows down 0x20 bytes and the
+        // process stack shrinks up 0x20 bytes
+        //  | <- main stack post
+        //  | <- main stack pre
+        //  |
+        //  | <- process stack pre
+        //  | <- process stack post
         //
-        //  Ultimately this means that sp_process needs to be at least 0x20 bytes 
-        //  more than sp main
+        // They cannot run into each other when hardware saves kernel registers - main sp just has
+        // to be less than the process sp
+
+        // TODO - Set SYSCALL_FIRED to 0x6000_0000 so need this in order to avoid overwriting
+        bv_ugt(sp_main(cpu.sp), bv32(0x6000_0020))
+        &&
         bv_ult(sp_main(cpu.sp), sp_process(cpu.sp))
-        // bv_ult(bv_add(sp_main(cpu.sp), bv32(0x20)), sp_process(cpu.sp))
         &&
         // main stack can grow downwards by 0x20
         is_valid_ram_addr(sp_main(cpu.sp))
         &&
-        is_valid_ram_addr(bv_sub(sp_main(cpu.sp), bv32(0x20))) 
+        is_valid_ram_addr(bv_sub(sp_main(cpu.sp), bv32(0x20)))
         &&
         // process stack can grow upwards by 0x20
         is_valid_ram_addr(sp_process(cpu.sp))
         &&
         is_valid_ram_addr(bv_add(sp_process(cpu.sp), bv32(0x20)))
+    }
+
+    fn kernel_process_sp_non_overlapping_post_process(cpu: Armv7m) -> bool {
+        // NOTE:
+        // 1. The kernel ram sits below process ram
+        // 2. On exception exit, the main stack shrinks up 0x20 bytes and the process stack
+        // grows down 0x20 bytes
+        //
+        //  | <- main stack pre
+        //  | <- main stack post
+        //  |
+        //  | <- process stack post
+        //  | <- process stack pre
+        //
+        // so these can run into each other - the process stack pointer needs 40 bytes of space
+        // from the main stack pointer because sp_main_new = sp_main_old + 0x20 and
+        // sp_process_new = sp_process_old - 0x20
+
+        // A000_0000 works but 0x9FFF_FFFF does not?
+        // mystified as to why this is the case...
+        // bv_ult(bv_add(sp_main(cpu.sp), bv32(0xA000_0000)), sp_process(cpu.sp))
+        bv_ult(bv_add(sp_main(cpu.sp), bv32(0x40)), sp_process(cpu.sp))
+        &&
+        // main stack can grow upwards by 0x20
+        is_valid_ram_addr(sp_main(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_add(sp_main(cpu.sp), bv32(0x20)))
+        &&
+        // process stack can grow downwards by 0x20
+        is_valid_ram_addr(sp_process(cpu.sp))
+        &&
+        is_valid_ram_addr(bv_sub(sp_process(cpu.sp), bv32(0x20)))
     }
 
     fn get_psr(cpu: Armv7m) ->  BV32 { get_special_reg(psr(), cpu) }
