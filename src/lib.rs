@@ -170,6 +170,11 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
 )]
 fn process(armv7m: &mut Armv7m) {}
 
+#[flux_rs::sig(fn (&Armv7m[@cpu]) -> BV32[get_gpr(r1(), cpu)])]
+fn get_r1(armv7m: &Armv7m) -> BV32 {
+    *armv7m.general_regs.get(&GPR::r1()).unwrap()
+}
+
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
        requires 
@@ -211,7 +216,7 @@ fn process(armv7m: &mut Armv7m) {}
 )]
 pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8) {
     // get r1 at the beginning of this so we can assert some facts with it later
-    let original_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
+    let original_r1 = get_r1(armv7m);
 
     // context switch asm
     switch_to_user_part1(armv7m);
@@ -224,7 +229,7 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
 
     // r1 can absolutely not change here - otherwise
     // we will save registers to the wrong place
-    let curr_r1 = *armv7m.general_regs.get(&GPR::r1()).unwrap();
+    let curr_r1 = get_r1(armv7m);
     assert(original_r1 == curr_r1);
 
     // run the rest of the context switch asm
@@ -311,7 +316,6 @@ fn kernel(armv7m: &mut Armv7m) {}
         }
 )]
 pub fn tock_control_flow_process_to_process(armv7m: &mut Armv7m, exception_num: u8) {
-    let r0_process = *armv7m.general_regs.get(&GPR::r0()).unwrap();
     // arbitrary code executing gets preempted
     armv7m.preempt(exception_num);
 
