@@ -6,9 +6,9 @@ mod psr;
 
 use super::lang::{SpecialRegister, GPR};
 use super::mem::Memory;
-use crate::flux_support::bv32::BV32;
 use crate::flux_support::rmap::Regs;
 use flux_defs::*;
+use flux_rs::bitvec::BV32;
 
 pub type ArmGeneralRegs = Regs<GPR, BV32>;
 pub type ArmSpecialRegs = Regs<SpecialRegister, BV32>;
@@ -166,9 +166,9 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], SpecialRegister[@reg], BV32[@val])
-            requires 
+            requires
             (is_sp(reg) || is_psp(reg)) => is_valid_ram_addr(val)
-            ensures self: Armv7m { new_cpu: new_cpu == set_spr(reg, old_cpu, val) } 
+            ensures self: Armv7m { new_cpu: new_cpu == set_spr(reg, old_cpu, val) }
     )]
     fn update_special_reg_with_b32(&mut self, register: SpecialRegister, value: BV32) {
         match register {
@@ -205,9 +205,9 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val]) 
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
-                general_regs: set_gpr(reg, old_cpu, val), ..old_cpu 
+        fn (self: &strg Armv7m[@old_cpu], GPR[@reg], BV32[@val])
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
+                general_regs: set_gpr(reg, old_cpu, val), ..old_cpu
             }
         }
     )]

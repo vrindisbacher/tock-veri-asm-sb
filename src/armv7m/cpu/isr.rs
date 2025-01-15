@@ -1,7 +1,5 @@
-use crate::{
-    armv7m::lang::{IsbOpt, SpecialRegister, GPR},
-    flux_support::bv32::BV32,
-};
+use crate::armv7m::lang::{IsbOpt, SpecialRegister, GPR};
+use flux_rs::bitvec::BV32;
 
 use super::{Armv7m, Control};
 
@@ -10,7 +8,7 @@ flux_rs::defs! {}
 impl Armv7m {
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu]) -> BV32[bv32(0xFFFF_FFF9)]
-        requires 
+        requires
             bv_uge(get_special_reg(ipsr(), old_cpu), bv32(16))
             &&
             mode_is_handler(old_cpu.mode)

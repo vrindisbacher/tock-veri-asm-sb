@@ -1,8 +1,8 @@
 use super::Memory;
 use super::{Armv7m, CPUMode, Control, SP};
 use crate::armv7m::lang::{SpecialRegister, GPR};
-use crate::flux_support::bv32::*;
 use crate::flux_support::rmap::*;
+use flux_rs::bitvec::BV32;
 
 const U32_MAX: u32 = std::u32::MAX;
 

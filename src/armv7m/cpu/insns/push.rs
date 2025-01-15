@@ -1,10 +1,8 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
+use flux_rs::bitvec::BV32;
 
 flux_rs::defs! {
     fn mem_post_push(
@@ -42,14 +40,14 @@ flux_rs::defs! {
 impl Armv7m {
     #[flux_rs::sig(
         fn (
-            self: &strg Armv7m[@old_cpu], 
+            self: &strg Armv7m[@old_cpu],
             GPR[@r1],
             GPR[@r2],
             GPR[@r3],
             GPR[@r4],
             SpecialRegister[@r5]
-        ) 
-            requires 
+        )
+            requires
                 is_valid_ram_addr(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control))
                 &&
                 is_valid_ram_addr(bv_sub(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x14)))

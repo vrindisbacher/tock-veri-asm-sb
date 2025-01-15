@@ -1,10 +1,10 @@
-use crate::{
-    armv7m::{
-        cpu::Armv7m,
-        lang::{SpecialRegister, GPR},
-    },
-    flux_support::bv32::BV32,
+use crate::armv7m::{
+    cpu::Armv7m,
+    lang::{SpecialRegister, GPR},
 };
+
+use flux_rs::bitvec::BV32;
+
 flux_rs::defs! {
     fn gprs_post_pop(cpu: Armv7m, sp: BV32, r1: int, r2: int, r3: int, r4: int) -> Map<GPR, BV32> {
         map_set(
@@ -37,7 +37,7 @@ impl Armv7m {
             GPR[@r4],
             SpecialRegister[@r5]
         )
-            requires 
+            requires
                 is_valid_ram_addr(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control))
                 &&
                 is_valid_ram_addr(bv_add(get_sp(old_cpu.sp, old_cpu.mode, old_cpu.control), bv32(0x14)))

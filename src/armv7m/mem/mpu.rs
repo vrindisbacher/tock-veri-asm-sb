@@ -4,9 +4,8 @@
 // 0xE000EDBC - 0xE000EDEC
 // -	...	-	Reserved.
 
-use crate::flux_support::bv32::BV32;
-
 use super::flux_defs::mpu_defs::*;
+use flux_rs::bitvec::BV32;
 
 #[flux_rs::constant(bv_int_to_bv32(0xE000ED90))]
 pub const MPU_TYPE_ADDR: BV32 = BV32::new(0xE000ED90);

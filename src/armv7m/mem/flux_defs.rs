@@ -15,7 +15,7 @@ pub mod mpu_defs {
         MPU_RBAR_A1_ADDR, MPU_RBAR_A2_ADDR, MPU_RBAR_A3_ADDR, MPU_RBAR_ADDR, MPU_RNR_ADDR,
         MPU_TYPE_ADDR,
     };
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
         fn is_valid_mpu_read_addr(address: BV32) -> bool {
@@ -52,7 +52,7 @@ pub mod mpu_defs {
 pub mod sys_tick_defs {
 
     use super::sys_tick::{SYST_CALIB_ADDR, SYST_CSR_ADDR, SYST_CVR_ADDR, SYST_RVR_ADDR};
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
 
@@ -79,7 +79,7 @@ pub mod sys_control_block_defs {
         HFSR_ADDR, ICSR_ADDR, MMFAR_ADDR, SCR_ADDR, SHCSR_ADDR, SHPR1_ADDR, SHPR2_ADDR, SHPR3_ADDR,
         VTOR_ADDR,
     };
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
         fn is_valid_sys_control_block_read_addr(address: BV32) -> bool {
@@ -130,7 +130,7 @@ pub mod sys_control_id_reg_defs {
         ACTLR_ADDR, CID0_ADDR, CID1_ADDR, CID2_ADDR, CID3_ADDR, ICTR_ADDR, PID0_ADDR, PID1_ADDR,
         PID2_ADDR, PID3_ADDR, PID4_ADDR, PID5_ADDR, PID6_ADDR, PID7_ADDR, STIR_ADDR,
     };
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
             fn is_valid_sys_control_id_reg_read_addr(address: BV32) -> bool {
@@ -167,7 +167,7 @@ pub mod sys_control_space_defs {
     };
     use super::sys_control_block_defs::*;
     use super::sys_control_block_defs::*;
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
         fn is_valid_sys_control_space_read_addr(address: BV32) -> bool {
@@ -185,7 +185,7 @@ pub mod nvic_defs {
         IABR_END, IABR_START, ICER_END, ICER_START, ICPR_END, ICPR_START, IPR_END, IPR_START,
         ISER_END, ISER_START, ISPR_END, ISPR_START,
     };
-    use crate::flux_support::bv32::BV32;
+    use flux_rs::bitvec::BV32;
 
     flux_rs::defs! {
             // all addresses are read / write as long as they are 4 byte aligned
@@ -219,7 +219,7 @@ pub mod nvic_defs {
     }
 }
 
-use crate::flux_support::bv32::BV32;
+use flux_rs::bitvec::BV32;
 use mpu_defs::*;
 use nvic_defs::*;
 use sys_control_space_defs::*;
@@ -262,5 +262,23 @@ flux_rs::defs! {
 
     fn update_mem(address: BV32, old_mem: Memory, value: BV32) -> Map<BV32, BV32> {
         map_set(old_mem, address, value)
+    }
+}
+
+flux_rs::defs! {
+    fn bv32(val: int) -> bitvec<32> {
+        bv_int_to_bv32(val)
+    }
+
+    fn int(val: bitvec<32>) -> int {
+        bv_bv32_to_int(val)
+    }
+
+    fn not(val: bitvec<32>) -> bitvec<32> {
+        bv_not(val)
+    }
+
+    fn and(val1: bitvec<32>, val2: bitvec<32>) -> bitvec<32> {
+        bv_and(val1, val2)
     }
 }

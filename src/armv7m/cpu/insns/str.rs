@@ -1,7 +1,5 @@
-use crate::{
-    armv7m::{cpu::Armv7m, lang::GPR},
-    flux_support::bv32::BV32,
-};
+use crate::armv7m::{cpu::Armv7m, lang::GPR};
+use flux_rs::bitvec::BV32;
 
 impl Armv7m {
     // Str (register) (w) with a LSL (see p. A7-388 in the manual)
@@ -19,20 +17,20 @@ impl Armv7m {
 
     // NOTE: Dest cannot be LR, PC, or SP
     #[flux_rs::sig(fn (
-            self: &strg Armv7m[@old_cpu], 
-            GPR[@reg_to_store], 
-            GPR[@reg_base], 
-            GPR[@reg_offset], 
+            self: &strg Armv7m[@old_cpu],
+            GPR[@reg_to_store],
+            GPR[@reg_base],
+            GPR[@reg_offset],
             BV32[@shift]
-        ) 
-        requires 
+        )
+        requires
             is_valid_write_addr(
                 bv_add(
-                    get_gpr(reg_base, old_cpu), 
+                    get_gpr(reg_base, old_cpu),
                     left_shift(get_gpr(reg_offset, old_cpu), shift)
                 )
             )
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 mem: update_mem(
                         bv_add(
                             get_gpr(reg_base, old_cpu),
@@ -40,8 +38,8 @@ impl Armv7m {
                         ),
                         old_cpu.mem,
                         get_gpr(reg_to_store, old_cpu)
-                ), 
-                ..old_cpu 
+                ),
+                ..old_cpu
             }
         }
     )]
@@ -68,18 +66,18 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(fn (
-            self: &strg Armv7m[@old_cpu], 
-            GPR[@rt], 
-            GPR[@rn], 
-        ) 
+            self: &strg Armv7m[@old_cpu],
+            GPR[@rt],
+            GPR[@rn],
+        )
         requires is_valid_write_addr(get_gpr(rn, old_cpu))
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 mem: update_mem(
                         get_gpr(rn, old_cpu),
                         old_cpu.mem,
                         get_gpr(rt, old_cpu)
-                ), 
-                ..old_cpu 
+                ),
+                ..old_cpu
             }
         }
     )]

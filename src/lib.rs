@@ -5,7 +5,7 @@ use armv7m::{
     cpu::SP,
     lang::{SpecialRegister, GPR},
 };
-use flux_support::bv32::BV32;
+use flux_rs::bitvec::BV32;
 
 mod armv7m;
 mod flux_support;
@@ -14,7 +14,7 @@ mod flux_support;
 pub fn assert(b: bool) {}
 
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu]) 
+    fn (self: &strg Armv7m[@old_cpu])
         requires switch_to_user_pt1_save_clobbers_precondition(old_cpu)
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1_save_clobbers(old_cpu) }
 )]
@@ -41,7 +41,7 @@ fn switch_to_user_part1_save_clobbers(armv7m: &mut Armv7m) {
 }
 
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu]) 
+    fn (self: &strg Armv7m[@old_cpu])
         requires switch_to_user_pt1_reg_restores_precondition(old_cpu)
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt1_reg_restores(old_cpu) }
 )]
@@ -143,7 +143,7 @@ pub fn switch_to_user_part2_restore_clobbers(armv7m: &mut Armv7m) {
 //  2a:   bdf0            pop     {r4, r5, r6, r7, pc}
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu])
-        requires switch_to_user_pt2_precondition(old_cpu) 
+        requires switch_to_user_pt2_precondition(old_cpu)
         ensures self: Armv7m { new_cpu: new_cpu == cpu_post_switch_to_user_pt2(old_cpu) }
 )]
 pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
@@ -153,14 +153,14 @@ pub fn switch_to_user_part2(armv7m: &mut Armv7m) {
 
 #[flux_rs::trusted]
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu]) 
+    fn (self: &strg Armv7m[@old_cpu])
        // process MUST be running in mode thread unprivileged
        requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
-       ensures self: Armv7m { new_cpu: 
-        sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
+       ensures self: Armv7m { new_cpu:
+        sp_main(new_cpu.sp) == sp_main(old_cpu.sp)
         &&
         mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
-        && 
+        &&
         sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
         &&
         register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
@@ -176,18 +176,18 @@ fn get_r1(armv7m: &Armv7m) -> BV32 {
 }
 
 #[flux_rs::sig(
-    fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
-       requires 
+    fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
+       requires
             (exception_num == 11 || exception_num >= 15)
             &&
             mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
             &&
-            get_gpr(r0(), old_cpu) == bv32(0x8FFF_FFFF) 
+            get_gpr(r0(), old_cpu) == bv32(0x8FFF_FFFF)
             &&
             get_gpr(r1(), old_cpu) == bv32(0x7000_0020)
             &&
-            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
-       ensures self: Armv7m { new_cpu: 
+            sp_main(old_cpu.sp) == bv32(0x6050_0000)
+       ensures self: Armv7m { new_cpu:
            // r0, r2, r3, and r12 are clobbered but are caller saved
            get_gpr(r1(), new_cpu) == get_gpr(r1(), old_cpu)
            &&
@@ -240,7 +240,7 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu])
         requires mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
-        ensures self: Armv7m { new_cpu: 
+        ensures self: Armv7m { new_cpu:
             // r1 and r0 need to be saved for the process -
             // in principle this is stored somewhere and reloaded
             // but we'll just fake it here
@@ -252,7 +252,7 @@ pub fn tock_control_flow_kernel_to_kernel(armv7m: &mut Armv7m, exception_num: u8
             mode_is_thread_privileged(new_cpu.mode, new_cpu.control)
             &&
             // fake the resulting sp - so we know there is no overlap
-            sp_main(new_cpu.sp) == bv32(0x6040_0000) 
+            sp_main(new_cpu.sp) == bv32(0x6040_0000)
             &&
             // sp process is preserved
             sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
@@ -268,7 +268,7 @@ fn kernel(armv7m: &mut Armv7m) {}
 
 #[flux_rs::sig(
     fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
-        requires 
+        requires
             (exception_num == 11 || exception_num >= 15)
             &&
             mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
@@ -280,8 +280,8 @@ fn kernel(armv7m: &mut Armv7m) {}
             // sp process and sp main are far apart
             sp_process(old_cpu.sp) == bv32(0x8FFF_DDDD)
             &&
-            sp_main(old_cpu.sp) == bv32(0x6050_0000) 
-        ensures self: Armv7m { new_cpu: 
+            sp_main(old_cpu.sp) == bv32(0x6050_0000)
+        ensures self: Armv7m { new_cpu:
             sp_process(old_cpu.sp) == sp_process(new_cpu.sp)
             &&
             get_gpr(r0(), old_cpu) == get_gpr(r0(), new_cpu)
@@ -337,19 +337,19 @@ mod arm_test {
             mem::{flux_defs, Memory},
         },
         assert,
-        flux_support::bv32::BV32,
     };
+    use flux_rs::bitvec::BV32;
 
     #[flux_rs::trusted]
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu]) 
+        fn (self: &strg Armv7m[@old_cpu])
            // process MUST be running in mode thread unprivileged
            requires mode_is_thread_unprivileged(old_cpu.mode, old_cpu.control)
-           ensures self: Armv7m { new_cpu: 
-            sp_main(new_cpu.sp) == sp_main(old_cpu.sp) 
+           ensures self: Armv7m { new_cpu:
+            sp_main(new_cpu.sp) == sp_main(old_cpu.sp)
             &&
             mode_is_thread_unprivileged(new_cpu.mode, new_cpu.control)
-            && 
+            &&
             sp_process(new_cpu.sp) == bv32(0x8FFF_FFDD)
             &&
             register_frame_preserved(sp_main(new_cpu.sp), old_cpu, new_cpu)
@@ -360,17 +360,17 @@ mod arm_test {
     fn process(armv7m: &mut Armv7m) {}
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@old_cpu], u8[@exception_num]) 
-           requires 
+        fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
+           requires
                (exception_num == 11 || exception_num >= 15)
                &&
-               mode_is_thread_privileged(old_cpu.mode, old_cpu.control) 
-               && 
+               mode_is_thread_privileged(old_cpu.mode, old_cpu.control)
+               &&
                sp_can_handle_exception_entry(old_cpu)
                &&
-               // Here: 
+               // Here:
                //   1. sp main will grow downwards by 0x20
-               //   2. sp_process will grow upwards by 0x20 
+               //   2. sp_process will grow upwards by 0x20
                //   3. sp_process will grow downwards by 0x20
                //   4. sp_main will grow upwards by 0x20
                //
@@ -386,7 +386,7 @@ mod arm_test {
                )
                && sp_can_handle_preempt_exception_exit(old_cpu, exception_num)
            ensures self: Armv7m { new_cpu:
-               sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10) 
+               sp_main(new_cpu.sp) == sp_main(old_cpu.sp) && get_gpr(r0(), new_cpu) == bv32(10)
             }
     )]
     fn full_circle(armv7m: &mut Armv7m, exception_number: u8) {

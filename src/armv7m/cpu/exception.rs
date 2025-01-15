@@ -1,9 +1,7 @@
-use crate::{
-    armv7m::lang::{SpecialRegister, GPR},
-    flux_support::bv32::BV32,
-};
+use crate::armv7m::lang::{SpecialRegister, GPR};
 
 use super::{Armv7m, CPUMode, Control};
+use flux_rs::bitvec::BV32;
 
 impl Armv7m {
     #[flux_rs::sig(
@@ -41,7 +39,7 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], BV32[@r0], BV32[@r1], BV32[@r2], BV32[@r3], BV32[@r12], BV32[@lr], BV32[@psr]) 
+        fn (self: &strg Armv7m[@cpu], BV32[@r0], BV32[@r1], BV32[@r2], BV32[@r3], BV32[@r12], BV32[@lr], BV32[@psr])
             requires push_stack_sp_precondition(get_sp(cpu.sp, cpu.mode, cpu.control))
             ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 mem: mem_post_push_stack_write_gpr_vals(
@@ -82,12 +80,12 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu]) 
+        fn (self: &strg Armv7m[@cpu])
             requires sp_can_handle_exception_entry(cpu)
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {  
-                    sp: sp_post_exception_entry(cpu), 
+            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
+                    sp: sp_post_exception_entry(cpu),
                     mem: mem_post_exception_entry(get_sp(sp_post_exception_entry(cpu), cpu.mode, cpu.control), cpu),
-                    ..cpu 
+                    ..cpu
                 }
             }
     )]
@@ -99,7 +97,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (self: &strg Armv7m[@old_cpu], u8[@exception_num])
-            ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+            ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                     mode: handler_mode(),
                     control: control_post_exception_entry(old_cpu),
                     psr: psr_post_exception_entry(old_cpu, exception_num),
@@ -135,7 +133,7 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
+        fn (self: &strg Armv7m[@cpu], u8[@exception_num])
             requires sp_can_handle_exception_entry(cpu)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_exception_entry(cpu, exception_num) }
     )]
@@ -205,7 +203,7 @@ impl Armv7m {
 
     #[flux_rs::sig(
         fn (
-            self: &strg Armv7m[@cpu], 
+            self: &strg Armv7m[@cpu],
             BV32[@r0],
             BV32[@r1],
             BV32[@r2],
@@ -213,8 +211,8 @@ impl Armv7m {
             BV32[@r12],
             BV32[@lr],
             BV32[@psr],
-        ) 
-        ensures self: Armv7m { new_cpu: new_cpu == Armv7m { 
+        )
+        ensures self: Armv7m { new_cpu: new_cpu == Armv7m {
                 general_regs: gprs_post_exception_exit_write_regs(cpu, r0, r1, r2, r3, r12),
                 lr: lr,
                 psr: psr,
@@ -268,15 +266,15 @@ impl Armv7m {
     }
 
     #[flux_rs::sig(
-        fn (self: &strg Armv7m[@cpu], u8[@exception_num]) 
-            requires 
+        fn (self: &strg Armv7m[@cpu], u8[@exception_num])
+            requires
                 (exception_num == 11 || exception_num >= 15)
                 &&
                 // Stack Pointer is valid and can grow downwards 20 bytes
                 sp_can_handle_exception_entry(cpu)
                 &&
                 // and Stack Pointer used on exit is valid and can grow upwards 20 bytes
-                sp_can_handle_preempt_exception_exit(cpu, exception_num) 
+                sp_can_handle_preempt_exception_exit(cpu, exception_num)
             ensures self: Armv7m { new_cpu: new_cpu == cpu_post_preempt(cpu, exception_num) }
     )]
     pub fn preempt(&mut self, exception_number: u8) {
